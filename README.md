@@ -1,45 +1,86 @@
-Subtext
+# **Subtext**
+### *Don’t search by genre. Search by feeling.*
 
-Don't search by genre. Search by feeling.
+**Subtext** is a semantic movie discovery engine.
 
-Subtext is a semantic movie discovery engine. unlike traditional movie databases that rely on rigid tags ("Action", "Comedy"), Subtext uses Vector Embeddings and Cosine Similarity to understand the underlying "vibe" of a query.
+Traditional movie databases rely on rigid tags like **Action**, **Comedy**, or **Drama**. Subtext doesn’t.  
+It uses **vector embeddings** + **cosine similarity** to understand the underlying *vibe* of a query.
 
-It allows users to search for "a lonely sci-fi movie about memory" and get Eternal Sunshine of the Spotless Mind or Blade Runner 2049—results based on mathematical proximity in latent space, not just keyword matching.
+So instead of searching:
 
-⚡ The Stack
+> “Sci-fi”
 
-We use a hybrid architecture to combine the best modern web framework with the best AI ecosystem.
+You can search:
 
-Frontend: Next.js 15 (App Router), Tailwind CSS, Shadcn/UI.
+> “a lonely sci-fi movie about memory”
 
-Backend: FastAPI (Python).
+…and get results like:
 
-Database: Supabase (PostgreSQL + pgvector).
+- **Eternal Sunshine of the Spotless Mind**
+- **Blade Runner 2049**
 
-AI/ML: sentence-transformers (HuggingFace), running locally or on-server.
+Not because of keywords — but because they sit close together in **latent space**.
 
-Data Source: TMDB API.
+---
 
-🛠️ Prerequisities
+## ✨ What Subtext Does
 
-Before you start, ensure you have the following installed:
+- **Semantic search** for movies using natural language
+- **Vector database retrieval** (pgvector)
+- **FastAPI backend** with modern ML tooling
+- **Next.js frontend** with a clean design system
 
-Node.js v18+
+---
 
-Python 3.9+
+## ⚡ The Stack
 
-Git
+This project uses a hybrid architecture: modern web + best-in-class AI ecosystem.
 
-🚀 Quick Start
+### **Frontend**
+- **Next.js 15** (App Router)
+- **Tailwind CSS**
+- **shadcn/ui**
 
-This is a monorepo. You will need two terminal windows running simultaneously.
+### **Backend**
+- **FastAPI** (Python)
 
-1. The Database (Supabase)
+### **Database**
+- **Supabase** (PostgreSQL + pgvector)
 
-Create a free project at database.new.
+### **AI / ML**
+- **sentence-transformers** (HuggingFace)  
+- Runs locally or on-server
 
-Go to the SQL Editor and run the following to enable vector search:
+### **Data Source**
+- **TMDB API**
 
+---
+
+## 🛠️ Prerequisites
+
+Before you start, make sure you have:
+
+- **Node.js v18+**
+- **Python 3.9+**
+- **Git**
+
+---
+
+## 🚀 Quick Start
+
+This is a **monorepo**, so you’ll need **two terminal windows** running at the same time.
+
+---
+
+## 1) 🧱 Database Setup (Supabase)
+
+1. Create a free Supabase project at:
+
+   **database.new**
+
+2. Go to **SQL Editor** and run this:
+
+```sql
 create extension vector;
 
 create table movies (
@@ -48,68 +89,91 @@ create table movies (
   overview text,
   embedding vector(384) -- Dimension for 'all-MiniLM-L6-v2'
 );
+```
 
+---
 
-2. The Backend (Python)
+## 2) 🧠 Backend Setup (FastAPI)
 
-Terminal 1
+### Terminal 1
 
+```bash
 cd backend
 
 # Create and activate virtual environment
 python -m venv venv
-# Windows: .\venv\Scripts\activate
-# Mac/Linux: source venv/bin/activate
+
+# Windows
+.\venv\Scripts\activate
+
+# Mac/Linux
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Start the server
 uvicorn app.main:app --reload
+```
 
+✅ The Brain is now online at:
 
-The Brain is now online at http://127.0.0.1:8000
+**http://127.0.0.1:8000**
 
-3. The Frontend (Next.js)
+---
 
-Terminal 2
+## 3) 🎭 Frontend Setup (Next.js)
 
+### Terminal 2
+
+```bash
 cd frontend
 
 # Install dependencies
 npm install
 
-# Start the development server
+# Start the dev server
 npm run dev
+```
 
+✅ The Face is now online at:
 
-The Face is now online at http://localhost:3000
+**http://localhost:3000**
 
-🧬 Environment Variables
+---
 
-Create a .env file in the backend/ directory:
+## 🧬 Environment Variables
 
+Create a `.env` file inside:
+
+`backend/`
+
+```env
 SUPABASE_URL="your_supabase_url"
 SUPABASE_KEY="your_supabase_anon_key"
 TMDB_API_KEY="your_tmdb_key"
+```
 
+---
 
-🗺️ Roadmap
+## 🗺️ Roadmap
 
-[ ] Phase 1: Data Ingestion Pipeline (TMDB -> Vector DB).
+- [ ] **Phase 1:** Data ingestion pipeline (TMDB → Vector DB)
+- [ ] **Phase 2:** Basic semantic search (Text → Vector)
+- [ ] **Phase 3:** Letterboxd CSV import
+- [ ] **Phase 4:** Active learning (user feedback loop)
 
-[ ] Phase 2: Basic Semantic Search (Text-to-Vector).
+---
 
-[ ] Phase 3: Letterboxd CSV Import.
+## 🎨 Design System — *Electric Void*
 
-[ ] Phase 4: Active Learning (User feedback loop).
+- **Background:** `#0a0a0a` (Neutral 950)
+- **Accent:** `#d946ef` (Fuchsia 500)
+- **Typography:** Sans-serif, tracking-wide
+- **Mood:** clean, dark, neon, slightly ominous
 
-🎨 Design System: "Electric Void"
+---
 
-Background: #0a0a0a (Neutral 950)
+## 🖤 Credits
 
-Accent: #d946ef (Fuchsia 500)
-
-Typography: Sans-serif, tracking-wide.
-
-Built with 🖤 by [Your Name]
+Built with 🖤 by **[Your Name]**

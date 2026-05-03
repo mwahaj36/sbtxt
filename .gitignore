@@ -10,3 +10,10 @@ node_modules/
 .next/
 dist/
 build/
+# Data Files
+*.csv
+*.jsonl
+*.json
+# Environment
+.env
+venv/

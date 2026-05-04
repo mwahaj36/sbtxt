@@ -20,7 +20,7 @@ async def fetch_movie(movie_id:int,client:httpx.AsyncClient,semaphore: asyncio.S
             "Authorization":f"Bearer {TMDB_TOKEN}"
         }
         params={
-            "append_to_response":"keywords,credits,recommendations,videos,images",
+            "append_to_response":"keywords,credits,recommendations,videos,images,reviews",
             "language":"en-US"
         }
         try:

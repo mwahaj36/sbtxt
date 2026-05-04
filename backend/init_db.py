@@ -1,44 +1,42 @@
 import os
-import psycopg2
+from astrapy import DataAPIClient
 from dotenv import load_dotenv
 
 load_dotenv()
-DATABASE_URL=os.getenv("DATABASE_URL")
+ASTRA_DB_APPLICATION_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 
-def init_db():
+def init_astra():
     try:
-        conn=psycopg2.connect(DATABASE_URL)
-        cur=conn.cursor()
-        print("Connected to DB")
-
-        # 1. Clean start
-        cur.execute("DROP TABLE IF EXISTS movies;")
+        # Initialize the client
+        client = DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
+        db = client.get_database_by_api_endpoint(ASTRA_DB_API_ENDPOINT)
         
-        # 2. Enable vector extension
-        cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        print("Enabled vector")
-        
-        # 3. ULTRA-LEAN TABLE: ID, Title, Poster, and Vibe (Vector)
-        create_Table_Query="""
-        CREATE TABLE movies(
-            id INTEGER PRIMARY KEY,
-            title TEXT NOT NULL,
-            poster_path TEXT,
-            embedding vector(384)
-        );
-        """
+        print(f"Connected to Astra DB.")
 
-        cur.execute(create_Table_Query)
-
-        # 4. Create the HNSW index for fast vibe searching
-        cur.execute("CREATE INDEX IF NOT EXISTS movies_embedding_idx ON movies USING hnsw (embedding vector_cosine_ops);")
+        # 1. Drop existing collection if it exists
+        try:
+            db.drop_collection("movies")
+            print("Dropped existing 'movies' collection.")
+        except:
+            pass
         
-        conn.commit()
-        print("Database initialized successfully. Table 'movies' is ready.")
-        cur.close()
-        conn.close()
+        # 2. Create the collection with Vector support (using new 2.x syntax)
+        # Dimension 768 for Jina AI V2
+        collection = db.create_collection(
+            "movies",
+            definition={
+                "vector": {
+                    "dimension": 768,
+                    "metric": "cosine"
+                }
+            }
+        )
+        
+        print("Astra DB initialized successfully. Collection 'movies' is ready.")
+        
     except Exception as e:
-         print(f"Error initializing database: {e}")
+        print(f"Error initializing Astra DB: {e}")
 
 if __name__ == "__main__":
-    init_db()
+    init_astra()

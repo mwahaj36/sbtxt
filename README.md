@@ -23,12 +23,13 @@ Not because of keywords — but because they sit close together in **latent spac
 
 ---
 
-## ✨ What Subtext Does
-
-- **Semantic search** for movies using natural language
-- **Vector database retrieval** (pgvector)
-- **FastAPI backend** with modern ML tooling
-- **Next.js frontend** with a clean design system
+## ✨ Technical Scale
+- **Dataset**: 100,000+ Movies indexed via TMDB.
+- **Deep-Context Search**: 8,192-token context window (powered by Jina AI V2).
+- **Human Vibe Engine**: Ingests **1.5M+ human reviews** to understand subtext, tropes, and slang.
+- **Vector Space**: **76 Million+ dimensions** stored in a serverless cloud architecture.
+- **Infrastructure**: **DataStax Astra DB** (Serverless Vector) for lightning-fast retrieval.
+- **Vibe Engine**: Hybrid Search combining Dense Vector embeddings with Keyword and Actor/Director NER.
 
 ---
 
@@ -45,11 +46,13 @@ This project uses a hybrid architecture: modern web + best-in-class AI ecosystem
 - **FastAPI** (Python)
 
 ### **Database**
-- **Supabase** (PostgreSQL + pgvector)
+- **DataStax Astra DB** (Serverless Vector / NoSQL)
 
 ### **AI / ML**
-- **sentence-transformers** (HuggingFace)  
-- Runs locally or on-server
+- **Model:** `jinaai/jina-embeddings-v2-base-en`
+- **Context Window:** 8,192 tokens (Full reviews + plot metadata)
+- **Dimensions:** 768
+- **Hardware:** Local GPU (CUDA) for high-speed ingestion
 
 ### **Data Source**
 - **TMDB API**
@@ -72,23 +75,15 @@ This is a **monorepo**, so you’ll need **two terminal windows** running at the
 
 ---
 
-## 1) 🧱 Database Setup (Supabase)
+## 1) 🌌 Database Setup (Astra DB)
 
-1. Create a free Supabase project at:
+1. Create a **Serverless Vector** database on **Astra.DataStax.com**.
 
-   **database.new**
+2. Generate an **Application Token** and copy your **API Endpoint**.
 
-2. Go to **SQL Editor** and run this:
-
-```sql
-create extension vector;
-
-create table movies (
-  id bigint primary key generated always as identity,
-  title text not null,
-  overview text,
-  embedding vector(384) -- Dimension for 'all-MiniLM-L6-v2'
-);
+3. Run the initialization script to create the `movies` collection:
+```bash
+python init_db.py
 ```
 
 ---
@@ -149,19 +144,21 @@ Create a `.env` file inside:
 `backend/`
 
 ```env
-SUPABASE_URL="your_supabase_url"
-SUPABASE_KEY="your_supabase_anon_key"
-TMDB_API_KEY="your_tmdb_key"
+ASTRA_DB_APPLICATION_TOKEN="AstraCS:..."
+ASTRA_DB_API_ENDPOINT="https://..."
+TMDB_TOKEN="your_tmdb_read_access_token"
 ```
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] **Phase 1:** Data ingestion pipeline (TMDB → Vector DB)
-- [ ] **Phase 2:** Basic semantic search (Text → Vector)
-- [ ] **Phase 3:** Letterboxd CSV import
-- [ ] **Phase 4:** Active learning (user feedback loop)
+- [x] **Phase 1:** High-performance 100k Data Pipeline
+- [x] **Phase 2:** Deep-Context Review Integration (1.5M+ human reviews)
+- [x] **Phase 3:** Jina AI V2 Migration (8,192 token context)
+- [/] **Phase 4:** Hybrid Two-Tower Search Engine
+- [ ] **Phase 5:** Electric Void Web Dashboard
+- [ ] **Phase 6:** WebGL 3D Vector Galaxy Visualization
 
 ---
 
@@ -173,7 +170,3 @@ TMDB_API_KEY="your_tmdb_key"
 - **Mood:** clean, dark, neon, slightly ominous
 
 ---
-
-## 🖤 Credits
-
-Built with 🖤 by **[Your Name]**

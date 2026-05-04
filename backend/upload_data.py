@@ -1,65 +1,63 @@
 import os
 import json
-import psycopg2
-from psycopg2.extras import execute_values
+from astrapy import DataAPIClient
 from dotenv import load_dotenv
-#setup
+
 load_dotenv()
-DATABASE_URL=os.getenv("DATABASE_URL")
+ASTRA_DB_APPLICATION_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 
 def upload_movies():
-    conn=psycopg2.connect(DATABASE_URL)
-    cur=conn.cursor()
+    # Initialize Astra Client
+    client = DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
+    db = client.get_database_by_api_endpoint(ASTRA_DB_API_ENDPOINT)
+    collection = db.get_collection("movies")
 
-    # 1. Clean start (Note: init_db.py also drops the table)
-    print("Truncating table to start fresh...")
-    cur.execute("TRUNCATE TABLE movies;")
-    conn.commit()
-
-    batch_size=2000 # Increased batch size for even more speed
-    batch=[]
+    print("Loading reviews into memory for enrichment...")
+    movie_reviews = {}
+    if os.path.exists("movie_reviews.jsonl"):
+        with open("movie_reviews.jsonl", "r", encoding="utf-8") as f:
+            for line in f:
+                data = json.loads(line)
+                movie_reviews[data['id']] = " ".join(data.get('reviews', []))
     
-    # ULTRA-LEAN INSERTION QUERY
-    inser_query="""
-    INSERT INTO movies (id, title, poster_path, embedding)
-    VALUES %s
-    ON CONFLICT (id) DO UPDATE SET
-        title=EXCLUDED.title,
-        poster_path=EXCLUDED.poster_path;
-    """
-    total_count=0
+    batch_size = 50 # Astra prefers smaller batches for insert_many
+    batch = []
+    total_count = 0
     
-    print("Starting data upload...")
-    with open("movies_data.jsonl","r",encoding="utf-8") as f:
+    print("Starting enriched data upload to Astra DB...")
+    with open("movies_data.jsonl", "r", encoding="utf-8") as f:
         for line in f:
-            movie=json.loads(line)
+            movie = json.loads(line)
+            m_id = movie.get('id')
             
-            # Only keeping the bare essentials
-            data=(
-                movie.get('id'),
-                movie.get('title'),
-                movie.get('poster_path'),
-                None # Embedding placeholder
-            )
+            # Truncate to 7500 characters to stay under Astra's 8000-byte index limit
+            reviews_text = movie_reviews.get(m_id, "")[:7500]
+            overview_text = movie.get('overview', '')[:7500]
             
-            batch.append(data)
-            if len(batch)>=batch_size:
-                execute_values(cur,inser_query,batch)
-                conn.commit()
+            # Create document
+            doc = {
+                "_id": str(m_id),
+                "title": movie.get('title'),
+                "poster_path": movie.get('poster_path'),
+                "overview": overview_text,
+                "reviews": reviews_text,
+                "$vector": None
+            }
+            
+            batch.append(doc)
+            if len(batch) >= batch_size:
+                collection.insert_many(batch)
                 total_count += len(batch)
-                print(f"Uploaded {total_count} movies...")
-                batch=[]
+                print(f"Uploaded {total_count} movies to Astra...", end='\r')
+                batch = []
         
         if batch:
-            execute_values(cur,inser_query,batch)
-            conn.commit()
+            collection.insert_many(batch)
             total_count += len(batch)
-            print(f"Final batch uploaded. Total: {total_count}")
+            print(f"\nFinal batch uploaded. Total: {total_count}")
 
-        cur.close()
-        conn.close()
-        print(f"Done. {total_count} movies have been imported.")
+    print(f"Done. {total_count} movies have been imported to Astra DB.")
 
-      
 if __name__ == "__main__":
-    upload_movies()  
+    upload_movies()

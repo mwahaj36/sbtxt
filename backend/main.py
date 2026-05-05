@@ -44,7 +44,7 @@ vote_min: Optional[int]=None
     }
     filters={k:v for k,v in filters.items() if v is not None} #clean up filters, no need to pass if none
     results = search(q, filters=filters) 
-    return{"results":results}
+    return results
 
 
 #movie details api

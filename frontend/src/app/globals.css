@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+:root {
+  /* --- Core Colors --- */
+  --background: #0a0a0a;
+  /* Deepest Black */
+  --surface: #1a1a1a;
+  /* Cards & Inputs */
+  --foreground: #ededed;
+  /* Primary Text */
+  --muted: #a1a1aa;
+  /* Secondary Text */
+
+  /* --- Brand Colors --- */
+  --primary: #d946ef;
+  /* Your Fuchsia */
+  --primary-glow: rgba(217, 70, 239, 0.4);
+
+  --secondary: #7c3aed;
+  /* Deep Violet (for gradients) */
+  --accent: #2dd4bf;
+  /* Neon Teal (for high-contrast hits) */
+
+
+  /* --- Status Colors --- */
+  --success: #22c55e;
+  --error: #ef4444;
+}
+
+@font-face {
+  font-family: 'Biysk';
+  src: url('/Biysk.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+.grain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 999;
+  /* This sits on top of everything */
+  pointer-events: none;
+  opacity: 0.03;
+  /* Control how "grainy" it is here (0.01 to 0.1) */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+@keyframes aurora-drift {
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  33% {
+    transform: translate(2%, 3%) rotate(10deg);
+  }
+
+  66% {
+    transform: translate(-2%, -1%) rotate(-10deg);
+  }
+}
+
+.mesh-gradient {
+  position: fixed;
+  top: -50%;
+  /* Stretched out to cover more area */
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    /* Use your primary color here! */
+    radial-gradient(ellipse at 30% 20%, rgba(217, 70, 239, 0.1) 0%, transparent 80%),
+    /* A deep complementary purple */
+    radial-gradient(ellipse at 70% 80%, rgba(140, 19, 254, 0.05) 0%, transparent 50%),
+    /* A touch of soft blue */
+    radial-gradient(ellipse at 50% 50%, rgba(0, 100, 255, 0.05) 0%, transparent 50%);
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(150px);
+  /* I bumped this back up for the soft look */
+  animation: aurora-drift 10s ease-in-out infinite;
+  /* Slowed it down slightly */
+}

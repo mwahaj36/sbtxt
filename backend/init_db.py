@@ -8,35 +8,21 @@ ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 
 def init_astra():
     try:
-        # Initialize the client
         client = DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
         db = client.get_database_by_api_endpoint(ASTRA_DB_API_ENDPOINT)
         
-        print(f"Connected to Astra DB.")
+        print("Checking Astra DB initialization...")
 
-        # 1. Drop existing collection if it exists
-        try:
-            db.drop_collection("movies")
-            print("Dropped existing 'movies' collection.")
-        except:
-            pass
-        
-        # 2. Create the collection with Vector support (using new 2.x syntax)
-        # Dimension 768 for Jina AI V2
-        collection = db.create_collection(
-            "movies",
-            definition={
-                "vector": {
-                    "dimension": 768,
-                    "metric": "cosine"
-                }
-            }
-        )
-        
-        print("Astra DB initialized successfully. Collection 'movies' is ready.")
-        
+        # Create the collection only if it doesn't exist
+        if "movies" not in db.list_collection_names():
+            print("Creating 'movies' collection (768 dimensions)...")
+            db.create_collection("movies", dimension=768, metric="cosine")
+            print("Initialization complete.")
+        else:
+            print("Collection 'movies' already exists. Skipping.")
+            
     except Exception as e:
-        print(f"Error initializing Astra DB: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     init_astra()

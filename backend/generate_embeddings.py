@@ -2,10 +2,14 @@ import os
 import sys
 import types
 import json
+import time
 import torch
 from astrapy import DataAPIClient
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
+from threading import Thread
 
 # --- JINA AI PYTHON 3.12 BUGFIX HACKS ---
 try:
@@ -26,11 +30,14 @@ load_dotenv()
 ASTRA_DB_APPLICATION_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
 ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 
-# 1. Load the "Review & Vibe" model (8192 token limit, 768 dimensions)
-print("Loading high-quality Jina AI model...")
+# 1. Load the model in FP16 for maximum GPU throughput
+print("Loading Jina AI model in FP16 mode...")
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"Device: {device}")
 model = SentenceTransformer('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True).to(device)
-model.max_seq_length = 2048 # Cap sequence length to save VRAM on 8GB GPUs
+model.half()  # FP16: halves VRAM usage, doubles GPU throughput
+model.max_seq_length = 2048
+print("Model loaded in FP16. VRAM usage should be ~50% lower.")
 
 # Load reviews into memory for context
 print("Loading reviews into memory...")
@@ -61,48 +68,102 @@ def extract_vibe(movie):
     vibe = f"{overview} {overview}. Keywords: {keywords} {keywords}. Genres: {genres}. Cast: {actors}. Director: {director}. User Reviews: {reviews}. (Title: {title})"
     return vibe
 
-def process_and_update(collection, model, batch_data):
-    texts = [item['text'] for item in batch_data]
-    
-    with torch.no_grad():
-        embeddings = model.encode(texts, show_progress_bar=False)
-    
-    # In Astra, we update the $vector field
-    for item, vec in zip(batch_data, embeddings):
-        collection.find_one_and_update(
-            {"_id": str(item['id'])},
-            {"$set": {"$vector": vec.tolist()}}
-        )
-
 def main():
     # Initialize Astra Client
     client = DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
     db = client.get_database_by_api_endpoint(ASTRA_DB_API_ENDPOINT)
     collection = db.get_collection("movies")
     
-    print("Starting full database upgrade to Astra Vibe Vectors...")
-    batch_size = 16 # Adjust based on GPU VRAM
+    PROGRESS_FILE = "last_processed.txt"
+    if os.path.exists(PROGRESS_FILE):
+        with open(PROGRESS_FILE, "r") as pf:
+            START_OFFSET = int(pf.read().strip())
+    else:
+        START_OFFSET = 0
+
+    print(f"Resuming from line: {START_OFFSET}")
+    
+    batch_size = 128
+    max_context = 2048
+    
+    # --- THE HIGH-SPEED FP16 PIPELINE ---
+    data_queue = Queue(maxsize=256)  # Buffer up to 256 movies in advance
+
+    def producer():
+        """Reads from disk and extracts text in the background."""
+        with open("movies_data.jsonl", "r", encoding="utf-8") as f:
+            for i, line in enumerate(f):
+                if i < START_OFFSET:
+                    continue
+                movie = json.loads(line)
+                m_id = str(movie.get('id'))
+                vibe_text = extract_vibe(movie)[:max_context * 4]
+                data_queue.put({"id": m_id, "text": vibe_text})
+        data_queue.put(None)
+
+    Thread(target=producer, daemon=True).start()
+
+    # Thread pool for background database updates
+    executor = ThreadPoolExecutor(max_workers=20)
+
     batch_data = []
     processed_this_run = 0
+    start_time = time.time()
 
-    with open("movies_data.jsonl", "r", encoding="utf-8") as f:
-        for i, line in enumerate(f):
-            movie = json.loads(line)
-            vibe_text = extract_vibe(movie)
-            batch_data.append({"id": movie.get('id'), "text": vibe_text})
+    while True:
+        item = data_queue.get()
+        if item is None:
+            break
+            
+        batch_data.append(item)
 
-            if len(batch_data) >= batch_size:
-                process_and_update(collection, model, batch_data)
-                processed_this_run += len(batch_data)
-                print(f"Progress: {processed_this_run} / 100,000 movies updated...", end='\r')
-                batch_data = []
-    
+        if len(batch_data) >= batch_size:
+            # 1. GPU INFERENCE
+            gpu_start = time.time()
+            texts = [b['text'] for b in batch_data]
+            with torch.no_grad():
+                embeddings = model.encode(texts, show_progress_bar=False)
+            gpu_time = time.time() - gpu_start
+            
+            # 2. BACKGROUND UPLOAD
+            upload_start = time.time()
+            def upload_batch(items, vecs):
+                for m, v in zip(items, vecs):
+                    collection.find_one_and_update(
+                        {"_id": str(m['id'])},
+                        {"$set": {"$vector": v.tolist()}}
+                    )
+            
+            executor.submit(upload_batch, list(batch_data), embeddings)
+            
+            # 3. PROGRESS + LOGGING
+            processed_this_run += len(batch_data)
+            current_total = START_OFFSET + processed_this_run
+            elapsed = time.time() - start_time
+            speed = processed_this_run / (elapsed / 60) if elapsed > 0 else 0
+            
+            with open(PROGRESS_FILE, "w") as pf:
+                pf.write(str(current_total))
+            
+            print(f"[FP16] {current_total} done | GPU: {gpu_time:.2f}s | Speed: {speed:.1f}/min | Queue: {data_queue.qsize()}", end='\r')
+            batch_data = []
+
+    # Final cleanup
     if batch_data:
-        process_and_update(collection, model, batch_data)
-        processed_this_run += len(batch_data)
-        print(f"Final progress: {processed_this_run} movies.")
+        texts = [b['text'] for b in batch_data]
+        with torch.no_grad():
+            embeddings = model.encode(texts, show_progress_bar=False)
+        for m, v in zip(batch_data, embeddings):
+            collection.find_one_and_update(
+                {"_id": str(m['id'])},
+                {"$set": {"$vector": v.tolist()}}
+            )
 
-    print("All high-quality embeddings have been generated and pushed to Astra DB.")
+    print("\nWaiting for background uploads to finish...")
+    executor.shutdown(wait=True)
+    
+    total_time = time.time() - start_time
+    print(f"\nDone! Processed {processed_this_run} movies in {total_time/3600:.1f} hours.")
 
 if __name__ == "__main__":
     main()

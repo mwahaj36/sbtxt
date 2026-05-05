@@ -10,10 +10,12 @@ load_dotenv()
 ASTRA_DB_APPLICATION_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
 ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 
-# 1. Load the search model
-print("Loading high-quality search engine (Jina AI V2)...")
+# 1. Load the search model (must match embedding generation settings)
+print("Loading high-quality search engine (Jina AI V2 - FP16)...")
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = SentenceTransformer('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True).to(device)
+model.half()  # Must match FP16 used during embedding generation
+model.max_seq_length = 2048
 
 # 2. Initialize Astra
 client = DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
@@ -28,7 +30,7 @@ if os.path.exists(PEOPLE_INDEX_PATH):
 else:
     KNOWN_PEOPLE = set()
 
-def search(query):
+def search(query, filters=None):
     # 1. Local Named Entity Recognition (NER)
     query_lower = query.lower()
     found_people = []
@@ -40,32 +42,48 @@ def search(query):
     # 2. Vectorize the query
     query_vector = model.encode(query).tolist()
 
-    # 3. Perform Vector Search in Astra
-    # We retrieve more results to allow for hybrid re-ranking
-    results = collection.vector_find(
-        vector=query_vector,
-        limit=20,
-        include_similarity=True
-    )
+    # 3. Build Astra Filter
+    astra_filter = {}
+    if filters:
+        if filters.get("language"):
+            astra_filter["original_language"] = filters["language"]
+        if filters.get("year_min"):
+            astra_filter["release_year"] = {"$gte": int(filters["year_min"])}
+        if filters.get("year_max"):
+            if "release_year" not in astra_filter:
+                astra_filter["release_year"] = {}
+            astra_filter["release_year"]["$lte"] = int(filters["year_max"])
+        if filters.get("vote_min"):
+            astra_filter["vote_average"] = {"$gte": float(filters["vote_min"])}
+
+    # 4. Perform Vector Search in Astra with Filters
+    results = list(collection.find(
+        astra_filter,
+        sort={"$vector": query_vector},
+        limit=100,
+        include_similarity=True,
+        request_timeout_ms=30000
+    ))
 
     final_results = []
     for doc in results:
         vibe_score = doc.get("$similarity", 0)
         title = doc.get("title", "Unknown")
+        
+        # Title Match Boost: If query matches title exactly, give massive boost
+        title_boost = 2.0 if query.lower() == title.lower() else 0.0
+        
         reviews = doc.get("reviews", "").lower()
         overview = doc.get("overview", "").lower()
         
-        # Simple Python-side Hybrid Boosting
-        ner_boost = 0.3 if any(p in reviews or p in overview for p in found_people) else 0.0
-        keyword_boost = 0.0
+        # Person Boost (NER)
+        person_boost = 0.0
+        for person in found_people:
+            if person in reviews or person in overview:
+                person_boost = 0.4
+                break
         
-        # Check if query words appear in reviews (Manual keyword boost)
-        clean_words = [w for w in re.sub(r'[^a-zA-Z0-9 ]', '', query).split() if len(w) > 3]
-        for word in clean_words:
-            if word.lower() in reviews or word.lower() in overview:
-                keyword_boost += 0.05
-
-        final_score = (vibe_score * 0.7) + ner_boost + min(keyword_boost, 0.2)
+        final_score = (vibe_score * 0.85) + person_boost + title_boost
         
         final_results.append({
             "title": title,

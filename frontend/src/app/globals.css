@@ -22,6 +22,9 @@
   /* Neon Teal (for high-contrast hits) */
 
 
+  --primary-rgb: 217, 70, 239;  /* ADD THIS LINE */
+  --primary-glow: rgba(217, 70, 239, 0.4);
+
   /* --- Status Colors --- */
   --success: #22c55e;
   --error: #ef4444;

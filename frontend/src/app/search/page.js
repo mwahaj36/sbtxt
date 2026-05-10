@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, Star, Globe, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import VibeSpinner from '@/components/spinner';
 
 export default function Home() {
     const [query, SetQuery] = useState("")
@@ -47,7 +48,7 @@ export default function Home() {
             
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={isSearched
+                animate={movies.length>0
                     ? { scale: 0.85, y: -20, opacity: 1 }
                     : { scale: 1, y: 0, opacity: 1 }
                 } transition={{ duration: 1.2, ease: "easeOut" }}
@@ -76,8 +77,7 @@ export default function Home() {
                         <Filter size={20} />
                     </button>
                     <button 
-                        className="bg-[var(--primary)] px-8 rounded-xl font-bold hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]" 
-                        onClick={handleSearch}
+className={`bg-[var(--primary)] px-8 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'}`}                        onClick={handleSearch}
                         disabled={loading}
                     >
                         {loading ? "..." : "Search"}
@@ -143,7 +143,7 @@ export default function Home() {
                             </div>
                             <div className="flex flex-col gap-2">
                                 <label className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Star size={12} /> Results Limit
+                                    <Star size={12} /> Results
                                 </label>
                                 <input 
                                     type="number" 
@@ -159,7 +159,12 @@ export default function Home() {
                 </AnimatePresence>
             </motion.div>
 
-            {!isSearched && (
+                
+                {loading && <VibeSpinner />}
+
+
+
+            {!isSearched && !loading &&(
                 <div
                     className="w-full max-w-2xl mx-auto overflow-hidden mt-8 relative"
                     style={{
@@ -192,7 +197,7 @@ export default function Home() {
                 </div>
             )}
 
-            {isSearched && (
+            {isSearched && !loading &&(
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -202,10 +207,11 @@ export default function Home() {
                     {movies.map((movie, index) => (
                         <motion.div
                             key={index}
-                            whileHover={{ y: -12, scale: 1.02 }}
-                            className="w-[280px] flex-shrink-0 group cursor-pointer"
+                            whileHover={{ y: -12, scale: 1.05 }}
+                            className="w-[200px] flex-shrink-0 group cursor-pointer"
                         >
-                            <div className="relative aspect-[2/3] rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl group-hover:shadow-[0_20px_50px_rgba(var(--primary-rgb),0.2)] transition-all duration-500">
+                            <div className="relative transition-all duration-500 rounded-3xl group-hover:shadow-[0_0_50px_rgba(var(--primary-rgb),0.5)]">
+                                <div className="relative aspect-[2/3] rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl transition-all duration-500 ">
                                 {movie.poster_path ? (
                                     <img
                                         src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
@@ -217,20 +223,21 @@ export default function Home() {
                                         No Poster Available
                                     </div>
                                 )}
-
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end items-center p-6 text-center">
-                                    <div className="flex items-center justify-center gap-2 mb-3">
-                                        <div className="px-3 py-1 bg-[--primary] text-[--foreground] text-xs font-black rounded-full uppercase tracking-tighter">
-                                            {Math.round(movie.score * 100)}% Match
-                                        </div>
-                                    </div>
-                                    <p className="text-white/80 text-xs leading-relaxed font-medium italic">
-                                        "{movie.reason}"
-                                    </p>
-                                </div>
                             </div>
 
-                            <h3 className='text-xl font-black mt-5 text-center group-hover:text-[--primary] transition-colors line-clamp-1 tracking-tight'>
+                            <div className="absolute -inset-px rounded-3xl bg-gradient-to-t from-black via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end items-center p-6 text-center z-10">
+                                <div className="flex items-center justify-center gap-2 mb-3">
+                                    <div className="px-3 py-1 bg-[--primary] text-[--foreground] text-xs font-black rounded-full uppercase tracking-tighter">
+                                        {Math.round(movie.score * 100)}% Match
+                                    </div>
+                                </div>
+                                <p className="text-white/80 text-xs leading-relaxed font-medium italic">
+                                    "{movie.reason}"
+                                </p>
+                            </div>
+                        </div>
+
+                        <h3 className='text-xl font-black mt-5 text-center group-hover:text-[--primary] transition-colors line-clamp-1 tracking-tight'>
                                 {movie.title} ({movie.year})
                             </h3>
                             <div className="flex gap-2 justify-center mt-2 overflow-hidden">

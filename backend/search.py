@@ -422,6 +422,14 @@ def score_movie(
     if anchor_genres and mode != "PERSON_STRICT":
         alignment_penalty += compute_genre_alignment_penalty(anchor_genres, doc_genres, query_focus)
 
+    # --- Hard Tonal Filter ---
+    # If the user explicitly asks for a genre, we penalize non-matching movies heavily.
+    tonal_penalty = 0.0
+    explicit_genres = ["Comedy", "Horror", "Action", "Romance", "Science Fiction", "Documentary", "Animation", "Thriller", "Crime"]
+    for eg in explicit_genres:
+        if re.search(rf"\b{eg.lower()}\b", q_low) and eg not in doc_genres:
+            tonal_penalty += 0.70
+
     # --- Vibe Rules (GLOBAL queries) ---
     for vibe, rules in VIBE_RULES.items():
         if any(w in q_low for w in rules["keywords"]):
@@ -515,6 +523,7 @@ def score_movie(
             - penalty
             - mood_penalty
             - alignment_penalty
+            - tonal_penalty
         )
     elif mode == "PERSON_STRICT":
         constraint_match = 0.0
@@ -878,23 +887,35 @@ def search(
     # We insert it ahead of the ranked siblings and trim to k.
     # -------------------------------------------------------------------------
     if mode == "SIBLING_DISCOVERY" and ref_doc:
-        anchor_result = {
-            "id": str(ref_doc.get("_id")),
-            "title": ref_doc.get("title"),
-            "year": ref_doc.get("release_year", 0),
-            "score": 1.0,  # Sentinel — always #1 (100% match)
-            "reason": "This is the movie you searched for.",
-            "mode": mode,
-            "genres": ref_doc.get("genres", []),
-            "vote": ref_doc.get("vote_average", 0),
-            "poster_path": ref_doc.get("poster_path"),
-        }
-        if debug:
-            anchor_result["breakdown"] = {"note": "anchor — pinned to #1, not scored"}
+        # Check if anchor satisfies user filters (Year, Rating, Language)
+        passes = True
+        ry = ref_doc.get("release_year", 0)
+        va = ref_doc.get("vote_average", 0)
+        ol = ref_doc.get("original_language", "")
 
-        # Remove anchor if it somehow slipped through dedup, then prepend
-        final_output = [r for r in final_output if r["id"] != str(ref_doc.get("_id"))]
-        final_output = [anchor_result] + final_output[:k - 1]
+        if min_year and ry < min_year: passes = False
+        if max_year and ry > max_year: passes = False
+        if min_vote and va < min_vote: passes = False
+        if language and ol != language: passes = False
+
+        if passes:
+            anchor_result = {
+                "id": str(ref_doc.get("_id")),
+                "title": ref_doc.get("title"),
+                "year": ry,
+                "score": 1.0,  # Sentinel — always #1 (100% match)
+                "reason": "This is the movie you searched for.",
+                "mode": mode,
+                "genres": ref_doc.get("genres", []),
+                "vote": va,
+                "poster_path": ref_doc.get("poster_path"),
+            }
+            if debug:
+                anchor_result["breakdown"] = {"note": "anchor — pinned to #1, not scored"}
+
+            # Remove anchor if it somehow slipped through dedup, then prepend
+            final_output = [r for r in final_output if r["id"] != str(ref_doc.get("_id"))]
+            final_output = [anchor_result] + final_output[:k - 1]
 
     latency = int((time.time() - start_time) * 1000)
     print(

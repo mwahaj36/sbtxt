@@ -370,7 +370,6 @@ export default function SearchPage() {
                                         <option key={opt} value={opt} className="bg-[#0a0a0a]">{opt}</option>
                                     ))}
                                 </select>
-                                </select>
                             </div>
                             <div className="md:col-span-5 flex justify-center mt-6 pt-4 border-t border-white/5">
                                 <button 

@@ -265,9 +265,15 @@ def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
     if year:
         f["release_year"] = year
 
-    # 1. Try to find the document
+    # 1. Try to find the document (sort by vote_count to get the most popular match)
     proj_with_vec = {**proj, "$vector": 1}
-    doc = collection.find_one(filter=f, projection=proj_with_vec)
+    docs = list(collection.find(
+        filter=f, 
+        projection=proj_with_vec, 
+        sort={"vote_count": -1}, 
+        limit=1
+    ))
+    doc = docs[0] if docs else None
     
     if not doc:
         return None

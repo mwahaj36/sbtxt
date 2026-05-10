@@ -371,15 +371,16 @@ export default function SearchPage() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="flex items-end pb-1">
-                                <button 
-                                    onClick={clearFilters}
-                                    className="w-full py-2.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                                >
-                                    <X size={12} /> Clear All
-                                </button>
-                            </div>
-                        </motion.div>
+                        </div>
+                        <div className="flex justify-center mt-6 pt-4 border-t border-white/5">
+                            <button 
+                                onClick={clearFilters}
+                                className="px-8 py-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                            >
+                                <X size={12} /> Reset All Filters
+                            </button>
+                        </div>
+                    </motion.div>
                     )}
                 </AnimatePresence>
             </motion.div>

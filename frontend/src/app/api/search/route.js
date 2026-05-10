@@ -17,6 +17,7 @@ export async function GET(request) {
         console.log("📡 Proxying request to:", url);
 
         const response = await fetch(url, {
+            cache: 'no-store',
             headers: {
                 "Authorization": `Bearer ${hfToken}`
             }

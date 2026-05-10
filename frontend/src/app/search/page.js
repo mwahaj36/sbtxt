@@ -200,7 +200,7 @@ export default function SearchPage() {
         try {
             // We now call our OWN internal proxy instead of the backend directly
             // This bypasses CORS and keeps your HF Token secret!
-            let url = `/api/search?q=${encodeURIComponent(query)}`;
+            let url = `/api/search?q=${encodeURIComponent(searchQuery)}`;
             if (minYear) url += `&min_year=${minYear}`;
             if (maxYear) url += `&max_year=${maxYear}`;
             if (language) url += `&language=${language}`;
@@ -370,17 +370,17 @@ export default function SearchPage() {
                                         <option key={opt} value={opt} className="bg-[#0a0a0a]">{opt}</option>
                                     ))}
                                 </select>
+                                </select>
                             </div>
-                        </div>
-                        <div className="flex justify-center mt-6 pt-4 border-t border-white/5">
-                            <button 
-                                onClick={clearFilters}
-                                className="px-8 py-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                            >
-                                <X size={12} /> Reset All Filters
-                            </button>
-                        </div>
-                    </motion.div>
+                            <div className="md:col-span-5 flex justify-center mt-6 pt-4 border-t border-white/5">
+                                <button 
+                                    onClick={clearFilters}
+                                    className="px-8 py-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                >
+                                    <X size={12} /> Reset All Filters
+                                </button>
+                            </div>
+                        </motion.div>
                     )}
                 </AnimatePresence>
             </motion.div>

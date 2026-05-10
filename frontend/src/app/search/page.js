@@ -252,7 +252,7 @@ export default function SearchPage() {
                 className="relative w-full max-w-4xl group z-50 mb-12"
             >
                 <h1 className="font-['Arkhip'] text-5xl md:text-7xl text-center mb-8 text-white uppercase tracking-tighter leading-none"> 
-                    THE PULSE <span className="text-[var(--primary)]">OF CINEMA</span>
+                    CINEMA, <span className="text-[var(--primary)]">BEYOND THE TAGS</span>
                 </h1>
                 
                 <div className='relative flex flex-col md:flex-row gap-4 items-stretch'>

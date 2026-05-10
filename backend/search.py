@@ -13,9 +13,9 @@ import requests
 
 # Hugging Face Inference API Config
 HF_TOKEN = os.getenv("HF_TOKEN")
-MODEL_ID = "sentence-transformers/all-mpnet-base-v2"
+MODEL_ID = "BAAI/bge-base-en-v1.5"
 # Using the explicit pipeline URL which is more reliable for some models
-HF_API_URL = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL_ID}"
+HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
 
 def embed(text: str):
     """
@@ -251,7 +251,8 @@ def find_movie_by_title(title: str):
 
 def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
     """
-    Fetches anchor doc with $vector included.
+    Fetches anchor doc with $vector included. 
+    Uses existing vector if present, otherwise generates one with safety checks.
     """
     variants = list(set([
         title,
@@ -260,33 +261,38 @@ def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
         smart_title(title),
         title.lower(),
         title.upper(),
-        title.replace(" ", ""),  # roadhouse
-        " ".join(re.findall(r'[A-Z][a-z]*|[a-z]+', title.title())) # Road House
+        title.replace(" ", ""),
+        " ".join(re.findall(r'[A-Z][a-z]*|[a-z]+', title.title()))
     ]))
     
     f = {"title": {"$in": variants}}
     if year:
         f["release_year"] = year
 
-    # First get the canonical title via $in
-    stub = collection.find_one(filter=f)
-    if not stub:
+    # 1. Try to find the document with its existing vector
+    # We ask for $vector in the projection
+    proj_with_vec = {**proj, "$vector": 1}
+    doc = collection.find_one(filter=f, projection=proj_with_vec)
+    
+    if not doc:
         return None
         
-    # Then fetch full doc with vector using the canonical title
-    # We maintain the year filter to ensure we get the right vector
-    vec_filter = {"title": stub["title"]}
-    if year:
-        vec_filter["release_year"] = year
+    # 2. If it has a vector, we are good
+    if "$vector" in doc and doc["$vector"]:
+        # Verify it's not a zero vector
+        if not np.all(np.array(doc["$vector"]) == 0):
+            return doc
 
-    vec = embed(stub["title"]).tolist()
-    results = list(collection.find(
-        filter=vec_filter,
-        sort={"$vector": vec},
-        limit=1,
-        projection=proj
-    ))
-    return results[0] if results else stub
+    # 3. If no vector, generate it as a fallback
+    print(f"📡 Generating missing vector for: {doc['title']}")
+    vec = embed(doc["title"] + " " + doc.get("overview", ""))
+    
+    if vec is not None and not np.all(vec == 0):
+        doc["$vector"] = vec.tolist()
+        return doc
+        
+    # If even fallback fails, return doc without vector (the search logic will handle it)
+    return doc
 
 
 # =============================================================================

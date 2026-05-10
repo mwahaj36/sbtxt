@@ -13,16 +13,17 @@ import requests
 
 # Hugging Face Inference API Config
 HF_TOKEN = os.getenv("HF_TOKEN")
-HF_API_URL = "https://api-inference.huggingface.co/models/jinaai/jina-embeddings-v2-base-en"
+MODEL_ID = "sentence-transformers/all-mpnet-base-v2"
+HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
 
 def embed(text: str):
     """
     Fetches embeddings from Hugging Face Inference API.
-    Offloads heavy ML computation to HF infrastructure.
+    Returns a zero-vector on failure to prevent downstream crashes.
     """
     if not HF_TOKEN:
-        print("Warning: HF_TOKEN not found in environment. Embeddings will fail.")
-        return None
+        print("Warning: HF_TOKEN not found in environment.")
+        return np.zeros(768)
         
     payload = {"inputs": text, "options": {"wait_for_model": True}}
     try:
@@ -30,17 +31,18 @@ def embed(text: str):
             HF_API_URL,
             headers={"Authorization": f"Bearer {HF_TOKEN}"},
             json=payload,
-            timeout=10
+            timeout=15
         )
         if response.status_code != 200:
-            print(f"HF API Error: {response.status_code} - {response.text}")
-            return None
+            print(f"HF API Error: {response.status_code}")
+            return np.zeros(768)
         
         res = response.json()
-        return np.array(res[0] if isinstance(res, list) and isinstance(res[0], list) else res)
+        vec = res[0] if isinstance(res, list) and isinstance(res[0], list) else res
+        return np.array(vec)
     except Exception as e:
         print(f"HF API connection failed: {e}")
-        return None
+        return np.zeros(768)
 
 # =============================================================================
 # ENV + DB

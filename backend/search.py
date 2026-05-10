@@ -11,44 +11,38 @@ from functools import lru_cache
 from astrapy import DataAPIClient
 import requests
 
-# Hugging Face Inference API Config
-HF_TOKEN = os.getenv("HF_TOKEN")
-MODEL_ID = "BAAI/bge-base-en-v1.5"
-# Using the explicit pipeline URL which is more reliable for some models
-HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
+from sentence_transformers import SentenceTransformer
+
+# Hugging Face Configuration
+MODEL_ID = "jinaai/jina-embeddings-v2-base-en"
+
+# Lazy-loaded model to keep startup snappy
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        print(f"📡 Loading Local ML Model: {MODEL_ID}...")
+        # Jina v2 requires trust_remote_code=True
+        _model = SentenceTransformer(MODEL_ID, trust_remote_code=True)
+        print("✅ Model loaded successfully.")
+    return _model
 
 def embed(text: str):
     """
-    Fetches embeddings from Hugging Face Inference API.
-    Returns a zero-vector on failure to prevent downstream crashes.
+    Generates embeddings locally using sentence-transformers.
+    Runs on the server's CPU.
     """
-    if not HF_TOKEN:
-        print("Warning: HF_TOKEN not found in environment.")
-        return np.zeros(768)
-        
-    payload = {"inputs": text, "options": {"wait_for_model": True}}
     try:
-        print(f"📡 DEBUG: Fetching embedding from {HF_API_URL}")
-        print(f"📡 DEBUG: Token prefix: {HF_TOKEN[:5] if HF_TOKEN else 'NONE'}...")
-        
-        response = requests.post(
-            HF_API_URL,
-            headers={"Authorization": f"Bearer {HF_TOKEN}"},
-            json=payload,
-            timeout=15
-        )
-        print(f"📡 DEBUG: HF Status: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"HF API Error: {response.status_code} - Content: {response.text[:100]}")
-            return np.zeros(768)
-        
-        res = response.json()
-        vec = res[0] if isinstance(res, list) and isinstance(res[0], list) else res
+        model = get_model()
+        # Ensure text is not too long
+        input_text = text[:8000] 
+        vec = model.encode(input_text)
         return np.array(vec)
     except Exception as e:
-        print(f"HF API connection failed: {e}")
+        print(f"❌ Local Inference failed: {e}")
         return np.zeros(768)
+
 
 # =============================================================================
 # ENV + DB

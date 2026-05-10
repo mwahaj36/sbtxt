@@ -159,6 +159,8 @@ export default function SearchPage() {
         setIsSearched(true);
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+            console.log("🔍 [Search] Using Backend URL:", backendUrl);
+            
             let url = `${backendUrl}/search?q=${encodeURIComponent(query)}`;
             if (minYear) url += `&min_year=${minYear}`;
             if (maxYear) url += `&max_year=${maxYear}`;
@@ -166,11 +168,24 @@ export default function SearchPage() {
             if (minVote) url += `&min_vote=${minVote}`;
             if (resultCount) url += `&k=${resultCount}`;
 
+            console.log("🚀 [Search] Fetching from:", url);
+
             const response = await fetch(url);
+            console.log("📡 [Search] Status:", response.status, response.statusText);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("❌ [Search] Backend Error:", errorText);
+                setMovies([]);
+                return;
+            }
+
             const data = await response.json();
+            console.log("✅ [Search] Results received:", data?.length || 0);
             setMovies(data);
         } catch (error) {
-            console.error("Search failed", error)
+            console.error("🚨 [Search] Critical Connection Failure:", error);
+            setMovies([]);
         } finally {
             setLoading(false)
         }

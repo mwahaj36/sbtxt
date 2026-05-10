@@ -7,8 +7,39 @@ import spacy
 
 from dotenv import load_dotenv
 from functools import lru_cache
-from sentence_transformers import SentenceTransformer
 from astrapy import DataAPIClient
+import requests
+
+# Hugging Face Inference API Config
+HF_TOKEN = os.getenv("HF_TOKEN")
+HF_API_URL = "https://api-inference.huggingface.co/models/jinaai/jina-embeddings-v2-base-en"
+
+def embed(text: str):
+    """
+    Fetches embeddings from Hugging Face Inference API.
+    Offloads heavy ML computation to HF infrastructure.
+    """
+    if not HF_TOKEN:
+        print("Warning: HF_TOKEN not found in environment. Embeddings will fail.")
+        return None
+        
+    payload = {"inputs": text, "options": {"wait_for_model": True}}
+    try:
+        response = requests.post(
+            HF_API_URL,
+            headers={"Authorization": f"Bearer {HF_TOKEN}"},
+            json=payload,
+            timeout=10
+        )
+        if response.status_code != 200:
+            print(f"HF API Error: {response.status_code} - {response.text}")
+            return None
+        
+        res = response.json()
+        return np.array(res[0] if isinstance(res, list) and isinstance(res[0], list) else res)
+    except Exception as e:
+        print(f"HF API connection failed: {e}")
+        return None
 
 # =============================================================================
 # ENV + DB
@@ -26,10 +57,6 @@ collection = db.get_collection("movies")
 
 print("Loading Subtext Core Search Engine...")
 
-embedding_model = SentenceTransformer(
-    "jinaai/jina-embeddings-v2-base-en",
-    trust_remote_code=True
-)
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -163,9 +190,8 @@ def build_texture_enrichment(keywords: list) -> str:
 # UTILS
 # =============================================================================
 
-@lru_cache(maxsize=256)
-def embed(text: str):
-    return embedding_model.encode(text)
+# Local cache removed for the API-based embed function to avoid complexity, 
+# but can be re-implemented if needed.
 
 
 def smart_title(t):
@@ -233,7 +259,7 @@ def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
     if year:
         vec_filter["release_year"] = year
 
-    vec = embedding_model.encode(stub["title"]).tolist()
+    vec = embed(stub["title"]).tolist()
     results = list(collection.find(
         filter=vec_filter,
         sort={"$vector": vec},
@@ -732,7 +758,7 @@ def search(
             ).strip()
 
             db_vector = ref_doc.get("$vector")
-            search_vec = np.array(db_vector) if db_vector else embedding_model.encode(vibe_anchor_text)
+            search_vec = np.array(db_vector) if db_vector else embed(vibe_anchor_text)
             ref_genres = ref_doc.get("genres", [])
     query_focus = infer_query_focus(q_low, anchor_genres)
 

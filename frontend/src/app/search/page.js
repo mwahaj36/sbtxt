@@ -182,7 +182,7 @@ export default function SearchPage() {
         if (sortBy === "year") {
             return sorted.sort((a, b) => b.year - a.year);
         } else if (sortBy === "rating") {
-            return sorted.sort((a, b) => b.score - a.score);
+            return sorted.sort((a, b) => b.vote - a.vote);
         }
         return sorted;
     }, [movies, sortBy]);

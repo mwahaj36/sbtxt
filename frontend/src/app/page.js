@@ -18,8 +18,6 @@ export default function Home() {
         viewport: { once: true },
         transition: { duration: 0.8 }
     };
-
-    // GUARANTEED WORKING TMDB POSTER PATHS
     const fallbackPosters = [
         { id: 313369, title: "La La Land", path: "/xjH9jy4EhNG81B2tzpDWz9yeLfF.jpg" },
         { id: 385383, title: "Manchester by the Sea", path: "/o9VXYOuaJxCEKOxbA86xqtwmqYn.jpg" },
@@ -41,31 +39,7 @@ export default function Home() {
             duration: Math.random() * 4 + 3
         }));
         setStars(newStars);
-
-        async function fetchTrending() {
-            try {
-                // Using the secure environment variable for the TMDB API key
-                const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-                const response = await fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}`);
-                const data = await response.json();
-                
-                if (data.results && data.results.length > 0) {
-                    setTrendingMovies(data.results.slice(0, 9).map(m => ({
-                        id: m.id,
-                        title: m.title,
-                        path: m.poster_path
-                    })));
-                } else {
-                    setTrendingMovies(fallbackPosters);
-                }
-            } catch (error) {
-                console.error("Failed to fetch trending movies:", error);
-                setTrendingMovies(fallbackPosters);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        fetchTrending();
+        setTrendingMovies(fallbackPosters);
     }, []);
 
     return (
@@ -101,9 +75,6 @@ export default function Home() {
                             <span className="relative z-10">Start Searching</span>
                             <div className="absolute inset-0 bg-[var(--primary)] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                         </Link>
-                        <button className="px-8 py-4 border border-white/10 hover:border-white/30 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-widest transition-all hover:bg-white/5">
-                            Explore Features
-                        </button>
                     </div>
                 </motion.div>
 
@@ -276,11 +247,7 @@ export default function Home() {
                     >
                         <div className="absolute inset-0 bg-[#01b4e4]/10 blur-[100px] rounded-full" />
                         
-                        {isLoading ? (
-                            <div className="h-[500px] w-full flex items-center justify-center">
-                                <Loader2 className="animate-spin text-[#01b4e4]" size={48} />
-                            </div>
-                        ) : (
+
                             <div className="relative z-10 grid grid-cols-3 gap-3">
                                 {trendingMovies.map((movie, i) => (
                                     <motion.a
@@ -309,7 +276,6 @@ export default function Home() {
                                     </motion.a>
                                 ))}
                             </div>
-                        )}
                     </motion.div>
                 </div>
             </section>

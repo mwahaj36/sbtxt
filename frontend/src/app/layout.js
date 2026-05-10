@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "SBTXT | Movies, Semantically",
+  title: "SBTXT",
   description: "Discover cinema through vibes, story, and soul.",
 };
 

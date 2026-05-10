@@ -659,6 +659,54 @@ def search(
     min_vote: float = None,
     debug: bool = False,
 ):
+    # --- AUTO-FILTER PARSING ---
+    # If explicit filters aren't set, try to infer them from the query text.
+    q_low = query.lower()
+
+    # 1. Decade/Year Parsing
+    if not min_year and not max_year:
+        # Match '90s', '1990s', '80s', '1980s', etc.
+        decade_match = re.search(r'\b(19|20)?(\d0)s\b', q_low)
+        if decade_match:
+            century = decade_match.group(1) or "19"
+            decade = decade_match.group(2)
+            min_year = int(f"{century}{decade}")
+            max_year = min_year + 9
+            print(f"📅 [AUTO-FILTER] Detected decade: {min_year}-{max_year}")
+        
+        # Match '1900s' (can be decade or century, here we treat as decade 1900-1909)
+        elif "1900s" in q_low:
+             min_year, max_year = 1900, 1909
+        
+        # Match 'old' or 'classic'
+        elif any(w in q_low for w in ["old movies", "classic movies", "vintage movies"]):
+            max_year = 1980
+            print(f"📅 [AUTO-FILTER] Detected 'old' intent: max_year=1980")
+
+    # 2. Language Parsing
+    if not language:
+        lang_map = {
+            "hindi": "hi",
+            "korean": "ko",
+            "japanese": "ja",
+            "french": "fr",
+            "spanish": "es",
+            "german": "de",
+            "italian": "it",
+            "chinese": "zh",
+            "tamil": "ta",
+            "telugu": "te",
+            "malayalam": "ml",
+            "kannada": "kn",
+            "arabic": "ar",
+            "russian": "ru"
+        }
+        for lang_name, lang_code in lang_map.items():
+            if f"{lang_name} movies" in q_low or f"{lang_name} film" in q_low or q_low.startswith(f"{lang_name} "):
+                language = lang_code
+                print(f"🌐 [AUTO-FILTER] Detected language: {lang_name} ({lang_code})")
+                break
+
     # Per-request state — never share across calls
     repetition_log = {}
     start_time = time.time()

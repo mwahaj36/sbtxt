@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VibeSpinner from '@/components/spinner';
 
 // --- MovieCard Component with Living Poster Effect ---
-const MovieCard = ({ movie, index }) => {
+const MovieCard = ({ movie, index, onGenreClick }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [variants, setVariants] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -99,9 +99,16 @@ const MovieCard = ({ movie, index }) => {
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{movie.year}</span>
                 <span className="w-1 h-1 bg-gray-800 rounded-full" />
                 {movie.genres?.slice(0, 2).map((g, i) => (
-                    <span key={i} className="text-[10px] uppercase tracking-widest text-gray-600 font-bold">
+                    <button 
+                        key={i} 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onGenreClick(g);
+                        }}
+                        className="text-[10px] uppercase tracking-widest text-gray-600 font-bold hover:text-[var(--primary)] transition-colors"
+                    >
                         {g}
-                    </span>
+                    </button>
                 ))}
             </div>
         </motion.div>
@@ -109,6 +116,7 @@ const MovieCard = ({ movie, index }) => {
 };
 
 export default function SearchPage() {
+    const inputRef = React.useRef(null);
     const [query, SetQuery] = useState("");
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -151,10 +159,42 @@ export default function SearchPage() {
             }
         }
         fetchLanguages();
+
+        // 1. Auto-focus on load
+        inputRef.current?.focus();
+
+        // 2. Keyboard Shortcut (/)
+        const handleKeyPress = (e) => {
+            if (e.key === '/' && document.activeElement !== inputRef.current) {
+                e.preventDefault();
+                inputRef.current?.focus();
+            }
+        };
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
     }, []);
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
+    const clearFilters = () => {
+        setMinYear("");
+        setMaxYear("");
+        setLanguage("");
+        setMinVote("");
+        setResultCount(25);
+    };
+
+    const handleGenreClick = (genre) => {
+        SetQuery(genre);
+        // Trigger search immediately after state update (using a small timeout or just calling handleSearch with the new value)
+        // For simplicity here, we'll let the user hit Enter or click Search, 
+        // but we could also auto-trigger. Let's auto-trigger for better UX.
+        setTimeout(() => {
+            handleSearch(genre);
+        }, 100);
+    };
+
+    const handleSearch = async (overrideQuery = null) => {
+        const searchQuery = overrideQuery || query;
+        if (!searchQuery.trim()) return;
         setLoading(true);
         setIsSearched(true);
         try {
@@ -221,8 +261,9 @@ export default function SearchPage() {
                             <Search size={20} />
                         </div>
                         <input
+                            ref={inputRef}
                             type="text"
-                            placeholder='What kind of story are you looking for?'
+                            placeholder='What kind of story are you looking for? (Press "/" to focus)'
                             value={query}
                             onChange={(e) => SetQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -238,13 +279,25 @@ export default function SearchPage() {
                         </button>
                         <button 
                             className={`bg-[var(--primary)] px-10 rounded-2xl font-black text-black uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'}`}
-                            onClick={handleSearch}
+                            onClick={() => handleSearch()}
                             disabled={loading}
                         >
                             {loading ? "..." : "Search"}
                         </button>
                     </div>
                 </div>
+
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-4 flex items-start gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl max-w-2xl mx-auto"
+                >
+                    <AlertCircle size={16} className="text-[var(--primary)] mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-gray-400 leading-relaxed font-medium">
+                        <span className="text-white font-black uppercase tracking-tighter mr-1">Pro Tip:</span>
+                        Searching for a specific movie? Use the <span className="text-white">full, correct title</span> including punctuation (e.g., <span className="italic">"Singin' in the Rain"</span> instead of <span className="italic">"Singing in the rain"</span>) for the most accurate thematic siblings.
+                    </p>
+                </motion.div>
 
                 <AnimatePresence>
                     {showFilters && (
@@ -318,6 +371,14 @@ export default function SearchPage() {
                                         <option key={opt} value={opt} className="bg-[#0a0a0a]">{opt}</option>
                                     ))}
                                 </select>
+                            </div>
+                            <div className="flex items-end pb-1">
+                                <button 
+                                    onClick={clearFilters}
+                                    className="w-full py-2.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                >
+                                    <X size={12} /> Clear All
+                                </button>
                             </div>
                         </motion.div>
                     )}
@@ -407,7 +468,7 @@ export default function SearchPage() {
                     className="flex flex-wrap justify-center gap-10 w-full max-w-7xl mx-auto pb-40"
                 >
                     {sortedMovies.map((movie, index) => (
-                        <MovieCard key={movie.id} movie={movie} index={index} />
+                        <MovieCard key={movie.id} movie={movie} index={index} onGenreClick={handleGenreClick} />
                     ))}
                 </motion.div>
             )}

@@ -269,29 +269,26 @@ def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
     if year:
         f["release_year"] = year
 
-    # 1. Try to find the document with its existing vector
-    # We ask for $vector in the projection
+    # 1. Try to find the document
     proj_with_vec = {**proj, "$vector": 1}
     doc = collection.find_one(filter=f, projection=proj_with_vec)
     
     if not doc:
         return None
         
-    # 2. If it has a vector, we are good
+    # 2. Safety: If it has a zero vector, remove it so we don't crash
     if "$vector" in doc and doc["$vector"]:
-        # Verify it's not a zero vector
-        if not np.all(np.array(doc["$vector"]) == 0):
-            return doc
+        if np.all(np.array(doc["$vector"]) == 0):
+            del doc["$vector"]
 
-    # 3. If no vector, generate it as a fallback
-    print(f"📡 Generating missing vector for: {doc['title']}")
-    vec = embed(doc["title"] + " " + doc.get("overview", ""))
-    
-    if vec is not None and not np.all(vec == 0):
-        doc["$vector"] = vec.tolist()
-        return doc
+    # 3. If no vector (or we just deleted a zero one), try to generate it
+    if "$vector" not in doc:
+        print(f"📡 Generating missing vector for: {doc['title']}")
+        vec = embed(doc["title"] + " " + doc.get("overview", ""))
         
-    # If even fallback fails, return doc without vector (the search logic will handle it)
+        if vec is not None and not np.all(vec == 0):
+            doc["$vector"] = vec.tolist()
+            
     return doc
 
 

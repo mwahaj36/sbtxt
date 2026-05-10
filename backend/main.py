@@ -10,7 +10,7 @@ import movie
 app=FastAPI(
     title="Subtext",
     description="Vector based discovery engine",
-    version="1.0"
+    version="1.2"
 )
 
 #implement middlewre
@@ -20,30 +20,27 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-
 )
 
 #search page api
 @app.get("/search")
-async def get_movies(q:str=Query(..., description="The actual Query"),
-year_min: Optional[int]=None,
-year_max: Optional[int]=None,
-language: Optional[int]=None,
-vote_min: Optional[int]=None
-
-
-
-
+async def get_movies(
+    q: str = Query(..., description="The actual Query"),
+    min_year: Optional[int] = None,
+    max_year: Optional[int] = None,
+    language: Optional[str] = None,
+    min_vote: Optional[float] = None,
+    k: int = 10 
 ):
-    filters={
-        "year_min":year_min,
-        "year_max":year_max,
-        "language":language,
-        "vote_min":vote_min
-
-    }
-    filters={k:v for k,v in filters.items() if v is not None} #clean up filters, no need to pass if none
-    results = search(q, filters=filters) 
+    # Call the finalized search engine with advanced filter support
+    results = search(
+        q, 
+        k=k, 
+        min_year=min_year, 
+        max_year=max_year, 
+        language=language,
+        min_vote=min_vote
+    ) 
     return results
 
 
@@ -63,6 +60,7 @@ async def get_rec(movie_id:str):
 def read_root():
     return{"status":"Subtext is online"}
 
+# V28.7 REFRESH
 if __name__=="__main__":
     uvicorn.run("main:app",host="127.0.0.1",port=8000,reload=True)
 

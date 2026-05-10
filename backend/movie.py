@@ -37,7 +37,7 @@ def get_recommendations(movie:str):
                 continue
             vibe_score=doc.get("$similarity",0)
             doc_genres=set(doc.get("genres",[]))
-            
+
             shared_genres = original_genres.intersection(doc_genres)
             extra_genres = doc_genres.difference(original_genres) 
             
@@ -47,9 +47,9 @@ def get_recommendations(movie:str):
             recommendations.append({
                 "id": doc["_id"],
                 "title": doc.get("title"),
-                "genres": doc.get("genres"),       # Add this
+                "genres": doc.get("genres"),
                 "release_year":doc.get("release_year"),
-                "shared": list(shared_genres),     # Add this
+                "shared": list(shared_genres),
                 "final_score": final_score,
                 "similarity": vibe_score
             })

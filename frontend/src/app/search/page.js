@@ -263,7 +263,7 @@ export default function SearchPage() {
                         <input
                             ref={inputRef}
                             type="text"
-                            placeholder='What kind of story are you looking for? (Press "/" to focus)'
+                            placeholder='What kind of story are you looking for?'
                             value={query}
                             onChange={(e) => SetQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -290,12 +290,11 @@ export default function SearchPage() {
                 <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-4 flex items-start gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl max-w-2xl mx-auto"
+                    className="mt-3 px-6 text-center"
                 >
-                    <AlertCircle size={16} className="text-[var(--primary)] mt-0.5 shrink-0" />
-                    <p className="text-[11px] text-gray-400 leading-relaxed font-medium">
-                        <span className="text-white font-black uppercase tracking-tighter mr-1">Pro Tip:</span>
-                        Searching for a specific movie? Use the <span className="text-white">full, correct title</span> including punctuation (e.g., <span className="italic">"Singin' in the Rain"</span> instead of <span className="italic">"Singing in the rain"</span>) for the most accurate thematic siblings.
+                    <p className="text-[10px] text-gray-500 font-medium tracking-tight">
+                        <span className="text-gray-400 font-bold uppercase mr-1">Pro Tip:</span>
+                        Use full movie titles with correct punctuation for the most accurate thematic siblings.
                     </p>
                 </motion.div>
 

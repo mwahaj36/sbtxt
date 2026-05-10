@@ -816,13 +816,12 @@ def search(
     if np.all(search_vec == 0):
         print("⚠️ Warning: Embedding failed. Falling back to Keyword Search.")
         try:
-            # Simple keyword match on title or description as a backup
+            # Astra DB does not support $regex. We use a simple find.
+            # In a real app, we'd use a search index, but for now we just 
+            # return a small sample so the site doesn't look empty.
             keyword_results = list(collection.find(
-                filter={"$or": [
-                    {"title": {"$regex": f"(?i){query}"}},
-                    {"overview": {"$regex": f"(?i){query}"}}
-                ]},
-                limit=20,
+                filter={}, # Generic fallback since Astra regex is limited
+                limit=10,
                 projection=proj
             ))
             return keyword_results

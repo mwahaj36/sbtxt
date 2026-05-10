@@ -14,7 +14,7 @@ import requests
 from sentence_transformers import SentenceTransformer
 
 # Hugging Face Configuration
-MODEL_ID = "BAAI/bge-base-en-v1.5"
+MODEL_ID = "jinaai/jina-embeddings-v2-base-en"
 
 # Lazy-loaded model to keep startup snappy
 _model = None
@@ -23,9 +23,11 @@ def get_model():
     global _model
     if _model is None:
         print(f"📡 Loading Local ML Model: {MODEL_ID}...")
-        _model = SentenceTransformer(MODEL_ID)
+        # Jina v2 requires trust_remote_code=True
+        _model = SentenceTransformer(MODEL_ID, trust_remote_code=True)
         print("✅ Model loaded successfully.")
     return _model
+
 
 
 def embed(text: str):

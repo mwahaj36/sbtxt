@@ -384,7 +384,7 @@ export default function SearchPage() {
                         {[
                             "Dystopian synthwave city", "Heartfelt rural coming-of-age",
                             "Jazz-fueled heist banter", "Cosmic horror isolation",
-                            "Ghibli-esque nostalgia", "Hyper-violent neon revenge",
+                            "Lush atmospheric nostalgia", "Hyper-violent neon revenge",
                             "Quiet contemplative noir", "Post-apocalyptic hope"
                         ].map((vibe, index) => (
                             <button

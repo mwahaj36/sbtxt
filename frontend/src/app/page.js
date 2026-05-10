@@ -140,7 +140,7 @@ export default function Home() {
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Vibe-First Search</h2>
                         <p className="text-gray-400 text-lg leading-relaxed mb-8">
-                            Stop typing titles. Start typing feelings. Search for "Ghibli-esque nostalgia," "Neon-soaked revenge," or "Heartfelt rural coming-of-age." Our semantic engine understands the DNA of story.
+                            Stop typing titles. Start typing feelings. Search for "Lush atmospheric nostalgia," "Neon-soaked revenge," or "Heartfelt rural coming-of-age." Our semantic engine understands the DNA of story.
                         </p>
                         <ul className="space-y-4">
                             {['Vector-based thematic retrieval', 'Natural language understanding', 'Mood-aware results'].map((item) => (

@@ -1,21 +1,24 @@
-ROADMAP.md
-CHECKLIST.md
-assets/
+# Temporary and private data
+brain/
 venv/
 __pycache__/
 .env
+.env.local
 *.pyc
 .DS_Store
-node_modules/
-.next/
-dist/
-build/
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+
 # Data Files
+assets/
 *.csv
 *.jsonl
 !people_index.json
 *.json
-# Environment
-.env
-venv/
-paper/
+
+# Research and Paper (Internal)
+# Removed ROADMAP.md and CHECKLIST.md from here so they can be pushed

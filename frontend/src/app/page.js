@@ -1,15 +1,361 @@
 "use client";
-import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Search, Library, Compass, ChevronRight, Share2, Sparkles, Database, Loader2 } from 'lucide-react';
+import Footer from '@/components/footer';
 
 export default function Home() {
-  return (
-    <main className="min-h-screen text-white flex flex-col items-center justify-center p-4">
-      <div className="mesh-gradient" />
-      {/* <div className="grain" /> ADD THIS LINE */}
+    const pathname = usePathname();
+    const [trendingMovies, setTrendingMovies] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [stars, setStars] = useState([]);
 
-      <h1 className="text-5xl font-bold mb-8">Subtext</h1>
-    </main>
-  );
+    const fadeIn = {
+        initial: { opacity: 0, y: 20 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: { once: true },
+        transition: { duration: 0.8 }
+    };
+
+    // GUARANTEED WORKING TMDB POSTER PATHS
+    const fallbackPosters = [
+        { id: 313369, title: "La La Land", path: "/xjH9jy4EhNG81B2tzpDWz9yeLfF.jpg" },
+        { id: 385383, title: "Manchester by the Sea", path: "/o9VXYOuaJxCEKOxbA86xqtwmqYn.jpg" },
+        { id: 11104, title: "Chungking Express", path: "/43I9DcNoCzpyzK8JCkJYpHqHqGG.jpg" },
+        { id: 872, title: "Singin' in the Rain", path: "/w03EiJVHP8Un77boQeE7hg9DVdU.jpg" },
+        { id: 603, title: "The Matrix", path: "/aOIuZAjPaRIE6CMzbazvcHuHXDc.jpg" },
+        { id: 238, title: "The Godfather", path: "/3bhkrj58Vtu7enYsRolD1fZdja1.jpg" },
+        { id: 680, title: "Pulp Fiction", path: "/yDCNcS5pz8CZiL4fbMmtBrf1Ggz.jpg" },
+        { id: 155, title: "The Dark Knight", path: "/qJ2tW6WMUDux911r6m7haRef0WH.jpg" },
+        { id: 27205, title: "Inception", path: "/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg" }
+    ];
+
+    useEffect(() => {
+        // Generate stars only on the client to avoid hydration errors
+        const newStars = [...Array(40)].map((_, i) => ({
+            id: i,
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+            duration: Math.random() * 4 + 3
+        }));
+        setStars(newStars);
+
+        async function fetchTrending() {
+            try {
+                // Using the secure environment variable for the TMDB API key
+                const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+                const response = await fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}`);
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0) {
+                    setTrendingMovies(data.results.slice(0, 9).map(m => ({
+                        id: m.id,
+                        title: m.title,
+                        path: m.poster_path
+                    })));
+                } else {
+                    setTrendingMovies(fallbackPosters);
+                }
+            } catch (error) {
+                console.error("Failed to fetch trending movies:", error);
+                setTrendingMovies(fallbackPosters);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        fetchTrending();
+    }, []);
+
+    return (
+        <main className="w-full bg-black text-white selection:bg-[var(--primary)]/30">
+            <div className="mesh-gradient opacity-40" />
+
+            {/* SECTION 1: HERO (BLACK) */}
+            <section id="hero" className="h-screen w-full flex flex-col items-center justify-center text-center px-4 bg-black snap-start relative overflow-hidden">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="absolute inset-0 pointer-events-none"
+                >
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--primary)]/10 rounded-full blur-[120px]" />
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 0.2 }}
+                    className="relative z-10"
+                >
+                    <h1 className="font-['Arkhip'] text-6xl md:text-9xl tracking-tighter leading-none mb-6 uppercase">
+                        MOVIES,<br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[var(--primary)] to-white/40">SEMANTICALLY.</span>
+                    </h1>
+                    <p className="max-w-2xl mx-auto text-gray-400 text-lg md:text-xl font-light tracking-wide mb-10 px-4">
+                        Escape the algorithm. Discover cinema through vibes, story, and soul—not just metadata.
+                    </p>
+                    <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                        <Link href="/search" className="group relative px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95">
+                            <span className="relative z-10">Start Searching</span>
+                            <div className="absolute inset-0 bg-[var(--primary)] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                        </Link>
+                        <button className="px-8 py-4 border border-white/10 hover:border-white/30 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-widest transition-all hover:bg-white/5">
+                            Explore Features
+                        </button>
+                    </div>
+                </motion.div>
+
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.5, duration: 1 }}
+                    className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+                >
+                    <span className="text-[10px] uppercase tracking-[0.4em] text-gray-500">Scroll to explore</span>
+                    <div className="w-px h-12 bg-gradient-to-b from-white/20 to-transparent" />
+                </motion.div>
+            </section>
+
+            {/* SECTION 2: THE RANT (WHITE) */}
+            <section id="rant" className="h-screen w-full flex items-center justify-center bg-white text-black snap-start relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-8 relative z-10">
+                    <motion.div 
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="max-w-4xl"
+                    >
+                        <h2 className="text-5xl md:text-8xl font-black tracking-tighter mb-12 leading-[0.9]">
+                            KEYWORDS ARE <br />
+                            <span className="line-through decoration-[var(--primary)] decoration-8 text-black/20">A LIE.</span>
+                        </h2>
+                        <p className="text-xl md:text-4xl font-bold tracking-tight leading-tight mb-12">
+                            Traditional search is a graveyard of metadata. It doesn't care about the <span className="italic">soul</span> of the story—it only cares if the title matches your typo.
+                        </p>
+                    </motion.div>
+
+                    <div className="grid md:grid-cols-3 gap-12 mt-20">
+                        {[
+                            { title: "The Popularity Trap", desc: "Old search engines only show you what's trending, burying the hidden gems you actually need." },
+                            { title: "The Keyword Curse", desc: "Tags are limited. Feelings aren't. Why can't you search for 'movies that feel like a cold morning'?" },
+                            { title: "The Scroll Fatigue", desc: "Spent 45 minutes looking and 0 minutes watching? That's an algorithm failure, not a you problem." }
+                        ].map((item, i) => (
+                            <motion.div 
+                                key={item.title}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.2 }}
+                                className="border-l-4 border-black pl-6 py-2"
+                            >
+                                <h4 className="text-xl font-black uppercase mb-3">{item.title}</h4>
+                                <p className="text-gray-600 font-medium text-sm">{item.desc}</p>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 text-[20rem] font-black opacity-[0.03] select-none pointer-events-none whitespace-nowrap">
+                    TRADITIONAL SEARCH SUCKS
+                </div>
+            </section>
+
+            {/* SECTION 3: VIBE SEARCH (DEEP PURPLE) */}
+            <section id="vibe" className="h-screen w-full flex items-center justify-center bg-[#0d041a] snap-start relative px-4">
+                <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
+                    <motion.div {...fadeIn}>
+                        <div className="w-12 h-12 bg-[var(--secondary)]/10 rounded-xl flex items-center justify-center text-[var(--secondary)] mb-6">
+                            <Search size={24} />
+                        </div>
+                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Vibe-First Search</h2>
+                        <p className="text-gray-400 text-lg leading-relaxed mb-8">
+                            Stop typing titles. Start typing feelings. Search for "Ghibli-esque nostalgia," "Neon-soaked revenge," or "Heartfelt rural coming-of-age." Our semantic engine understands the DNA of story.
+                        </p>
+                        <ul className="space-y-4">
+                            {['Vector-based thematic retrieval', 'Natural language understanding', 'Mood-aware results'].map((item) => (
+                                <li key={item} className="flex items-center gap-3 text-sm font-bold text-gray-300">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--secondary)]" />
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    </motion.div>
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        className="relative aspect-square bg-white/5 rounded-[40px] border border-white/10 overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-[var(--secondary)]/20 to-transparent" />
+                        <div className="absolute inset-8 flex flex-col gap-4">
+                            <div className="h-12 w-full bg-white/10 rounded-xl animate-pulse" />
+                            <div className="h-32 w-full bg-white/5 rounded-xl" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="h-40 bg-white/10 rounded-xl" />
+                                <div className="h-40 bg-white/10 rounded-xl" />
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* SECTION 4: LETTERBOXD (BLUE) */}
+            <section id="letterboxd" className="h-screen w-full flex items-center justify-center bg-[#0a1128] snap-start relative px-4">
+                <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
+                    <motion.div 
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 1 }}
+                        className="order-2 md:order-1 relative aspect-video bg-black/40 backdrop-blur-3xl rounded-[40px] border border-white/10 overflow-hidden p-8"
+                    >
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex gap-2">
+                                <div className="w-3 h-3 rounded-full bg-orange-500" />
+                                <div className="w-3 h-3 rounded-full bg-green-500" />
+                                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Syncing with Letterboxd...</span>
+                        </div>
+                        <div className="space-y-4">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                                    <div className="w-12 h-16 bg-white/10 rounded-lg" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-3 w-1/2 bg-white/10 rounded" />
+                                        <div className="h-2 w-1/4 bg-white/5 rounded" />
+                                    </div>
+                                    <div className="text-blue-400"><Sparkles size={16} /></div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                    <motion.div {...fadeIn} className="order-1 md:order-2">
+                        <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 mb-6">
+                            <Library size={24} />
+                        </div>
+                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Personalized Radar</h2>
+                        <p className="text-gray-300 text-lg leading-relaxed mb-8">
+                            Sync your Letterboxd diary to create a unique taste profile. SBTXT automatically filters out movies you've already logged and crafts suggestions based on your recent fixations.
+                        </p>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                                <h4 className="text-blue-200 font-bold mb-1 italic">Avoid Repeats</h4>
+                                <p className="text-xs text-blue-400/60">Filtered results from your 'Seen' list.</p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                                <h4 className="text-blue-200 font-bold mb-1 italic">Taste Match</h4>
+                                <p className="text-xs text-blue-400/60">Suggestions based on your 5-star ratings.</p>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* SECTION 5: TMDB DATA (OFFICIAL COLORS) */}
+            <section id="tmdb" className="h-screen w-full flex items-center justify-center bg-[#0d253f] snap-start relative px-4">
+                <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
+                    <motion.div {...fadeIn}>
+                        <div className="w-12 h-12 bg-[#90cea1]/10 rounded-xl flex items-center justify-center text-[#90cea1] mb-6">
+                            <Database size={24} />
+                        </div>
+                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white leading-none">Powered by the World's Movie Database</h2>
+                        <p className="text-blue-100/60 text-lg leading-relaxed mb-8">
+                            SBTXT is built upon the robust infrastructure of TMDB. We ingest millions of data points—from classic filmography to upcoming blockbusters—to ensure your discovery journey is always backed by the most comprehensive movie library on Earth.
+                        </p>
+                        <div className="flex items-center gap-6">
+                            <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+                                <img src="/tmdb.svg" alt="TMDB" className="h-8" />
+                            </a>
+                            <div className="h-8 w-px bg-white/10" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#01b4e4]">Data Provided by TMDB</span>
+                        </div>
+                    </motion.div>
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        className="relative hidden md:block w-full max-w-md mx-auto"
+                    >
+                        <div className="absolute inset-0 bg-[#01b4e4]/10 blur-[100px] rounded-full" />
+                        
+                        {isLoading ? (
+                            <div className="h-[500px] w-full flex items-center justify-center">
+                                <Loader2 className="animate-spin text-[#01b4e4]" size={48} />
+                            </div>
+                        ) : (
+                            <div className="relative z-10 grid grid-cols-3 gap-3">
+                                {trendingMovies.map((movie, i) => (
+                                    <motion.a
+                                        key={movie.id}
+                                        href={`https://www.themoviedb.org/movie/${movie.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.1 }}
+                                        whileHover={{ scale: 1.05, zIndex: 50 }}
+                                        className="aspect-[2/3] relative rounded-xl border border-white/10 overflow-hidden shadow-2xl group/poster bg-black/20"
+                                    >
+                                        <img 
+                                            src={`https://image.tmdb.org/t/p/w500${movie.path}`} 
+                                            alt={movie.title} 
+                                            className="w-full h-full object-cover transition-all duration-500 hover:brightness-110"
+                                            onError={(e) => {
+                                                e.currentTarget.src = `https://via.placeholder.com/500x750/0d253f/01b4e4?text=${encodeURIComponent(movie.title)}`;
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-[#0d253f] via-transparent to-transparent opacity-60 pointer-events-none" />
+                                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover/poster:translate-y-0 transition-transform duration-300 bg-black/80 backdrop-blur-md">
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-white truncate">{movie.title}</p>
+                                        </div>
+                                    </motion.a>
+                                ))}
+                            </div>
+                        )}
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* SECTION 6: CONSTELLATION (MAGENTA) */}
+            <section id="galaxy" className="h-screen w-full flex items-center justify-center bg-[#1a051d] snap-start relative px-4">
+                <div className="max-w-4xl mx-auto text-center">
+                    <motion.div {...fadeIn}>
+                        <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-xl flex items-center justify-center text-[var(--primary)] mx-auto mb-6">
+                            <Compass size={24} />
+                        </div>
+                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">The Cinematic Galaxy</h2>
+                        <p className="text-gray-300 text-lg leading-relaxed mb-12">
+                            A new way to browse. See movies as stars in a connected constellation. Navigate through visual clusters of genres, moods, and directorial styles.
+                        </p>
+                        <div className="relative h-[400px] md:h-[500px] w-full bg-white/[0.03] backdrop-blur-3xl rounded-[40px] border border-white/10 overflow-hidden group">
+                             {stars.map((star) => (
+                                <motion.div 
+                                    key={star.id}
+                                    animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.2, 1] }}
+                                    transition={{ duration: star.duration, repeat: Infinity }}
+                                    className="absolute w-1 h-1 bg-white rounded-full"
+                                    style={{ top: star.top, left: star.left }}
+                                />
+                             ))}
+                             <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 to-transparent" />
+                             <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-[12px] font-black uppercase tracking-[0.5em] text-[var(--primary)] animate-pulse px-4 text-center">Coming Soon: Visual Discovery</span>
+                             </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* SECTION 7: CTA & FOOTER (BLACK) */}
+            <section id="cta" className="h-screen w-full flex flex-col justify-between bg-black snap-start relative">
+                <div className="flex-1 flex items-center justify-center px-4">
+                    <motion.div {...fadeIn} className="max-w-4xl w-full p-12 rounded-[40px] bg-gradient-to-br from-white/5 to-transparent border border-white/10 text-center relative overflow-hidden">
+                        <h2 className="text-5xl md:text-7xl font-black mb-10 text-white leading-tight">Ready to find<br />something real?</h2>
+                        <Link href="/search" className="inline-flex items-center gap-4 px-12 py-6 bg-[var(--primary)] text-black font-black uppercase tracking-widest text-xs rounded-full hover:scale-110 transition-all shadow-[0_0_50px_rgba(217,70,239,0.3)]">
+                            Launch Search <ChevronRight size={20} />
+                        </Link>
+                    </motion.div>
+                </div>
+                <Footer />
+            </section>
+        </main>
+    );
 }

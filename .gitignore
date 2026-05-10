@@ -17,8 +17,11 @@ frontend/build/
 assets/
 *.csv
 *.jsonl
-!people_index.json
 *.json
+!package.json
+!package-lock.json
+!jsconfig.json
+!people_index.json
 
 # Research and Paper (Internal)
 # Removed ROADMAP.md and CHECKLIST.md from here so they can be pushed

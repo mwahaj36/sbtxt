@@ -170,7 +170,11 @@ export default function SearchPage() {
 
             console.log("🚀 [Search] Fetching from:", url);
 
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: {
+                    "Authorization": `Bearer ${process.env.NEXT_PUBLIC_HF_TOKEN}`
+                }
+            });
             console.log("📡 [Search] Status:", response.status, response.statusText);
 
             if (!response.ok) {

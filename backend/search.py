@@ -47,9 +47,8 @@ except Exception as e:
 
 VIBE_RULES = {
     "emotional": {
-        "keywords": ["cry", "sad", "bawl", "tearjerker", "devastating", "heartbreaking", "emotional", "beautiful"],
+        "keywords": ["cry", "sad", "bawl", "tearjerker", "devastating", "heartbreaking", "emotional", "beautiful", "romance", "romantic", "love story", "romcom", "rom-com", "rom com"],
         "boost_genres": ["Drama", "Romance"],
-        # Thriller excluded — The Handmaiden, Blue Valentine are emotional AND dark
         "kill_genres": ["Action", "Adventure", "Horror", "Comedy", "Crime", "Mystery", "Science Fiction"]
     },
     "scary": {
@@ -58,15 +57,19 @@ VIBE_RULES = {
         "kill_genres": ["Romance", "Comedy", "Family"]
     },
     "funny": {
-        "keywords": ["hilarious", "laugh", "funny", "comedy", "lmao", "fun", "humor"],
+        "keywords": ["hilarious", "laugh", "funny", "comedy", "comedies", "lmao", "fun", "humor", "feel better", "cheer me up", "romcom", "rom-com", "rom com"],
         "boost_genres": ["Comedy"],
-        # Drama removed — 50/50, Love & Other Drugs are Comedy-Drama crossovers
-        "kill_genres": ["Horror", "War", "Documentary", "Mystery"]
+        "kill_genres": ["Horror", "War", "Documentary", "Mystery", "Thriller"]
     },
     "action": {
         "keywords": ["action", "explosions", "badass", "fight", "cool", "thrilling", "intense"],
         "boost_genres": ["Action", "Adventure", "Thriller"],
         "kill_genres": ["Romance", "Documentary", "Family"]
+    },
+    "investigative": {
+        "keywords": ["whodunnit", "whodunit", "detective", "mystery", "solve", "clues", "investigation", "crime", "murder mystery"],
+        "boost_genres": ["Mystery", "Crime"],
+        "kill_genres": ["Romance", "Musical", "Fantasy"]
     }
 }
 
@@ -425,10 +428,14 @@ def score_movie(
     # --- Hard Tonal Filter ---
     # If the user explicitly asks for a genre, we penalize non-matching movies heavily.
     tonal_penalty = 0.0
-    explicit_genres = ["Comedy", "Horror", "Action", "Romance", "Science Fiction", "Documentary", "Animation", "Thriller", "Crime"]
+    explicit_genres = ["Comedy", "Horror", "Action", "Romance", "Science Fiction", "Documentary", "Animation", "Thriller", "Crime", "Mystery"]
     for eg in explicit_genres:
-        if re.search(rf"\b{eg.lower()}\b", q_low) and eg not in doc_genres:
-            tonal_penalty += 0.70
+        # Check for both singular and plural (e.g., 'comedy' and 'comedies')
+        # Also handle shorthands like 'rom com' for both Romance and Comedy
+        is_romcom = any(x in q_low for x in ["romcom", "rom-com", "rom com"])
+        is_mystery = any(x in q_low for x in ["mystery", "whodunnit", "whodunit", "detective"])
+        if (re.search(rf"\b{eg.lower()}\b", q_low) or (eg == "Comedy" and ("comedies" in q_low or is_romcom)) or (eg == "Romance" and is_romcom) or (eg == "Mystery" and is_mystery)) and eg not in doc_genres:
+            tonal_penalty += 0.85
 
     # --- Vibe Rules (GLOBAL queries) ---
     for vibe, rules in VIBE_RULES.items():
@@ -638,27 +645,38 @@ def search(
     like_triggers = ["movies like", "movie like", "films like", "film like", "similar to", "reminds me of"]
     suffix_triggers = ["-esque", "esque", " like movies", " like movie", " vibe movies"]
 
-    # Auto-detect: is the entire query a movie title?
-    auto_ref = find_movie_by_title(query)
-    if auto_ref:
-        reference_title = auto_ref["title"]
-        mode = "SIBLING_DISCOVERY"
-    else:
-        for trigger in like_triggers:
-            if trigger in q_low:
-                reference_title = query[q_low.find(trigger) + len(trigger):].strip().strip("'\"")
+    # 1. Check for explicit prefix triggers
+    for trigger in like_triggers:
+        if trigger in q_low:
+            reference_title = query[q_low.find(trigger) + len(trigger):].strip().strip("'\"")
+            mode = "SIBLING_DISCOVERY"
+            break
+
+    # 2. Check for genre-based triggers (e.g. "comedies like friday")
+    if not reference_title:
+        genre_like_match = re.search(r"\b(movies|films|comedies|dramas|thrillers|horror|action|sci-fi|animated|romance|shows)\s+like\s+(.*)", q_low)
+        if genre_like_match:
+            reference_title = genre_like_match.group(2).strip().strip("'\"")
+            mode = "SIBLING_DISCOVERY"
+
+    # 3. Check for suffix triggers
+    if not reference_title:
+        for s_trig in suffix_triggers:
+            if s_trig in q_low:
+                reference_title = query[:q_low.find(s_trig)].strip().strip("'\"")
                 mode = "SIBLING_DISCOVERY"
                 break
-        if not reference_title:
-            for s_trig in suffix_triggers:
-                if s_trig in q_low:
-                    reference_title = query[:q_low.find(s_trig)].strip().strip("'\"")
-                    mode = "SIBLING_DISCOVERY"
-                    break
+
+    # 4. Auto-detect: is the entire query a movie title?
+    if not reference_title:
+        auto_ref = find_movie_by_title(query)
+        if auto_ref:
+            reference_title = auto_ref["title"]
+            mode = "SIBLING_DISCOVERY"
 
     vibe_anchor_text = query
 
-    if reference_title and len(reference_title) > 2:
+    if reference_title and len(reference_title) >= 2:
         # Detect if a year was provided in the title (e.g. "Babylon 2022")
         anchor_year = None
         year_match = re.search(r'\b(19\d{2}|20\d{2})\b', reference_title)
@@ -676,7 +694,7 @@ def search(
             # This catches "Borat" -> "Borat: Cultural Learnings..."
             # by looking for titles between "Borat" and "Borau".
             prefix = reference_title.strip().title()
-            if len(prefix) > 2:
+            if len(prefix) >= 2:
                 # Calculate the "next" string for the range (e.g. "Borat" -> "Borau")
                 prefix_next = prefix[:-1] + chr(ord(prefix[-1]) + 1)
                 

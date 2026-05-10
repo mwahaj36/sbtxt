@@ -48,9 +48,20 @@ def embed(text: str):
 
 load_dotenv()
 
-client = DataAPIClient(os.getenv("ASTRA_DB_APPLICATION_TOKEN"))
-db = client.get_database_by_api_endpoint(os.getenv("ASTRA_DB_API_ENDPOINT"))
-collection = db.get_collection("movies")
+ASTRA_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+ASTRA_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
+
+if not ASTRA_TOKEN or not ASTRA_ENDPOINT:
+    print("❌ ERROR: Missing Astra DB Environment Variables!")
+    print(f"ASTRA_DB_APPLICATION_TOKEN: {'SET' if ASTRA_TOKEN else 'MISSING'}")
+    print(f"ASTRA_DB_API_ENDPOINT: {'SET' if ASTRA_ENDPOINT else 'MISSING'}")
+    # We don't crash here, we just initialize as None and handle it later
+    db = None
+    collection = None
+else:
+    client = DataAPIClient(ASTRA_TOKEN)
+    db = client.get_database_by_api_endpoint(ASTRA_ENDPOINT)
+    collection = db.get_collection("movies")
 
 # =============================================================================
 # MODELS + DATA

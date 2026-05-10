@@ -28,14 +28,19 @@ def embed(text: str):
         
     payload = {"inputs": text, "options": {"wait_for_model": True}}
     try:
+        print(f"📡 DEBUG: Fetching embedding from {HF_API_URL}")
+        print(f"📡 DEBUG: Token prefix: {HF_TOKEN[:5] if HF_TOKEN else 'NONE'}...")
+        
         response = requests.post(
             HF_API_URL,
             headers={"Authorization": f"Bearer {HF_TOKEN}"},
             json=payload,
             timeout=15
         )
+        print(f"📡 DEBUG: HF Status: {response.status_code}")
+        
         if response.status_code != 200:
-            print(f"HF API Error: {response.status_code}")
+            print(f"HF API Error: {response.status_code} - Content: {response.text[:100]}")
             return np.zeros(768)
         
         res = response.json()
@@ -810,10 +815,23 @@ def search(
     # -------------------------------------------------------------------------
     # 4. HYBRID RETRIEVAL
     # -------------------------------------------------------------------------
-    # SAFETY: Astra DB crashes on zero vectors. If embedding failed, abort early.
+    # SAFETY: Astra DB crashes on zero vectors. If embedding failed, use Keyword Fallback.
     if np.all(search_vec == 0):
-        print("⚠️ Warning: Search vector is all zeros (Embedding failed). Returning empty results.")
-        return []
+        print("⚠️ Warning: Embedding failed. Falling back to Keyword Search.")
+        try:
+            # Simple keyword match on title or description as a backup
+            keyword_results = list(collection.find(
+                filter={"$or": [
+                    {"title": {"$regex": f"(?i){query}"}},
+                    {"overview": {"$regex": f"(?i){query}"}}
+                ]},
+                limit=20,
+                projection=proj
+            ))
+            return keyword_results
+        except Exception as e:
+            print(f"❌ Keyword Fallback Failed: {e}")
+            return []
 
     try:
         # Pool A: raw vector similarity (the vibe)

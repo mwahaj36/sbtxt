@@ -375,7 +375,8 @@ def compute_genre_penalty(doc_genres: list, kill_genres: list, boost_genres: lis
     """
     kill_hits = sum(1 for g in doc_genres if g in kill_genres)
     boost_hits = sum(1 for g in doc_genres if g in boost_genres)
-    return max(0, kill_hits - boost_hits) * 0.30
+    # Increased penalty weight to 0.50 for absolute genre suppression
+    return max(0, kill_hits - boost_hits) * 0.50
 
 
 def compute_genre_alignment_penalty(anchor_genres: list, doc_genres: list, query_focus: str) -> float:
@@ -572,6 +573,8 @@ def score_movie(
             + masterpiece_bonus
             - purity_penalty
             + (quality_score * 0.05)
+            + vibe_boost
+            - genre_penalty
             - penalty
             - mood_penalty
             - alignment_penalty
@@ -660,6 +663,16 @@ def search(
     repetition_log = {}
     start_time = time.time()
     q_low = query.lower()
+    
+    # Check for vibes early
+    vibe_match = None
+    for v_name, rules in VIBE_RULES.items():
+        if any(w in q_low for w in rules["keywords"]):
+            vibe_match = v_name
+            break
+    if vibe_match:
+        print(f"🎭 [VIBE DETECTED] Query has {vibe_match} tone. Applying constraints.")
+
     similarity_waiver = any(kw in q_low for kw in ["like", "similar", "vibe", "style", "-esque"])
 
     # -------------------------------------------------------------------------

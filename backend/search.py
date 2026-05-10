@@ -265,15 +265,20 @@ def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
     if year:
         f["release_year"] = year
 
-    # 1. Try to find the document (sort by vote_count to get the most popular match)
-    proj_with_vec = {**proj, "$vector": 1}
-    docs = list(collection.find(
+    # 1. Try to find the document (Fetch multiple to ensure we can pick the best in Python)
+    proj_with_vec = {**proj, "$vector": 1, "vote_count": 1}
+    candidates = list(collection.find(
         filter=f, 
         projection=proj_with_vec, 
-        sort={"vote_count": -1}, 
-        limit=1
+        limit=5
     ))
-    doc = docs[0] if docs else None
+    
+    if not candidates:
+        return None
+        
+    # Sort by vote_count in Python to be 100% sure
+    candidates.sort(key=lambda x: x.get("vote_count", 0), reverse=True)
+    doc = candidates[0]
     
     if not doc:
         return None
@@ -827,7 +832,7 @@ def search(
 
         if ref_doc:
             anchor_id = ref_doc.get("_id")
-            print(f"--- [ANCHOR FOUND] --- {ref_doc['title']} (id={anchor_id})")
+            print(f"--- [ANCHOR FOUND] --- {ref_doc['title']} ({ref_doc.get('release_year', 'N/A')}) | id={anchor_id} | votes={ref_doc.get('vote_count', 0)}")
 
             anchor_overview = strip_names(ref_doc.get("overview", ""))
             anchor_genres_str = ", ".join(ref_doc.get("genres", []))

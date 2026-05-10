@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
-    const k = searchParams.get('k') || '25';
     
-    // Get secrets from environment (these are safe on the server!)
+    // Get secrets from environment
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN;
 
@@ -14,7 +12,8 @@ export async function GET(request) {
     }
 
     try {
-        const url = `${backendUrl}/search?q=${encodeURIComponent(query)}&k=${k}`;
+        // Forward all query parameters to the backend
+        const url = `${backendUrl}/search?${searchParams.toString()}`;
         console.log("📡 Proxying request to:", url);
 
         const response = await fetch(url, {

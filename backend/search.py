@@ -14,7 +14,8 @@ import requests
 # Hugging Face Inference API Config
 HF_TOKEN = os.getenv("HF_TOKEN")
 MODEL_ID = "sentence-transformers/all-mpnet-base-v2"
-HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
+# Using the explicit pipeline URL which is more reliable for some models
+HF_API_URL = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL_ID}"
 
 def embed(text: str):
     """
@@ -809,23 +810,32 @@ def search(
     # -------------------------------------------------------------------------
     # 4. HYBRID RETRIEVAL
     # -------------------------------------------------------------------------
-    # Pool A: raw vector similarity (the vibe)
-    pool_a = list(collection.find(
-        filter=search_filter,
-        sort={"$vector": search_vec.tolist()},
-        limit=100,
-        projection=proj
-    ))
+    # SAFETY: Astra DB crashes on zero vectors. If embedding failed, abort early.
+    if np.all(search_vec == 0):
+        print("⚠️ Warning: Search vector is all zeros (Embedding failed). Returning empty results.")
+        return []
 
-    pool_b = []
-    # Pool B: High Quality Sibling DNA (Only for siblings)
-    if mode == "SIBLING_DISCOVERY" and ref_doc:
-        pool_b = list(collection.find(
-            filter={**search_filter, "vote_average": {"$gte": 7.5}},
+    try:
+        # Pool A: raw vector similarity (the vibe)
+        pool_a = list(collection.find(
+            filter=search_filter,
             sort={"$vector": search_vec.tolist()},
-            limit=30,
+            limit=100,
             projection=proj
         ))
+
+        pool_b = []
+        # Pool B: High Quality Sibling DNA (Only for siblings)
+        if mode == "SIBLING_DISCOVERY" and ref_doc:
+            pool_b = list(collection.find(
+                filter={**search_filter, "vote_average": {"$gte": 7.5}},
+                sort={"$vector": search_vec.tolist()},
+                limit=30,
+                projection=proj
+            ))
+    except Exception as e:
+        print(f"❌ Database Retrieval Error: {e}")
+        return []
 
     pool_c = []
     # Pool C: Metadata Keywords (Only for siblings)

@@ -200,12 +200,15 @@ export default function Home() {
                         </div>
                     </motion.div>
                     <motion.div {...fadeIn} className="order-1 md:order-2">
-                        <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 mb-6">
-                            <Library size={24} />
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
+                                <Library size={24} />
+                            </div>
+                            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-500/30">Coming Soon</span>
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Personalized Radar</h2>
                         <p className="text-gray-300 text-lg leading-relaxed mb-8">
-                            Sync your Letterboxd diary to create a unique taste profile. SBTXT automatically filters out movies you've already logged and crafts suggestions based on your recent fixations.
+                            Sync your Letterboxd diary to create a unique taste profile. SBTXT will automatically filter out movies you've already logged and craft suggestions based on your recent fixations.
                         </p>
                         <div className="grid grid-cols-2 gap-6">
                             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
@@ -284,8 +287,11 @@ export default function Home() {
             <section id="galaxy" className="h-screen w-full flex items-center justify-center bg-[#1a051d] snap-start relative px-4">
                 <div className="max-w-4xl mx-auto text-center">
                     <motion.div {...fadeIn}>
-                        <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-xl flex items-center justify-center text-[var(--primary)] mx-auto mb-6">
-                            <Compass size={24} />
+                        <div className="flex items-center justify-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-xl flex items-center justify-center text-[var(--primary)]">
+                                <Compass size={24} />
+                            </div>
+                            <span className="px-3 py-1 bg-[var(--primary)]/20 text-[var(--primary)] text-[10px] font-black uppercase tracking-widest rounded-full border border-[var(--primary)]/30">Coming Soon</span>
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">The Cinematic Galaxy</h2>
                         <p className="text-gray-300 text-lg leading-relaxed mb-12">

@@ -44,8 +44,8 @@ export default function Navbar() {
 
     const navItems = [
         { name: 'Search', href: '/search' },
-        { name: 'Discover', href: '/discover' },
-        { name: 'Moods', href: '/moods' }
+        // { name: 'Discover', href: '/discover' },
+        // { name: 'Moods', href: '/moods' }
     ];
 
     return (
@@ -94,7 +94,8 @@ export default function Navbar() {
                         );
                     })}
                     
-                    {/* Premium Action Button */}
+                    {/* Premium Action Button (Coming Soon) */}
+                    {/* 
                     <button className={`relative group/btn overflow-hidden px-6 py-2 rounded-lg border transition-all duration-500 active:scale-95 ${
                         isLightMode ? 'border-black/20 hover:border-black/50' : 'border-white/10 hover:border-[var(--primary)]/50'
                     }`}>
@@ -107,6 +108,7 @@ export default function Navbar() {
                             Sign In
                         </span>
                     </button>
+                    */}
                 </div>
             </div>
         </motion.nav>

@@ -158,23 +158,18 @@ export default function SearchPage() {
         setLoading(true);
         setIsSearched(true);
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-            console.log("🔍 [Search] Using Backend URL:", backendUrl);
-            
-            let url = `${backendUrl}/search?q=${encodeURIComponent(query)}`;
+            // We now call our OWN internal proxy instead of the backend directly
+            // This bypasses CORS and keeps your HF Token secret!
+            let url = `/api/search?q=${encodeURIComponent(query)}`;
             if (minYear) url += `&min_year=${minYear}`;
             if (maxYear) url += `&max_year=${maxYear}`;
             if (language) url += `&language=${language}`;
             if (minVote) url += `&min_vote=${minVote}`;
             if (resultCount) url += `&k=${resultCount}`;
 
-            console.log("🚀 [Search] Fetching from:", url);
+            console.log("🚀 [Search] Fetching from proxy:", url);
 
-            const response = await fetch(url, {
-                headers: {
-                    "Authorization": `Bearer ${process.env.NEXT_PUBLIC_HF_TOKEN}`
-                }
-            });
+            const response = await fetch(url);
             console.log("📡 [Search] Status:", response.status, response.statusText);
 
             if (!response.ok) {

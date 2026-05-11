@@ -249,7 +249,8 @@ def detect_negation(query: str, keyword: str) -> bool:
     k = keyword.lower()
     negators = ["no ", "not ", "without ", "none ", "never ", "stop ", "zero "]
     for n in negators:
-        if re.search(rf"\b{n}{k}\b", q):
+        # Use s? to catch plurals like 'rom-coms' or 'thrillers'
+        if re.search(rf"\b{n}{k}s?\b", q):
             return True
     return False
 
@@ -594,8 +595,20 @@ def score_movie(
     for eg in explicit_genres:
         is_romcom = any(x in q_low for x in ["romcom", "rom-com", "rom com"])
         is_mystery = any(x in q_low for x in ["mystery", "whodunnit", "whodunit", "detective"])
-        if (re.search(rf"\b{eg.lower()}\b", q_low) or (eg == "Comedy" and ("comedies" in q_low or is_romcom)) or (eg == "Romance" and is_romcom) or (eg == "Mystery" and is_mystery)) and eg not in doc_genres:
-            tonal_penalty += 0.85
+        
+        # POSITIVE INTENT: user wants this genre
+        if (re.search(rf"\b{eg.lower()}s?\b", q_low) or (eg == "Comedy" and ("comedies" in q_low or is_romcom)) or (eg == "Romance" and is_romcom) or (eg == "Mystery" and is_mystery)) and eg not in doc_genres:
+            # Waiver: don't penalize if the intent was actually negated
+            if not detect_negation(q_low, eg.lower()) and not (eg == "Comedy" and detect_negation(q_low, "comedy")):
+                tonal_penalty += 0.85
+
+        # NEGATIVE INTENT: user explicitly forbids a genre/style
+        if detect_negation(q_low, eg.lower()) or (eg == "Comedy" and detect_negation(q_low, "comedy")):
+            if eg in doc_genres:
+                penalty += 0.50
+                # Special Case: 'No Rom-com' implies blocking both Romance and Comedy
+                if is_romcom and detect_negation(q_low, "rom-com") and "Romance" in doc_genres and "Comedy" in doc_genres:
+                    penalty += 0.40 # Additional penalty for rom-com specifically
 
     # --- Vibe Rules + Multi-vibe bonus ---
     for vibe, rules in VIBE_RULES.items():

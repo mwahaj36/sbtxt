@@ -606,9 +606,11 @@ def score_movie(
         if detect_negation(q_low, eg.lower()) or (eg == "Comedy" and detect_negation(q_low, "comedy")):
             if eg in doc_genres:
                 penalty += 0.50
-                # Special Case: 'No Rom-com' implies blocking both Romance and Comedy
-                if is_romcom and detect_negation(q_low, "rom-com") and "Romance" in doc_genres and "Comedy" in doc_genres:
-                    penalty += 0.40 # Additional penalty for rom-com specifically
+
+    # --- Hard Rom-com Block ---
+    is_romcom_negated = any(detect_negation(q_low, x) for x in ["romcom", "rom-com", "rom com"])
+    if is_romcom_negated and ("Romance" in doc_genres and "Comedy" in doc_genres):
+        penalty += 1.50 # Hard block for rom-coms
 
     # --- Vibe Rules + Multi-vibe bonus ---
     for vibe, rules in VIBE_RULES.items():
@@ -616,6 +618,10 @@ def score_movie(
         if matched_keywords:
             all_negated = all(detect_negation(q_low, w) for w in matched_keywords)
             if not all_negated:
+                # If rom-com is forbidden, don't let funny/emotional rules boost a rom-com
+                if is_romcom_negated and ("Romance" in doc_genres and "Comedy" in doc_genres):
+                    continue
+
                 if any(g in doc_genres for g in rules["boost_genres"]):
                     vibe_boost += 0.15
                 genre_penalty += compute_genre_penalty(doc_genres, rules["kill_genres"], rules["boost_genres"])

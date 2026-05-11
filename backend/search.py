@@ -2,6 +2,7 @@ import os
 import time
 import re
 import json
+import math
 import os
 import numpy as np
 import spacy
@@ -16,29 +17,21 @@ from sentence_transformers import SentenceTransformer
 # Hugging Face Configuration
 MODEL_ID = "jinaai/jina-embeddings-v2-base-en"
 
-# Lazy-loaded model to keep startup snappy
 _model = None
 
 def get_model():
     global _model
     if _model is None:
         print(f"📡 Loading Local ML Model: {MODEL_ID}...")
-        # Jina v2 requires trust_remote_code=True
         _model = SentenceTransformer(MODEL_ID, trust_remote_code=True)
         print("✅ Model loaded successfully.")
     return _model
 
 
-
 def embed(text: str):
-    """
-    Generates embeddings locally using sentence-transformers.
-    Runs on the server's CPU.
-    """
     try:
         model = get_model()
-        # Ensure text is not too long
-        input_text = text[:8000] 
+        input_text = text[:8000]
         vec = model.encode(input_text)
         return np.array(vec)
     except Exception as e:
@@ -59,7 +52,6 @@ if not ASTRA_TOKEN or not ASTRA_ENDPOINT:
     print("❌ ERROR: Missing Astra DB Environment Variables!")
     print(f"ASTRA_DB_APPLICATION_TOKEN: {'SET' if ASTRA_TOKEN else 'MISSING'}")
     print(f"ASTRA_DB_API_ENDPOINT: {'SET' if ASTRA_ENDPOINT else 'MISSING'}")
-    # We don't crash here, we just initialize as None and handle it later
     db = None
     collection = None
 else:
@@ -72,7 +64,6 @@ else:
 # =============================================================================
 
 print("Loading Subtext Core Search Engine...")
-
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -90,37 +81,151 @@ except Exception as e:
 
 VIBE_RULES = {
     "emotional": {
-        "keywords": ["cry", "sad", "bawl", "tearjerker", "devastating", "heartbreaking", "emotional", "beautiful", "romance", "romantic", "love story", "romcom", "rom-com", "rom com"],
+        "keywords": ["cry", "sad", "bawl", "tearjerker", "devastating", "heartbreaking", "emotional", "beautiful", "romance", "romantic", "love story", "romcom", "rom-com", "rom com", "feels", "tragic", "downward spiral"],
         "boost_genres": ["Drama", "Romance"],
-        "kill_genres": ["Action", "Adventure", "Horror", "Comedy", "Crime", "Mystery", "Science Fiction"]
+        "kill_genres": ["Action", "Adventure", "Horror", "Comedy", "Crime", "Mystery", "Science Fiction", "Animation", "Family"]
     },
     "scary": {
-        "keywords": ["terrifying", "scary", "horror", "spooky", "jump scare", "creepy"],
+        "keywords": ["terrifying", "scary", "horror", "spooky", "jump scare", "creepy", "nightmare"],
         "boost_genres": ["Horror", "Thriller"],
-        "kill_genres": ["Romance", "Comedy", "Family"]
+        "kill_genres": ["Romance", "Comedy", "Family", "Animation"]
     },
     "funny": {
-        "keywords": ["hilarious", "laugh", "funny", "comedy", "comedies", "lmao", "fun", "humor", "feel better", "cheer me up", "romcom", "rom-com", "rom com"],
+        "keywords": ["hilarious", "laugh", "funny", "comedy", "comedies", "lmao", "fun", "humor", "feel better", "cheer me up", "romcom", "rom-com", "rom com", "lol", "slaps", "unhinged", "dark humor", "chaotic"],
         "boost_genres": ["Comedy"],
         "kill_genres": ["Horror", "War", "Documentary", "Mystery", "Thriller"]
     },
     "action": {
-        "keywords": ["action", "explosions", "badass", "fight", "cool", "thrilling", "intense"],
+        "keywords": ["action", "explosions", "badass", "fight", "cool", "thrilling", "intense", "adrenaline", "hype"],
         "boost_genres": ["Action", "Adventure", "Thriller"],
-        "kill_genres": ["Romance", "Documentary", "Family"]
+        "kill_genres": ["Romance", "Documentary", "Family", "Animation"]
     },
     "investigative": {
         "keywords": ["whodunnit", "whodunit", "detective", "mystery", "solve", "clues", "investigation", "crime", "murder mystery"],
         "boost_genres": ["Mystery", "Crime"],
-        "kill_genres": ["Romance", "Musical", "Fantasy"]
-    }
+        "kill_genres": ["Romance", "Musical", "Fantasy", "Animation", "Family"]
+    },
+    "wholesome": {
+        "keywords": ["wholesome", "warm", "heartwarming", "feel-good", "sweet", "comfort", "genuine", "pure", "pure-hearted", "believe in people", "green flag"],
+        "boost_genres": ["Family", "Comedy", "Romance"],
+        "kill_genres": ["Horror", "War", "Crime", "Thriller"]
+    },
+    "cozy": {
+        "keywords": ["cozy", "sunday afternoon", "comforting", "peaceful", "gentle", "soft", "vibes", "chill", "relaxing", "lowkey", "comfort movie"],
+        "boost_genres": ["Animation", "Family", "Comedy", "Romance"],
+        "kill_genres": ["Action", "Horror", "Thriller", "War", "Science Fiction"]
+    },
+    "existential": {
+        "keywords": ["existential", "meaning of life", "stare at the ceiling", "philosophical", "deep", "thought-provoking", "crisis", "melancholy", "melancholic", "rent free"],
+        "boost_genres": ["Drama", "Science Fiction"],
+        "kill_genres": ["Action", "Comedy", "Family", "Animation"]
+    },
+    "glamorous": {
+        "keywords": ["glamorous", "glamour", "main character", "fashion", "fame", "rich", "extravagant", "chic", "aesthetic", "glitzy", "slaps", "era", "self-destructive", "downward spiral", "messy"],
+        "boost_genres": ["Drama", "Music", "Comedy"],
+        # FIX: Animation and Family added — prevents KPop Demon Hunters / Cars type mismatches
+        "kill_genres": ["Action", "Horror", "War", "Animation", "Family"]
+    },
+    "nostalgic": {
+        "keywords": ["nostalgic", "nostalgia", "throwback", "memory", "growing up", "retro", "vintage", "childhood", "bittersweet", "core"],
+        "boost_genres": ["History", "Family", "Drama"],
+        "kill_genres": []
+    },
+    # NEW: bittersweet endings / complicated emotions
+    "bittersweet_ending": {
+        "keywords": ["ended something", "quiet relief", "relief mixed", "ambivalent", "complicated feelings", "not sure how to feel", "mixed feelings", "letting go", "outgrown", "moving on"],
+        "boost_genres": ["Drama", "Romance"],
+        "kill_genres": ["Horror", "Action", "Comedy", "Family", "Animation", "Science Fiction"]
+    },
+    # NEW: watching someone fall apart
+    "unraveling": {
+        "keywords": ["unravel", "fall apart", "spiral", "deteriorate", "losing it", "breaking down", "can't look away", "self-destruct", "coming undone"],
+        "boost_genres": ["Drama", "Thriller"],
+        "kill_genres": ["Family", "Animation", "Comedy", "Romance"]
+    },
+    # NEW: sensory — sun-scorched landscapes
+    "sun_scorched": {
+        "keywords": ["dusty", "sun-bleached", "middle of nowhere", "middle-of-nowhere", "heat you can", "scorching", "desert", "barren", "arid", "sun baked", "sun-baked"],
+        "boost_genres": ["Western", "Drama", "Thriller", "Crime"],
+        "kill_genres": ["Family", "Animation", "Comedy", "Romance", "Science Fiction", "Horror"]
+    },
+    # NEW: sensory — rainy neon city noir
+    "gritty_urban": {
+        "keywords": ["rainy city", "neon reflections", "wet pavement", "neon lights", "night city", "urban alienation", "nobody's where", "urban drift", "city at night"],
+        "boost_genres": ["Drama", "Crime", "Thriller"],
+        "kill_genres": ["Family", "Animation", "Romance", "Comedy", "Western"]
+    },
+    # NEW: paranoid / everyone is lying
+    "paranoid": {
+        "keywords": ["paranoid", "everyone might be lying", "conspiracy", "can't trust anyone", "surveillance", "deceived", "manipulation", "gaslit"],
+        "boost_genres": ["Thriller", "Crime", "Mystery", "Drama"],
+        "kill_genres": ["Family", "Animation", "Comedy", "Romance"]
+    },
+    # NEW: mean wit / dark satire
+    "dark_wit": {
+        "keywords": ["funny but mean", "wit that makes you wince", "mean funny", "dark satire", "sharp wit", "caustic", "biting comedy", "wince", "sardonic"],
+        "boost_genres": ["Comedy", "Drama", "Thriller"],
+        "kill_genres": ["Family", "Animation", "Horror", "War"]
+    },
+    # NEW: analog / unhurried / no irony
+    "analog_unhurried": {
+        "keywords": ["unhurried", "analog", "no irony", "different time", "made in a different", "slow cinema", "quiet film", "deliberate pace", "restrained"],
+        "boost_genres": ["Drama"],
+        "kill_genres": ["Action", "Science Fiction", "Horror", "Animation", "Comedy"]
+    },
 }
 
 # =============================================================================
+# SENSORY QUERY EXPANSION
+# For queries that are primarily aesthetic/sensory, we expand the text before
+# embedding so the vector captures cinematic texture rather than literal words.
+# "dusty sun-bleached" by itself doesn't sit near film embeddings — adding
+# film-vocabulary context anchors it in the right part of the space.
+# =============================================================================
+
+SENSORY_EXPANSIONS = {
+    "dusty":            "neo-western slow deliberate arid landscape minimalist isolation",
+    "sun-bleached":     "western arthouse heat haze desolate wide open slow burn",
+    "middle of nowhere":"western road movie isolation quiet desolate slow",
+    "neon":             "urban noir nighttime alienation rain cinematic atmospheric",
+    "wet pavement":     "noir atmospheric urban loneliness cinematic drifting",
+    "rainy city":       "noir atmospheric urban nighttime drifting alienation",
+    "rainy":            "atmospheric melancholic city night slow deliberate",
+    "analog":           "unhurried classical restrained period texture no irony sincere",
+    "unhurried":        "slow cinema deliberate arthouse quiet restrained",
+    "no irony":         "sincere earnest classical unironic human",
+    "unravel":          "psychological deterioration obsession disintegration intense",
+    "fall apart":       "psychological deterioration slow disintegration character study",
+    "paranoid":         "conspiracy surveillance deception institutional mistrust",
+    "glamorous":        "stylish extravagant decadent fame ambition self-destruction",
+    "self-destructive": "excess ambition unraveling tragic glamour downfall",
+}
+
+def expand_query_for_embedding(query: str) -> str:
+    """
+    Appends film-vocabulary context for sensory/aesthetic queries so that
+    the embedding lands closer to relevant films rather than literal word matches.
+    """
+    q_low = query.lower()
+    expansions = []
+    for trigger, expansion in SENSORY_EXPANSIONS.items():
+        if trigger in q_low:
+            expansions.append(expansion)
+    if expansions:
+        # Deduplicate expansion words
+        seen = set()
+        deduped = []
+        for chunk in expansions:
+            for word in chunk.split():
+                if word not in seen:
+                    seen.add(word)
+                    deduped.append(word)
+        return query + " " + " ".join(deduped)
+    return query
+
+
+# =============================================================================
 # ILLNESS HARD FILTER
-# When a query contains a specific medical condition, candidates are required
-# to mention it in their overview or keywords. This prevents The Notebook
-# appearing in cancer searches, Interstellar in Alzheimer searches, etc.
 # =============================================================================
 
 ILLNESS_KEYWORDS = {
@@ -137,6 +242,16 @@ ILLNESS_KEYWORDS = {
     "diabetes": ["diabetes", "diabetic", "insulin"],
     "mental illness": ["mental illness", "schizophrenia", "bipolar", "psychosis", "psychiatric"],
 }
+
+
+def detect_negation(query: str, keyword: str) -> bool:
+    q = query.lower()
+    k = keyword.lower()
+    negators = ["no ", "not ", "without ", "none ", "never ", "stop ", "zero "]
+    for n in negators:
+        if re.search(rf"\b{n}{k}\b", q):
+            return True
+    return False
 
 
 def detect_illness_intent(query: str):
@@ -156,27 +271,25 @@ def illness_matches_doc(illness_key: str, doc: dict) -> bool:
 
 # =============================================================================
 # CINEMATIC TEXTURE TAGS
-# For SIBLING_DISCOVERY, we enrich the anchor text with texture descriptors
-# pulled from TMDB keywords. This helps the embedding capture *how* a film
-# feels (cold, precise, psychological) not just *what* it's about.
 # =============================================================================
 
 TEXTURE_KEYWORD_MAP = {
-    # Slow-burn / arthouse
     "slow burn": "slow-burn restrained atmospheric deliberate",
     "atmospheric": "atmospheric immersive mood-driven",
     "surrealism": "surreal dreamlike nonlinear experimental",
     "nonlinear timeline": "nonlinear fragmented time structure",
     "unreliable narrator": "unreliable narrator deceptive perspective",
-    # Psychological
     "psychological thriller": "psychological manipulation power games tension",
     "mind game": "mind games psychological tension deception",
     "obsession": "obsessive compulsive fixation intensity",
-    # Tone
     "dark comedy": "darkly comic ironic subversive",
-    "bittersweet": "bittersweet melancholic hopeful",
+    "bittersweet": "bittersweet melancholic hopeful ambivalent",
     "melancholy": "melancholic longing emotional weight",
-    # Style
+    "wholesome": "heartwarming wholesome genuine warm",
+    "cozy": "cozy comforting peaceful low-key",
+    "nostalgic": "nostalgic sentimental bittersweet childhood",
+    "glamorous": "glamorous stylish chic extravagant",
+    "existential": "existential philosophical deep reflective",
     "female protagonist": "female-led woman-centred perspective",
     "lgbtq": "queer identity sexuality desire",
     "forbidden love": "forbidden desire repressed longing taboo",
@@ -185,15 +298,17 @@ TEXTURE_KEYWORD_MAP = {
     "twist ending": "twist revelation recontextualisation surprise",
     "period piece": "period historical costume detailed world",
     "foreign language": "foreign language subtitled international arthouse",
+    # NEW texture tags
+    "paranoia": "paranoid institutional distrust surveillance conspiracy",
+    "ambivalent": "ambivalent complicated mixed emotion unresolved",
+    "psychological deterioration": "unraveling disintegration obsession breakdown",
+    "isolation": "isolation confined space solitude sparse",
+    "sun": "arid heat desolate sun-scorched landscape",
+    "rain": "rain atmospheric wet moody urban",
 }
 
 
 def build_texture_enrichment(keywords: list) -> str:
-    """
-    Maps TMDB keywords to cinematic texture descriptors.
-    Appended to the anchor text so the embedding captures directorial feel,
-    not just plot surface.
-    """
     enrichments = []
     kw_lower = [k.lower() for k in (keywords or [])]
     for trigger, descriptor in TEXTURE_KEYWORD_MAP.items():
@@ -206,8 +321,18 @@ def build_texture_enrichment(keywords: list) -> str:
 # UTILS
 # =============================================================================
 
-# Local cache removed for the API-based embed function to avoid complexity, 
-# but can be re-implemented if needed.
+def normalize_score(raw_score: float, mode: str) -> float:
+    """
+    Sigmoid normalization — preserves ranking order and avoids ceiling collapse.
+    Replaces the old min(display_score, 1.0) hard cap which made genuinely
+    different scores (0.95 vs 0.72) both appear as 1.0.
+    Centered at 0.5, steepness 5 — gives ~0.95 at the top, ~0.50 at midpoint.
+    """
+    if mode == "SIBLING_DISCOVERY":
+        raw_score = raw_score / 2.5
+    else:
+        raw_score = raw_score / 1.05
+    return round(1 / (1 + math.exp(-5 * (raw_score - 0.5))), 4)
 
 
 def smart_title(t):
@@ -230,7 +355,6 @@ def strip_names(text: str):
 
 # =============================================================================
 # AstraDB-COMPATIBLE TITLE LOOKUP
-# AstraDB does not support $regex. We try all casing variants in one $in query.
 # =============================================================================
 
 def find_movie_by_title(title: str):
@@ -246,10 +370,6 @@ def find_movie_by_title(title: str):
 
 
 def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
-    """
-    Fetches anchor doc with $vector included. 
-    Uses existing vector if present, otherwise generates one with safety checks.
-    """
     variants = list(set([
         title,
         title.title(),
@@ -260,42 +380,37 @@ def find_movie_by_title_with_vector(title: str, proj: dict, year: int = None):
         title.replace(" ", ""),
         " ".join(re.findall(r'[A-Z][a-z]*|[a-z]+', title.title()))
     ]))
-    
+
     f = {"title": {"$in": variants}}
     if year:
         f["release_year"] = year
 
-    # 1. Try to find the document (Fetch multiple to ensure we can pick the best in Python)
     proj_with_vec = {**proj, "$vector": 1, "vote_count": 1}
     candidates = list(collection.find(
-        filter=f, 
-        projection=proj_with_vec, 
+        filter=f,
+        projection=proj_with_vec,
         limit=5
     ))
-    
+
     if not candidates:
         return None
-        
-    # Sort by vote_count in Python to be 100% sure
+
     candidates.sort(key=lambda x: x.get("vote_count", 0), reverse=True)
     doc = candidates[0]
-    
+
     if not doc:
         return None
-        
-    # 2. Safety: If it has a zero vector, remove it so we don't crash
+
     if "$vector" in doc and doc["$vector"]:
         if np.all(np.array(doc["$vector"]) == 0):
             del doc["$vector"]
 
-    # 3. If no vector (or we just deleted a zero one), try to generate it
     if "$vector" not in doc:
         print(f"📡 Generating missing vector for: {doc['title']}")
         vec = embed(doc["title"] + " " + doc.get("overview", ""))
-        
         if vec is not None and not np.all(vec == 0):
             doc["$vector"] = vec.tolist()
-            
+
     return doc
 
 
@@ -344,10 +459,6 @@ def classify_entity_intent(query, entities):
 
 
 def infer_query_focus(q_low: str, anchor_genres: list) -> str:
-    """
-    Identifies the primary genre the user cares most about.
-    Used to weight genre alignment penalties correctly.
-    """
     if "romance" in q_low or "romantic" in q_low or "love story" in q_low:
         return "Romance"
     if "horror" in q_low or "scary" in q_low:
@@ -358,7 +469,6 @@ def infer_query_focus(q_low: str, anchor_genres: list) -> str:
         return "Action"
     if "thriller" in q_low:
         return "Thriller"
-    # Fall back to anchor's first genre
     if anchor_genres:
         return anchor_genres[0]
     return ""
@@ -379,23 +489,12 @@ def cosine_similarity(a, b):
 
 
 def compute_genre_penalty(doc_genres: list, kill_genres: list, boost_genres: list) -> float:
-    """
-    Kill penalty is intersection-aware: each boost genre cancels one kill.
-    50/50 (Comedy+Drama) won't be fully killed by Comedy kill rules
-    because Drama is in boost_genres for emotional queries.
-    """
     kill_hits = sum(1 for g in doc_genres if g in kill_genres)
     boost_hits = sum(1 for g in doc_genres if g in boost_genres)
-    # Increased penalty weight to 0.50 for absolute genre suppression
     return max(0, kill_hits - boost_hits) * 0.50
 
 
 def compute_genre_alignment_penalty(anchor_genres: list, doc_genres: list, query_focus: str) -> float:
-    """
-    Penalises missing genres weighted by importance.
-    Missing the primary genre (e.g. Romance in a love story query) = 0.25.
-    Missing a secondary genre = 0.08.
-    """
     if not anchor_genres:
         return 0.0
     missing = set(anchor_genres) - set(doc_genres)
@@ -408,19 +507,6 @@ def compute_genre_alignment_penalty(anchor_genres: list, doc_genres: list, query
     return penalty
 
 
-# =============================================================================
-# VIBE PURGE — ANCHOR-AWARE CLASH DETECTION
-#
-# The old version applied a blanket 0.60 penalty to any Thriller/Crime doc
-# when the anchor was Romance. This caused The Handmaiden to self-penalise
-# because it is [Drama, Thriller, Romance] — its own genres fired the purge.
-#
-# Fix: we check whether the anchor ITSELF has clash genres. If it does,
-# we exempt candidates that share those same clash genres (they're not clashes,
-# they're part of the film's identity). Only penalise genres that genuinely
-# clash with the anchor's identity.
-# =============================================================================
-
 CLASH_GENRES = {"Thriller", "Horror", "War", "Science Fiction", "Action", "Crime", "Mystery"}
 
 def compute_vibe_purge_penalty(anchor_genres: list, doc_genres: list) -> float:
@@ -431,20 +517,39 @@ def compute_vibe_purge_penalty(anchor_genres: list, doc_genres: list) -> float:
     if not is_romance_anchor:
         return 0.0
 
-    # Genres the anchor itself contains — these are identity genres, not clashes
     anchor_clash_identity = anchor_set.intersection(CLASH_GENRES)
-
     doc_set = set(doc_genres)
     true_clashes = doc_set.intersection(CLASH_GENRES) - anchor_clash_identity
 
     if not true_clashes:
         return 0.0
 
-    # Music/Musical crossover gets a light nudge instead of a wall
     if "Music" in doc_genres or "Musical" in doc_genres:
         return 0.15
 
     return 0.60
+
+
+def compute_multi_vibe_bonus(q_low: str, doc_genres: list) -> float:
+    """
+    Rewards films that satisfy multiple vibe dimensions simultaneously.
+    A film matching 'glamorous + self-destructive + great soundtrack' should
+    rank above one that only matches 'glamorous'.
+    Adds 0.10 per additional vibe matched beyond the first (capped at 0.30).
+    """
+    matched_count = 0
+    for vibe, rules in VIBE_RULES.items():
+        matched_keywords = [w for w in rules["keywords"] if w in q_low]
+        if not matched_keywords:
+            continue
+        all_negated = all(detect_negation(q_low, w) for w in matched_keywords)
+        if all_negated:
+            continue
+        if any(g in doc_genres for g in rules["boost_genres"]):
+            matched_count += 1
+    if matched_count >= 2:
+        return min(0.10 * (matched_count - 1), 0.30)
+    return 0.0
 
 
 # =============================================================================
@@ -466,6 +571,7 @@ def score_movie(
     alignment_penalty = 0.0
     mood_penalty = 0.0
     person_penalty = 0.0
+    multi_vibe_bonus = 0.0
 
     # --- Mood Purity (SIBLING_DISCOVERY) ---
     if mode == "SIBLING_DISCOVERY":
@@ -483,23 +589,27 @@ def score_movie(
         alignment_penalty += compute_genre_alignment_penalty(anchor_genres, doc_genres, query_focus)
 
     # --- Hard Tonal Filter ---
-    # If the user explicitly asks for a genre, we penalize non-matching movies heavily.
     tonal_penalty = 0.0
     explicit_genres = ["Comedy", "Horror", "Action", "Romance", "Science Fiction", "Documentary", "Animation", "Thriller", "Crime", "Mystery"]
     for eg in explicit_genres:
-        # Check for both singular and plural (e.g., 'comedy' and 'comedies')
-        # Also handle shorthands like 'rom com' for both Romance and Comedy
         is_romcom = any(x in q_low for x in ["romcom", "rom-com", "rom com"])
         is_mystery = any(x in q_low for x in ["mystery", "whodunnit", "whodunit", "detective"])
         if (re.search(rf"\b{eg.lower()}\b", q_low) or (eg == "Comedy" and ("comedies" in q_low or is_romcom)) or (eg == "Romance" and is_romcom) or (eg == "Mystery" and is_mystery)) and eg not in doc_genres:
             tonal_penalty += 0.85
 
-    # --- Vibe Rules (GLOBAL queries) ---
+    # --- Vibe Rules + Multi-vibe bonus ---
     for vibe, rules in VIBE_RULES.items():
-        if any(w in q_low for w in rules["keywords"]):
-            if any(g in doc_genres for g in rules["boost_genres"]):
-                vibe_boost += 0.15
-            genre_penalty += compute_genre_penalty(doc_genres, rules["kill_genres"], rules["boost_genres"])
+        matched_keywords = [w for w in rules["keywords"] if w in q_low]
+        if matched_keywords:
+            all_negated = all(detect_negation(q_low, w) for w in matched_keywords)
+            if not all_negated:
+                if any(g in doc_genres for g in rules["boost_genres"]):
+                    vibe_boost += 0.15
+                genre_penalty += compute_genre_penalty(doc_genres, rules["kill_genres"], rules["boost_genres"])
+
+    # Multi-vibe intersection bonus — rewards matching all dimensions of a compound vibe query
+    multi_vibe_bonus = compute_multi_vibe_bonus(q_low, doc_genres)
+    vibe_boost += multi_vibe_bonus
 
     # --- Vibe Purge (anchor-aware, self-penalty safe) ---
     penalty += compute_vibe_purge_penalty(anchor_genres or [], doc_genres)
@@ -508,7 +618,9 @@ def score_movie(
     vote_raw = float(doc.get("vote_average", 5.0))
     vote_count = float(doc.get("vote_count", 0))
     quality_score = vote_raw / 10.0
-    p_score = min(float(doc.get("popularity", 0)) / 100.0, 1.0)
+
+    p_raw = float(doc.get("popularity", 0))
+    p_score = min(np.log1p(p_raw) / 8.0, 1.0)
 
     # --- Mood Guard ---
     cynical_kw = ["dystopian", "absurdist", "satire", "dark comedy", "surreal", "survival", "experimental"]
@@ -516,15 +628,20 @@ def score_movie(
         if any(k in doc.get("overview", "").lower() for k in cynical_kw):
             mood_penalty += 0.50
 
+    # SADNESS GUARD: Pure comedies without Drama/Thriller get penalized for dark/existential queries
+    sad_triggers = ["sad", "existential", "melancholy", "depressing", "tragic", "stare at the ceiling", "unravel", "fall apart"]
+    if any(t in q_low for t in sad_triggers):
+        if "Comedy" in doc_genres and "Drama" not in doc_genres and "Thriller" not in doc_genres:
+            mood_penalty += 0.40
+
     # --- Masterpiece Bonus ---
     masterpiece_bonus = 0.05 if (vote_count > 5000 and vote_raw >= 7.8) else 0.0
 
     # --- Legacy Boost ---
     legacy_boost = np.log10(vote_count) * 0.01 if vote_count > 2000 else 0.0
 
-    # --- Person Alignment (Hard Identity Penalty) ---
+    # --- Person Alignment ---
     if entities:
-        # Waiver: If the user says "like", "similar to", etc., they want the vibe, not just the person.
         similarity_triggers = ["like", "similar to", "reminds me of", "-esque", "vibe"]
         is_similarity_query = any(t in q_low for t in similarity_triggers)
 
@@ -536,9 +653,9 @@ def score_movie(
             if e_low in director or any(e_low == c for c in cast):
                 has_match = True
                 break
-        
+
         if not has_match and not is_similarity_query:
-            person_penalty = 0.50  # Heavy sink for missing the requested actor/director
+            person_penalty = 0.50
 
     # --- DNA Boost & Purity ---
     dna_boost = 0.0
@@ -554,10 +671,6 @@ def score_movie(
         purity_penalty = len(doc_set - anchor_set) * 0.01
 
     # --- Keyword Overlap Bonus ---
-    # Raised cap to 0.20 for SIBLING_DISCOVERY — keyword overlap is the
-    # strongest signal for true thematic siblings (e.g. The Handmaiden's
-    # "psychological-thriller", "twist-ending", "class-differences" keywords
-    # should heavily boost Park Chan-wook-adjacent films).
     keyword_bonus = 0.0
     kw_overlap = 0
     if ref_doc and ref_doc.get("keywords") and doc.get("keywords"):
@@ -613,17 +726,29 @@ def score_movie(
         )
     else:  # GLOBAL / PERSON_VIBE
         score = (
-            (semantic * 0.60)
-            + (quality_score * 0.25)
-            + (p_score * 0.15)
+            (semantic * 0.90)
+            + (quality_score * 0.07)
+            + (p_score * 0.03)
             + legacy_boost
             + vibe_boost
             - genre_penalty
             - person_penalty
             - penalty
+            - mood_penalty
         )
 
     # --- Reason ---
+    matched_vibes = []
+    for v_name, rules in VIBE_RULES.items():
+        matched_keywords = [w for w in rules["keywords"] if w in q_low]
+        # FIX: keyword gate — only append vibe if keywords actually matched in query
+        if not matched_keywords:
+            continue
+        if all(detect_negation(q_low, w) for w in matched_keywords):
+            continue
+        if any(g in doc_genres for g in rules["boost_genres"]):
+            matched_vibes.append(v_name)
+
     if mode == "PERSON_STRICT":
         reason = f"Matches your interest in {', '.join(entities)}."
     elif mode == "SIBLING_DISCOVERY":
@@ -633,12 +758,33 @@ def score_movie(
             reason = "Closely matches the genre DNA of your reference film."
         else:
             reason = "Thematic sibling that matches the style of the movie you referenced."
-    elif legacy_boost > 0.08:
-        reason = "A widely acclaimed film with strong thematic relevance."
+    elif matched_vibes:
+        vibe_labels = {
+            "emotional": "emotional",
+            "scary": "scary",
+            "funny": "funny",
+            "action": "high-octane",
+            "investigative": "investigative",
+            "wholesome": "wholesome",
+            "cozy": "cozy",
+            "existential": "existential",
+            "glamorous": "glamorous",
+            "nostalgic": "nostalgic",
+            "bittersweet_ending": "bittersweet",
+            "unraveling": "emotionally intense",
+            "sun_scorched": "sun-scorched and desolate",
+            "gritty_urban": "urban and atmospheric",
+            "paranoid": "paranoid",
+            "dark_wit": "sharp and darkly funny",
+            "analog_unhurried": "unhurried and analog",
+        }
+        labels = [vibe_labels.get(v, v) for v in matched_vibes]
+        if len(labels) > 1:
+            reason = f"Matches the {', '.join(labels[:-1])} and {labels[-1]} vibes of your search."
+        else:
+            reason = f"Captured the {labels[0]} essence of your request."
     elif semantic > 0.85:
         reason = "Direct semantic match to the core of your query."
-    elif vibe_boost > 0:
-        reason = "Matches the mood and tone of your search."
     else:
         reason = "Matches the overall vibe of your search."
 
@@ -647,6 +793,7 @@ def score_movie(
         "keyword_bonus": round(keyword_bonus, 4),
         "dna_boost": round(dna_boost, 4),
         "vibe_boost": round(vibe_boost, 4),
+        "multi_vibe_bonus": round(multi_vibe_bonus, 4),
         "quality": round(quality_score, 4),
         "legacy": round(legacy_boost, 4),
         "total_penalty": round(penalty + genre_penalty + alignment_penalty + mood_penalty + purity_penalty + person_penalty, 4),
@@ -670,13 +817,10 @@ def search(
     min_vote: float = None,
     debug: bool = False,
 ):
-    # --- AUTO-FILTER PARSING ---
-    # If explicit filters aren't set, try to infer them from the query text.
     q_low = query.lower()
 
-    # 1. Decade/Year Parsing
+    # --- AUTO-FILTER PARSING ---
     if not min_year and not max_year:
-        # Match '90s', '1990s', '80s', '1980s', etc.
         decade_match = re.search(r'\b(19|20)?(\d0)s\b', q_low)
         if decade_match:
             century = decade_match.group(1) or "19"
@@ -684,33 +828,19 @@ def search(
             min_year = int(f"{century}{decade}")
             max_year = min_year + 9
             print(f"📅 [AUTO-FILTER] Detected decade: {min_year}-{max_year}")
-        
-        # Match '1900s' (can be decade or century, here we treat as decade 1900-1909)
         elif "1900s" in q_low:
-             min_year, max_year = 1900, 1909
-        
-        # Match 'old' or 'classic'
+            min_year, max_year = 1900, 1909
         elif any(w in q_low for w in ["old movies", "classic movies", "vintage movies"]):
             max_year = 1980
             print(f"📅 [AUTO-FILTER] Detected 'old' intent: max_year=1980")
 
-    # 2. Language Parsing
     if not language:
         lang_map = {
-            "hindi": "hi",
-            "korean": "ko",
-            "japanese": "ja",
-            "french": "fr",
-            "spanish": "es",
-            "german": "de",
-            "italian": "it",
-            "chinese": "zh",
-            "tamil": "ta",
-            "telugu": "te",
-            "malayalam": "ml",
-            "kannada": "kn",
-            "arabic": "ar",
-            "russian": "ru"
+            "hindi": "hi", "korean": "ko", "japanese": "ja",
+            "french": "fr", "spanish": "es", "german": "de",
+            "italian": "it", "chinese": "zh", "tamil": "ta",
+            "telugu": "te", "malayalam": "ml", "kannada": "kn",
+            "arabic": "ar", "russian": "ru"
         }
         for lang_name, lang_code in lang_map.items():
             if f"{lang_name} movies" in q_low or f"{lang_name} film" in q_low or q_low.startswith(f"{lang_name} "):
@@ -718,12 +848,9 @@ def search(
                 print(f"🌐 [AUTO-FILTER] Detected language: {lang_name} ({lang_code})")
                 break
 
-    # Per-request state — never share across calls
     repetition_log = {}
     start_time = time.time()
-    q_low = query.lower()
-    
-    # Check for vibes early
+
     vibe_match = None
     for v_name, rules in VIBE_RULES.items():
         if any(w in q_low for w in rules["keywords"]):
@@ -762,21 +889,18 @@ def search(
     like_triggers = ["movies like", "movie like", "films like", "film like", "similar to", "reminds me of"]
     suffix_triggers = ["-esque", "esque", " like movies", " like movie", " vibe movies"]
 
-    # 1. Check for explicit prefix triggers
     for trigger in like_triggers:
         if trigger in q_low:
             reference_title = query[q_low.find(trigger) + len(trigger):].strip().strip("'\"")
             mode = "SIBLING_DISCOVERY"
             break
 
-    # 2. Check for genre-based triggers (e.g. "comedies like friday")
     if not reference_title:
         genre_like_match = re.search(r"\b(movies|films|comedies|dramas|thrillers|horror|action|sci-fi|animated|romance|shows)\s+like\s+(.*)", q_low)
         if genre_like_match:
             reference_title = genre_like_match.group(2).strip().strip("'\"")
             mode = "SIBLING_DISCOVERY"
 
-    # 3. Check for suffix triggers
     if not reference_title:
         for s_trig in suffix_triggers:
             if s_trig in q_low:
@@ -784,49 +908,40 @@ def search(
                 mode = "SIBLING_DISCOVERY"
                 break
 
-    # 4. Auto-detect: is the entire query a movie title?
     if not reference_title:
         auto_ref = find_movie_by_title(query)
         if auto_ref:
             reference_title = auto_ref["title"]
             mode = "SIBLING_DISCOVERY"
 
+    # FIX: Apply sensory query expansion before embedding for GLOBAL queries.
+    # SIBLING_DISCOVERY uses anchor text enrichment instead, so we skip there.
     vibe_anchor_text = query
+    embedding_query = expand_query_for_embedding(query) if mode == "GLOBAL" else query
 
     if reference_title and len(reference_title) >= 2:
-        # Detect if a year was provided in the title (e.g. "Babylon 2022")
         anchor_year = None
         year_match = re.search(r'\b(19\d{2}|20\d{2})\b', reference_title)
         if year_match:
             anchor_year = int(year_match.group(1))
-            # Clean title for better matching (remove the year)
             reference_title = reference_title.replace(str(anchor_year), "").strip()
 
-        # Update proj to include release_year for disambiguation
         proj_with_year = {**proj, "release_year": 1}
         ref_doc = find_movie_by_title_with_vector(reference_title, proj_with_year, year=anchor_year)
 
         if not ref_doc:
-            # Fallback: Range-based Prefix Search (Astra-Safe)
-            # This catches "Borat" -> "Borat: Cultural Learnings..."
-            # by looking for titles between "Borat" and "Borau".
             prefix = reference_title.strip().title()
             if len(prefix) >= 2:
-                # Calculate the "next" string for the range (e.g. "Borat" -> "Borau")
                 prefix_next = prefix[:-1] + chr(ord(prefix[-1]) + 1)
-                
                 f_prefix = {"title": {"$gte": prefix, "$lt": prefix_next}}
                 if anchor_year:
                     f_prefix["release_year"] = anchor_year
-                
                 candidates = list(collection.find(
                     filter=f_prefix,
                     limit=10,
                     projection=proj
                 ))
-                
                 if candidates:
-                    # Pick the most popular among those that start with the prefix
                     candidates.sort(key=lambda x: x.get("vote_count", 0), reverse=True)
                     ref_doc = candidates[0]
 
@@ -837,10 +952,6 @@ def search(
             anchor_overview = strip_names(ref_doc.get("overview", ""))
             anchor_genres_str = ", ".join(ref_doc.get("genres", []))
             anchor_keywords = ref_doc.get("keywords", [])
-
-            # TEXTURE ENRICHMENT: append cinematic feel descriptors so the
-            # embedding captures directorial texture (psychological, slow-burn,
-            # nonlinear) not just plot surface (forbidden love, period setting).
             texture = build_texture_enrichment(anchor_keywords)
             vibe_anchor_text = (
                 f"{anchor_overview} "
@@ -851,10 +962,12 @@ def search(
             db_vector = ref_doc.get("$vector")
             search_vec = np.array(db_vector) if db_vector else embed(vibe_anchor_text)
             ref_genres = ref_doc.get("genres", [])
+
     query_focus = infer_query_focus(q_low, anchor_genres)
 
     if search_vec is None:
-        search_vec = embed(query)
+        # Use expanded query for embedding (sensory expansions applied here)
+        search_vec = embed(embedding_query)
 
     # -------------------------------------------------------------------------
     # 3. FILTERS
@@ -868,10 +981,7 @@ def search(
         filters.append({"original_language": language})
     if min_vote:
         filters.append({"vote_average": {"$gte": min_vote}})
-    
-    # HARD IDENTITY LOCK: We only filter the DB directly if the user was 
-    # explicit (PERSON_STRICT). For VIBE queries, we use the penalty system 
-    # in the scorer to allow for discovery even if NER has a false positive.
+
     if mode == "PERSON_STRICT" and entities and not similarity_waiver:
         p = entities[0]
         filters.append({
@@ -886,15 +996,11 @@ def search(
     # -------------------------------------------------------------------------
     # 4. HYBRID RETRIEVAL
     # -------------------------------------------------------------------------
-    # SAFETY: Astra DB crashes on zero vectors. If embedding failed, use Keyword Fallback.
     if np.all(search_vec == 0):
         print("⚠️ Warning: Embedding failed. Falling back to Keyword Search.")
         try:
-            # Astra DB does not support $regex. We use a simple find.
-            # In a real app, we'd use a search index, but for now we just 
-            # return a small sample so the site doesn't look empty.
             keyword_results = list(collection.find(
-                filter={}, # Generic fallback since Astra regex is limited
+                filter={},
                 limit=10,
                 projection=proj
             ))
@@ -904,7 +1010,6 @@ def search(
             return []
 
     try:
-        # Pool A: raw vector similarity (the vibe)
         pool_a = list(collection.find(
             filter=search_filter,
             sort={"$vector": search_vec.tolist()},
@@ -913,7 +1018,6 @@ def search(
         ))
 
         pool_b = []
-        # Pool B: High Quality Sibling DNA (Only for siblings)
         if mode == "SIBLING_DISCOVERY" and ref_doc:
             pool_b = list(collection.find(
                 filter={**search_filter, "vote_average": {"$gte": 7.5}},
@@ -926,7 +1030,6 @@ def search(
         return []
 
     pool_c = []
-    # Pool C: Metadata Keywords (Only for siblings)
     if mode == "SIBLING_DISCOVERY" and ref_doc:
         kw_list = ref_doc.get("keywords", [])[:5]
         if kw_list:
@@ -936,7 +1039,6 @@ def search(
                 projection=proj
             ))
 
-    # Pool D: Directorial Heritage
     pool_d = []
     if ref_doc and ref_doc.get("director"):
         pool_d = list(collection.find(
@@ -945,10 +1047,8 @@ def search(
             projection=proj
         ))
 
-    # Merge & deduplicate by _id
     candidate_map = {doc["_id"]: doc for doc in pool_a + pool_b + pool_c + pool_d}
 
-    # Pre-sort by cosine similarity before scoring (avoids scoring obvious misses)
     s_norm = np.linalg.norm(search_vec)
 
     def fast_sim(v):
@@ -966,16 +1066,11 @@ def search(
 
     # -------------------------------------------------------------------------
     # 5. SCORING
-    # The anchor itself is EXCLUDED from scoring — it will be pinned to #1
-    # separately. This prevents the anchor's own genre mix (e.g. The Handmaiden
-    # being [Drama, Thriller, Romance]) from triggering the vibe purge
-    # and landing it in 20th place behind its own siblings.
     # -------------------------------------------------------------------------
     scored_results = []
     anchor_rating = ref_doc.get("vote_average", 7.0) if (mode == "SIBLING_DISCOVERY" and ref_doc) else 7.0
 
     for doc in candidates:
-        # Skip anchor — pinned separately below
         if anchor_id and doc.get("_id") == anchor_id:
             continue
 
@@ -983,7 +1078,6 @@ def search(
         if doc_v is None:
             continue
 
-        # Illness hard filter
         if illness_intent and not illness_matches_doc(illness_intent, doc):
             continue
 
@@ -993,17 +1087,14 @@ def search(
             ref_doc=ref_doc, query_focus=query_focus
         )
 
-        if score > -0.5:
-            # Normalize for UI (0-99%)
-            display_score = score
-            if mode == "SIBLING_DISCOVERY":
-                display_score = score / 2.0
-            
+        if score > 0.1:
+            display_score = normalize_score(score, mode)
+
             result = {
                 "id": str(doc.get("_id")),
                 "title": doc.get("title"),
                 "year": doc.get("release_year", 0),
-                "score": round(float(min(display_score, 0.99)), 4),
+                "score": display_score,
                 "ranking_score": round(float(score), 4),
                 "reason": reason,
                 "mode": mode,
@@ -1018,32 +1109,40 @@ def search(
     scored_results.sort(key=lambda x: x["score"], reverse=True)
 
     # -------------------------------------------------------------------------
-    # 6. DEDUP + FRANCHISE CAP
+    # 6. DEDUP + FRANCHISE CAP + GENRE DIVERSITY
     # -------------------------------------------------------------------------
     final_output = []
     seen = set()
     franchise_counts = {}
+    # FIX: track genre fingerprint saturation to prevent About Time / Inside Out
+    # appearing across 5 different prompts — applies a soft re-rank nudge when
+    # the same genre combo is already well-represented in the output.
+    genre_representation = {}
 
     for r in scored_results:
         base = get_base_title(r["title"])
         movie_key = (r["title"], r["year"])
+        genre_key = tuple(sorted(r["genres"]))
+
+        # Soft diversity nudge — don't hard-block, just reduce score slightly
+        genre_saturation = genre_representation.get(genre_key, 0)
+        if genre_saturation >= 2:
+            r["score"] = round(r["score"] * 0.82, 4)
+
         if movie_key not in seen and franchise_counts.get(base, 0) < 2:
             final_output.append(r)
             seen.add(movie_key)
             franchise_counts[base] = franchise_counts.get(base, 0) + 1
+            genre_representation[genre_key] = genre_saturation + 1
             repetition_log[r["title"]] = repetition_log.get(r["title"], 0) + 1
+
         if len(final_output) >= k:
             break
 
     # -------------------------------------------------------------------------
-    # 7. ANCHOR PIN
-    # In SIBLING_DISCOVERY mode the searched movie is always #1.
-    # This gives the user confirmation the system understood their query,
-    # and avoids the anchor self-penalising due to its own genre mix.
-    # We insert it ahead of the ranked siblings and trim to k.
+    # 7. ANCHOR PIN (SIBLING_DISCOVERY)
     # -------------------------------------------------------------------------
     if mode == "SIBLING_DISCOVERY" and ref_doc:
-        # Check if anchor satisfies user filters (Year, Rating, Language)
         passes = True
         ry = ref_doc.get("release_year", 0)
         va = ref_doc.get("vote_average", 0)
@@ -1059,7 +1158,7 @@ def search(
                 "id": str(ref_doc.get("_id")),
                 "title": ref_doc.get("title"),
                 "year": ry,
-                "score": 1.0,  # Sentinel — always #1 (100% match)
+                "score": 1.0,
                 "reason": "This is the movie you searched for.",
                 "mode": mode,
                 "genres": ref_doc.get("genres", []),
@@ -1069,7 +1168,6 @@ def search(
             if debug:
                 anchor_result["breakdown"] = {"note": "anchor — pinned to #1, not scored"}
 
-            # Remove anchor if it somehow slipped through dedup, then prepend
             final_output = [r for r in final_output if r["id"] != str(ref_doc.get("_id"))]
             final_output = [anchor_result] + final_output[:k - 1]
 
@@ -1096,6 +1194,12 @@ if __name__ == "__main__":
         ("la la land", 10),
         ("funny cancer movie", 10),
         ("movies like blue valentine", 10),
+        # New vibe test queries from evaluation
+        ("main character energy glamorous self-destructive great soundtrack", 10),
+        ("dusty sun-bleached middle of nowhere heat", 10),
+        ("rainy city at night neon reflections wet pavement", 10),
+        ("watching someone slowly unravel uncomfortable", 10),
+        ("the 70s but paranoid everyone might be lying", 10),
     ]
 
     os.makedirs("paper", exist_ok=True)
@@ -1108,8 +1212,8 @@ if __name__ == "__main__":
         slug = query.replace(" ", "_")[:30]
         with open(f"paper/results_{slug}.md", "w", encoding="utf-8") as f:
             f.write(f"# Results: {query}\n\n")
-            f.write("| Rank | Title | Year | Score | Genres | sem | kw | penalty |\n")
-            f.write("|------|-------|------|-------|--------|-----|----|---------|\n")
+            f.write("| Rank | Title | Year | Score | Genres | sem | kw | multi_vibe | penalty |\n")
+            f.write("|------|-------|------|-------|--------|-----|----|----|--------|\n")
             for i, r in enumerate(results):
                 bd = r.get("breakdown", {})
                 f.write(
@@ -1117,8 +1221,9 @@ if __name__ == "__main__":
                     f"| {r.get('genres')} "
                     f"| {bd.get('semantic', 'N/A')} "
                     f"| {bd.get('keyword_bonus', 'N/A')} "
+                    f"| {bd.get('multi_vibe_bonus', 'N/A')} "
                     f"| {bd.get('total_penalty', 'N/A')} |\n"
                 )
         for i, r in enumerate(results):
             bd = r.get("breakdown", {})
-            print(f"{i+1:3}. [{r['score']}] {r['title']} ({r['year']}) | {r.get('genres')} | sem={bd.get('semantic', 'N/A')} pen={bd.get('total_penalty', 'N/A')}")
+            print(f"{i+1:3}. [{r['score']}] {r['title']} ({r['year']}) | {r.get('genres')} | sem={bd.get('semantic', 'N/A')} mvb={bd.get('multi_vibe_bonus', 'N/A')} pen={bd.get('total_penalty', 'N/A')}")

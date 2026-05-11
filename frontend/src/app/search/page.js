@@ -295,6 +295,7 @@ export default function SearchPage() {
                     <p className="text-[10px] text-gray-500 font-medium tracking-tight">
                         <span className="text-gray-400 font-bold uppercase mr-1">Pro Tip:</span>
                         Use full movie titles with correct punctuation for the most accurate thematic siblings.
+                        <span className="ml-2 opacity-60">Note: Some results might be outliers—in a good way! Discovery involves finding the unexpected.</span>
                     </p>
                 </motion.div>
 

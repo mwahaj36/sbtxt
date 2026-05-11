@@ -11,9 +11,9 @@ export default function Footer() {
             
             <div className="flex flex-col items-end gap-6">
                 <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    <a href="#" className="hover:text-white transition-colors">Twitter</a>
-                    <a href="#" className="hover:text-white transition-colors">Letterboxd</a>
-                    <a href="#" className="hover:text-white transition-colors">Privacy</a>
+                    {/* <a href="#" className="hover:text-white transition-colors">Twitter</a> */}
+                    {/* <a href="#" className="hover:text-white transition-colors">Letterboxd</a> */}
+                    {/* <a href="#" className="hover:text-white transition-colors">Privacy</a> */}
                 </div>
 
                 <div className="flex flex-col items-end gap-2 max-w-[200px]">

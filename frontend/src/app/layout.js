@@ -1,7 +1,7 @@
-// Subtext v1.0
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
+import { SyncProvider } from "@/components/SyncProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,8 +24,10 @@ export default function RootLayout({ children }) {
       <body className="h-full bg-black text-white flex flex-col overflow-hidden">
         {/* Main Scroll Container */}
         <div className="main-scroll-container flex-1 overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth flex flex-col">
-          <Navbar />
-          {children}
+          <SyncProvider>
+            <Navbar />
+            {children}
+          </SyncProvider>
         </div>
       </body>
     </html>

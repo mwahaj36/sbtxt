@@ -41,7 +41,7 @@ export function SyncProvider({ children }) {
     }, [syncStatus.status]);
 
     const triggerSync = (total) => {
-        setSyncStatus({ status: 'syncing', processed: 0, total: total, message: '' });
+        setSyncStatus({ status: 'syncing', processed: 0, total: total || 1, message: '' });
     };
 
     const isVisible = syncStatus.status === 'syncing' || 
@@ -59,8 +59,8 @@ export function SyncProvider({ children }) {
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 50, scale: 0.9 }}
-                        className={`fixed bottom-8 right-8 z-[999] backdrop-blur-2xl border p-4 rounded-3xl flex items-center gap-4 shadow-2xl min-w-[280px]
-                            ${syncStatus.status === 'error' ? 'bg-red-950/40 border-red-500/30' : 'bg-black/80 border-white/10'}`}
+                        className={`fixed bottom-8 right-8 z-[999] backdrop-blur-2xl border p-4 rounded-none flex items-center gap-4 shadow-2xl min-w-[280px]
+                            ${syncStatus.status === 'error' ? 'bg-red-950/40 border-red-500/30' : 'bg-black/80 border-[var(--primary)]/30'}`}
                     >
                         <div className="relative w-12 h-12 flex-shrink-0">
                             {syncStatus.status === 'error' ? (
@@ -107,14 +107,14 @@ export function SyncProvider({ children }) {
                             <p className="text-[9px] text-white/40 font-bold leading-tight mt-1 max-w-[180px]">
                                 {syncStatus.status === 'error' ? (syncStatus.message || "Unknown Error") :
                                  syncStatus.status === 'completed_recently' ? 'Vault fully synchronized' : 
-                                 `${syncStatus.processed} / ${syncStatus.total} movies resolved`}
+                                 `${syncStatus.processed} / ${syncStatus.total || 0} movies resolved`}
                             </p>
                         </div>
                         
                         {syncStatus.status === 'error' && (
                             <button 
                                 onClick={() => setSyncStatus({ status: 'idle', processed: 0, total: 0 })}
-                                className="ml-2 p-1.5 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-all"
+                                className="ml-2 p-1.5 hover:bg-white/5 rounded-none text-white/40 hover:text-white transition-all"
                             >
                                 <RefreshCw size={14} />
                             </button>

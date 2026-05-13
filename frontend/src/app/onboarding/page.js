@@ -163,9 +163,9 @@ export default function Onboard() {
                             value={lbUsername}
                             onChange={(e) => setLbUsername(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && fetchProfile()}
-                            className="w-full bg-transparent border-b-2 border-white/10 py-4 text-3xl font-bold text-center outline-none focus:border-[#00e054] transition-all placeholder:text-white/10"
+                            className="w-full bg-transparent border-b-2 border-white/10 py-4 text-3xl font-bold text-center outline-none focus:border-[var(--primary)] transition-all placeholder:text-white/10"
                         />
-                        {isFinding && <Loader2 className="absolute right-4 top-5 animate-spin text-white/40" />}
+                        {isFinding && <Loader2 className="absolute right-4 top-5 animate-spin text-[var(--primary)]" />}
                     </div>
                     
                     {profile ? (
@@ -174,7 +174,7 @@ export default function Onboard() {
                             animate={{ opacity: 1, y: 0 }}
                             className="mt-12 flex flex-col items-center gap-4"
                         >
-                            <img src={profile.avatar} className="w-24 h-24 rounded-full border-2 border-[#00e054] p-1 shadow-2xl" alt="Avatar" />
+                            <img src={profile.avatar} className="w-24 h-24 rounded-none border-2 border-[var(--primary)] p-1 shadow-2xl" alt="Avatar" />
                             <p className="text-xl font-bold">{profile.name}</p>
                             <p className="text-white/40 text-sm max-w-sm italic line-clamp-2">{profile.bio}</p>
                             <p className='text-xl text-white/50 animate-bounce mt-8 uppercase font-bold tracking-widest text-xs'>
@@ -184,7 +184,7 @@ export default function Onboard() {
                     ) : (
                         <button 
                             onClick={fetchProfile}
-                            className="mt-12 px-10 py-4 bg-white text-black rounded-full font-black uppercase tracking-widest text-xs hover:bg-[#00e054] transition-all"
+                            className="mt-12 px-10 py-4 bg-white text-black rounded-none font-black uppercase tracking-widest text-xs hover:bg-[var(--primary)] transition-all"
                         >
                             Confirm Identity
                         </button>
@@ -199,7 +199,7 @@ export default function Onboard() {
                     </h1>
                     
                     <div className="space-y-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00e054]">Export Protocol:</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--primary)]">Export Protocol:</h4>
                         <ul className="space-y-3">
                             {[
                                 "Login to Letterboxd on your browser.",
@@ -208,7 +208,7 @@ export default function Onboard() {
                                 "Drag that ZIP file into the box on the right!"
                             ].map((s, i) => (
                                 <li key={i} className="flex gap-4 items-center text-sm font-medium text-white/40">
-                                    <span className="text-[#00e054] font-black text-[10px]">{i + 1}.</span>
+                                    <span className="text-[var(--primary)] font-black text-[10px]">{i + 1}.</span>
                                     {s}
                                 </li>
                             ))}
@@ -225,7 +225,7 @@ export default function Onboard() {
                     onDrop={handleDrop}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`relative group cursor-pointer w-full max-w-xl p-16 rounded-[2rem] border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center gap-6
+                    className={`relative group cursor-pointer w-full max-w-xl p-16 rounded-none border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center gap-6
                         ${isDragging ? 'border-white bg-white/20' : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'}
                         backdrop-blur-md shadow-2xl`}
                     onClick={() => document.getElementById('fileInput').click()}
@@ -244,9 +244,9 @@ export default function Onboard() {
                             animate={{ opacity: 1, y: 0 }}
                             className="flex flex-col items-center gap-4"
                         >
-                            <div className="p-5 bg-white/10 rounded-2xl relative">
+                            <div className="p-5 bg-white/10 rounded-none relative">
                                 <FileArchive size={64} className="text-white" />
-                                <div className="absolute -top-2 -right-2 bg-[#00e054] text-black rounded-full p-1 shadow-lg">
+                                <div className="absolute -top-2 -right-2 bg-[var(--primary)] text-black rounded-none p-1 shadow-lg">
                                     <CheckCircle2 size={20} />
                                 </div>
                             </div>
@@ -266,7 +266,7 @@ export default function Onboard() {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); startSync(); }}
                                         onKeyDown={(e) => e.key === 'Enter' && startSync()}
-                                        className="mt-2 px-8 py-3 bg-[#00e054] text-black rounded-full text-lg font-bold hover:scale-105 transition-all shadow-lg shadow-[#00e054]/20"
+                                        className="mt-2 px-8 py-3 bg-[var(--primary)] text-black rounded-none text-lg font-bold hover:scale-105 transition-all shadow-lg shadow-[var(--primary)]/20"
                                     >
                                         Sync My Data
                                     </button>
@@ -275,14 +275,14 @@ export default function Onboard() {
                         </motion.div>
                     ) : (
                         <>
-                            <div className={`p-8 rounded-3xl bg-white/10 transition-all duration-500 ${isDragging ? 'scale-110 rotate-12 bg-white/20' : 'group-hover:scale-110 group-hover:-rotate-6'}`}>
+                            <div className={`p-8 rounded-none bg-white/10 transition-all duration-500 ${isDragging ? 'scale-110 rotate-12 bg-white/20' : 'group-hover:scale-110 group-hover:-rotate-6'}`}>
                                 <UploadCloud size={64} className="text-white" />
                             </div>
                             <div className="text-center">
                                 <p className="text-2xl font-bold tracking-tight">Drop your ZIP here</p>
                                 <p className="text-white/50 font-medium">or click to browse files</p>
                             </div>
-                            <div className="mt-4 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+                            <div className="mt-4 px-4 py-2 bg-white/5 rounded-none border border-white/10">
                                 <p className="text-xs font-bold uppercase tracking-widest text-white/40">Letterboxd Export Only</p>
                             </div>
                         </>
@@ -295,7 +295,7 @@ export default function Onboard() {
                             animate={{ opacity: 1, y: 0 }}
                             className='text-xl text-white/50 absolute bottom-10 animate-bounce duration-500 flex flex-col items-center gap-2'
                         >
-                            <span className="font-bold text-[#00e054] uppercase tracking-widest text-sm">
+                            <span className="font-bold text-[var(--primary)] uppercase tracking-widest text-sm">
                                 {syncStatus.status === 'syncing' ? 'Syncing in background' : 'Success'}
                             </span>
                             Scroll to Continue
@@ -326,7 +326,7 @@ export default function Onboard() {
                                 onClick={() => toggleVibe(vibe)}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className={`px-8 py-4 rounded-full border-2 transition-all duration-500 font-bold uppercase tracking-widest text-xs
+                                className={`px-8 py-4 rounded-none border-2 transition-all duration-500 font-bold uppercase tracking-widest text-xs
                                     ${selectedVibes.includes(vibe) 
                                         ? "bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.3)]" 
                                         : "border-white/10 text-white/40 hover:border-white/40 hover:text-white hover:bg-white/5"}`}
@@ -340,9 +340,9 @@ export default function Onboard() {
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         disabled={selectedVibes.length < 3}
-                        className={`mt-20 px-12 py-5 font-black uppercase tracking-[0.3em] text-sm rounded-full transition-all shadow-2xl
+                        className={`mt-20 px-12 py-5 font-black uppercase tracking-[0.3em] text-sm rounded-none transition-all shadow-2xl
                             ${selectedVibes.length >= 3 
-                                ? "bg-white text-black hover:bg-[#00e054] cursor-pointer" 
+                                ? "bg-white text-black hover:bg-[var(--primary)] cursor-pointer" 
                                 : "bg-white/5 text-white/20 cursor-not-allowed border border-white/10"}`}
                         onClick={savePreferences}
                         onKeyDown={(e) => e.key === 'Enter' && selectedVibes.length >= 3 && savePreferences()}

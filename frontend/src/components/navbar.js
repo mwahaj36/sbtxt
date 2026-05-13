@@ -114,7 +114,7 @@ export default function Navbar() {
                     {/* The Sign In / Profile Button */}
                     {!isLoggedIn ? (
                         <Link href="/auth">
-                            <button className={`relative group/btn overflow-hidden px-6 py-2 rounded-lg border transition-all duration-500 active:scale-95 ${
+                            <button className={`relative group/btn overflow-hidden px-6 py-2 rounded-none border transition-all duration-500 active:scale-95 ${
                                 isLightMode ? 'border-black/20 hover:border-black/50' : 'border-white/10 hover:border-[var(--primary)]/50'
                             }`}>
                                 <div className={`absolute inset-0 transition-colors duration-500 ${
@@ -131,7 +131,7 @@ export default function Navbar() {
                         <div className="relative">
                             <button 
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className={`relative group/btn overflow-hidden px-6 py-2 rounded-lg border transition-all duration-500 active:scale-95 ${
+                                className={`relative group/btn overflow-hidden px-6 py-2 rounded-none border transition-all duration-500 active:scale-95 ${
                                     isLightMode ? 'border-black/20 hover:border-black/50' : 'border-white/10 hover:border-[var(--primary)]/50'
                                 }`}
                             >
@@ -147,7 +147,7 @@ export default function Navbar() {
 
                             {/* Dropdown Menu */}
                             {isDropdownOpen && (
-                                <div className={`absolute right-0 mt-4 w-48 rounded-2xl border backdrop-blur-3xl overflow-hidden flex flex-col shadow-2xl ${
+                                <div className={`absolute right-0 mt-4 w-48 rounded-none border backdrop-blur-3xl overflow-hidden flex flex-col shadow-2xl ${
                                     isLightMode ? 'bg-white/80 border-black/10' : 'bg-[#0a0a0a]/90 border-white/10'
                                 }`}>
                                     <Link 

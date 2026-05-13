@@ -29,6 +29,11 @@ class userLogin(BaseModel):
     identifier:str
     password: str
 
+class ProfileUpdateRequest(BaseModel):
+    username: str = None
+    email: str = None
+    letterboxd_username: str = None
+
 def create_access_token(data:dict):
     to_encode=data.copy()
 
@@ -147,5 +152,40 @@ async def get_me(user_id: str = Depends(get_current_user)):
                 "letterboxd_username": user[2],
                 "letterboxd_dp": user[3]
             }
+    finally:
+        conn.close()
+
+@router.put("/update")
+async def update_profile(
+    req: ProfileUpdateRequest,
+    user_id: str = Depends(get_current_user)
+):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            updates = []
+            params = []
+            if req.username is not None:
+                updates.append("username = %s")
+                params.append(req.username)
+            if req.email is not None:
+                updates.append("email = %s")
+                params.append(req.email)
+            if req.letterboxd_username is not None:
+                updates.append("letterboxd_username = %s")
+                params.append(req.letterboxd_username)
+            
+            if not updates:
+                return {"status": "success", "message": "Nothing to update"}
+
+            query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s"
+            params.append(user_id)
+            
+            cur.execute(query, params)
+            conn.commit()
+            return {"status": "success", "message": "Profile updated successfully"}
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail="Username or email already taken")
     finally:
         conn.close()

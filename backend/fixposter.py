@@ -19,19 +19,28 @@ async def get_poster_path(tmdb_id, client):
     except: pass
     return None
 
-async def fix_single_movie(row, client, semaphore, conn, stats):
+async def fix_single_movie(row, client, semaphore, stats):
     async with semaphore:
         movie_id, title, tmdb_id = row
         new_poster = await get_poster_path(tmdb_id, client)
         if new_poster:
+            # Open a fresh connection per update to avoid async race conditions
+            conn = get_db_connection()
             with conn.cursor() as cur:
                 cur.execute("UPDATE user_ratings SET poster_path = %s WHERE id = %s", (new_poster, movie_id))
                 cur.execute("UPDATE letterboxd_mappings SET poster_path = %s WHERE tmdb_id = %s", (new_poster, tmdb_id))
+                conn.commit()
+            conn.close()
             stats['healed'] += 1
         else:
             stats['failed'] += 1
+        
+        # Heartbeat log every 100 items
+        processed = stats['healed'] + stats['failed']
+        if processed % 100 == 0:
+            print(f"[PROGRESS] {processed} movies scanned...")
 
-async def fix_favorites(user_id, favorites, client, semaphore, conn, stats):
+async def fix_favorites(user_id, favorites, client, semaphore, stats):
     async with semaphore:
         updated = False
         new_favs = []
@@ -39,7 +48,6 @@ async def fix_favorites(user_id, favorites, client, semaphore, conn, stats):
             tmdb_id = fav.get('tmdb_id')
             poster = fav.get('poster_path')
             if tmdb_id and (not poster or poster.startswith('http')):
-                print(f"[FAVORITES] Healing poster for: {fav.get('title')}")
                 new_path = await get_poster_path(tmdb_id, client)
                 if new_path:
                     fav['poster_path'] = new_path
@@ -47,48 +55,43 @@ async def fix_favorites(user_id, favorites, client, semaphore, conn, stats):
             new_favs.append(fav)
         
         if updated:
+            conn = get_db_connection()
             with conn.cursor() as cur:
                 cur.execute("UPDATE users SET favorites = %s WHERE id = %s", (json.dumps(new_favs), user_id))
+                conn.commit()
+            conn.close()
             stats['favs_healed'] += 1
 
 async def main():
     conn = get_db_connection()
-    conn.autocommit = True
-    
     with conn.cursor() as cur:
-        # 1. Gather dirty library items
         cur.execute("SELECT id, movie_title, tmdb_id FROM user_ratings WHERE tmdb_id IS NOT NULL AND (poster_path IS NULL OR poster_path LIKE 'http%')")
         library_rows = cur.fetchall()
-        
-        # 2. Gather users with favorites
         cur.execute("SELECT id, favorites FROM users WHERE favorites IS NOT NULL")
         user_rows = cur.fetchall()
+    conn.close()
     
     if not library_rows and not user_rows:
         print("Vault is already pure.")
-        conn.close()
         return
 
-    print(f"Purifying {len(library_rows)} library items and {len(user_rows)} user profiles...")
+    print(f"🚀 [PURIFIER] Starting high-velocity cleanup for {len(library_rows)} items...")
     
     stats = {'healed': 0, 'failed': 0, 'favs_healed': 0}
-    semaphore = asyncio.Semaphore(25) # High concurrency
+    semaphore = asyncio.Semaphore(15) # Optimized for stability
     
     async with httpx.AsyncClient(timeout=10.0) as client:
-        # Library tasks
-        lib_tasks = [fix_single_movie(row, client, semaphore, conn, stats) for row in library_rows]
-        # Profile tasks
+        lib_tasks = [fix_single_movie(row, client, semaphore, stats) for row in library_rows]
         prof_tasks = []
         for u_id, favs_raw in user_rows:
             try:
                 favs = json.loads(favs_raw) if isinstance(favs_raw, str) else favs_raw
-                if favs: prof_tasks.append(fix_favorites(u_id, favs, client, semaphore, conn, stats))
+                if favs: prof_tasks.append(fix_favorites(u_id, favs, client, semaphore, stats))
             except: pass
             
         await asyncio.gather(*lib_tasks, *prof_tasks)
 
-    conn.close()
-    print(f"Purification Complete: {stats['healed']} Library items healed | {stats['favs_healed']} Profiles updated.")
+    print(f"🎉 Purification Complete: {stats['healed']} Library items healed | {stats['favs_healed']} Profiles updated.")
 
 if __name__ == "__main__":
     asyncio.run(main())

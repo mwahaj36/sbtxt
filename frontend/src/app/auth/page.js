@@ -29,8 +29,7 @@ export default function AuthPage() {
         try {
             // BEST PRACTICE: Sanitize inputs (remove accidental whitespace, lowercase emails)
             const cleanEmail = email.trim().toLowerCase();
-            const cleanUsername = username.trim();
-            const cleanLetterboxd = letterboxd.trim();
+            const cleanUsername = username.trim(); // This is now the Letterboxd username
             const cleanIdentifier = identifier.trim().toLowerCase();
 
             // BEST PRACTICE: Frontend Validation
@@ -49,7 +48,7 @@ export default function AuthPage() {
             const endpoint = isLogin ? "/auth/login" : "/auth/signup";
             const payload = isLogin 
                 ? { identifier: cleanIdentifier, password } 
-                : { email: cleanEmail, username: cleanUsername, password, letterboxd_username: cleanLetterboxd };
+                : { email: cleanEmail, username: cleanUsername, password, letterboxd_username: cleanUsername };
 
             const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
                 method: "POST",
@@ -98,7 +97,7 @@ export default function AuthPage() {
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 50 }}
-                        className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-black px-8 py-4 rounded-full font-black uppercase tracking-widest text-[10px] z-[100] shadow-[0_0_40px_rgba(217,70,239,0.5)] border border-black/10"
+                        className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-black px-8 py-4 rounded-none font-black uppercase tracking-widest text-[10px] z-[100] shadow-[0_0_40px_rgba(217,70,239,0.5)] border border-black/10"
                     >
                         {toast}
                     </motion.div>
@@ -122,14 +121,17 @@ export default function AuthPage() {
                     <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required={!isLogin} 
                         className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-6 outline-none transition-colors placeholder:text-gray-400" />
                     
-                    <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required={!isLogin} 
-                        className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-6 outline-none transition-colors placeholder:text-gray-400" />
+                    <div className="w-full mb-6">
+                        <input type="text" placeholder="Letterboxd Username" value={username} onChange={e => setUsername(e.target.value)} required={!isLogin} 
+                            className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 outline-none transition-colors placeholder:text-gray-400" />
+                        <p className="text-[9px] text-gray-400 font-bold uppercase mt-2 text-left tracking-widest w-full">This acts as your app username.</p>
+                    </div>
                     
                     <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required={!isLogin} 
                         className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-6 outline-none transition-colors placeholder:text-gray-400" />
                     
-                    <button type="submit" disabled={isLoading} className="w-full bg-black text-white py-4 font-black uppercase tracking-widest text-xs hover:bg-[var(--primary)] transition-colors flex justify-center items-center h-12">
-                        {isLoading && !isLogin ? <Loader2 className="animate-spin" size={16} /> : "Create Account"}
+                    <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
+                        {isLoading && !isLogin ? <Loader2 className="animate-spin text-black" size={16} /> : "Create Account"}
                     </button>
                 </form>
             </div>
@@ -146,8 +148,8 @@ export default function AuthPage() {
                     <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required={isLogin} 
                         className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-10 outline-none transition-colors placeholder:text-gray-400" />
                     
-                    <button type="submit" disabled={isLoading} className="w-full bg-black text-white py-4 font-black uppercase tracking-widest text-xs hover:bg-[var(--primary)] transition-colors flex justify-center items-center h-12">
-                        {isLoading && isLogin ? <Loader2 className="animate-spin" size={16} /> : "Log In"}
+                    <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
+                        {isLoading && isLogin ? <Loader2 className="animate-spin text-black" size={16} /> : "Log In"}
                     </button>
                 </form>
             </div>
@@ -174,7 +176,7 @@ export default function AuthPage() {
                             setIsLogin(!isLogin);
                             setError(""); // Clear errors when switching sides
                         }}
-                        className="px-10 py-4 bg-white text-black hover:bg-[var(--primary)] uppercase tracking-[0.2em] text-xs font-black rounded-full transition-colors"
+                        className="px-10 py-4 bg-[var(--primary)] text-black hover:brightness-110 uppercase tracking-[0.2em] text-xs font-black rounded-none transition-colors"
                     >
                         {isLogin ? "Create Account" : "Go to Login"}
                     </button>

@@ -54,7 +54,7 @@ export default function Home() {
                     transition={{ duration: 1.5, ease: "easeOut" }}
                     className="absolute inset-0 pointer-events-none"
                 >
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--primary)]/10 rounded-full blur-[120px]" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--primary)]/10 rounded-none blur-[120px]" />
                 </motion.div>
 
                 <motion.div
@@ -71,9 +71,9 @@ export default function Home() {
                         Escape the algorithm. Discover cinema through vibes, story, and soul—not just metadata.
                     </p>
                     <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
-                        <Link href="/search" className="group relative px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95">
+                        <Link href="/search" className="group relative px-8 py-4 bg-[var(--primary)] text-black font-black uppercase tracking-widest text-xs rounded-none overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]">
                             <span className="relative z-10">Start Searching</span>
-                            <div className="absolute inset-0 bg-[var(--primary)] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                         </Link>
                     </div>
                 </motion.div>
@@ -135,7 +135,7 @@ export default function Home() {
             <section id="vibe" className="h-screen w-full flex items-center justify-center bg-[#0d041a] snap-start relative px-4">
                 <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
                     <motion.div {...fadeIn}>
-                        <div className="w-12 h-12 bg-[var(--secondary)]/10 rounded-xl flex items-center justify-center text-[var(--secondary)] mb-6">
+                        <div className="w-12 h-12 bg-[var(--secondary)]/10 rounded-none flex items-center justify-center text-[var(--secondary)] mb-6">
                             <Search size={24} />
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Vibe-First Search</h2>
@@ -145,7 +145,7 @@ export default function Home() {
                         <ul className="space-y-4">
                             {['Vector-based thematic retrieval', 'Natural language understanding', 'Mood-aware results'].map((item) => (
                                 <li key={item} className="flex items-center gap-3 text-sm font-bold text-gray-300">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--secondary)]" />
+                                    <div className="w-1.5 h-1.5 rounded-none bg-[var(--secondary)]" />
                                     {item}
                                 </li>
                             ))}
@@ -154,15 +154,15 @@ export default function Home() {
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.95 }}
                         whileInView={{ opacity: 1, scale: 1 }}
-                        className="relative aspect-square bg-white/5 rounded-[40px] border border-white/10 overflow-hidden"
+                        className="relative aspect-square bg-white/5 rounded-none border border-white/10 overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-gradient-to-br from-[var(--secondary)]/20 to-transparent" />
                         <div className="absolute inset-8 flex flex-col gap-4">
-                            <div className="h-12 w-full bg-white/10 rounded-xl animate-pulse" />
-                            <div className="h-32 w-full bg-white/5 rounded-xl" />
+                            <div className="h-12 w-full bg-white/10 rounded-none animate-pulse" />
+                            <div className="h-32 w-full bg-white/5 rounded-none" />
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="h-40 bg-white/10 rounded-xl" />
-                                <div className="h-40 bg-white/10 rounded-xl" />
+                                <div className="h-40 bg-white/10 rounded-none" />
+                                <div className="h-40 bg-white/10 rounded-none" />
                             </div>
                         </div>
                     </motion.div>
@@ -176,19 +176,19 @@ export default function Home() {
                         initial={{ opacity: 0, x: -50 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         transition={{ duration: 1 }}
-                        className="order-2 md:order-1 relative aspect-video bg-black/40 backdrop-blur-3xl rounded-[40px] border border-white/10 overflow-hidden p-8"
+                        className="order-2 md:order-1 relative aspect-video bg-black/40 backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden p-8"
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex gap-2">
-                                <div className="w-3 h-3 rounded-full bg-orange-500" />
-                                <div className="w-3 h-3 rounded-full bg-green-500" />
-                                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                                <div className="w-3 h-3 rounded-none bg-orange-500" />
+                                <div className="w-3 h-3 rounded-none bg-green-500" />
+                                <div className="w-3 h-3 rounded-none bg-blue-500" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Syncing with Letterboxd...</span>
                         </div>
                         <div className="space-y-4">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                                <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-none border border-white/5">
                                     <div className="w-12 h-16 bg-white/10 rounded-lg" />
                                     <div className="flex-1 space-y-2">
                                         <div className="h-3 w-1/2 bg-white/10 rounded" />
@@ -201,21 +201,21 @@ export default function Home() {
                     </motion.div>
                     <motion.div {...fadeIn} className="order-1 md:order-2">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
+                            <div className="w-12 h-12 bg-blue-500/10 rounded-none flex items-center justify-center text-blue-400">
                                 <Library size={24} />
                             </div>
-                            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-500/30">Coming Soon</span>
+                            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-none border border-blue-500/30">Coming Soon</span>
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Personalized Radar</h2>
                         <p className="text-gray-300 text-lg leading-relaxed mb-8">
                             Sync your Letterboxd diary to create a unique taste profile. SBTXT will automatically filter out movies you've already logged and craft suggestions based on your recent fixations.
                         </p>
                         <div className="grid grid-cols-2 gap-6">
-                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <div className="p-4 rounded-none bg-white/5 border border-white/5">
                                 <h4 className="text-blue-200 font-bold mb-1 italic">Avoid Repeats</h4>
                                 <p className="text-xs text-blue-400/60">Filtered results from your 'Seen' list.</p>
                             </div>
-                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <div className="p-4 rounded-none bg-white/5 border border-white/5">
                                 <h4 className="text-blue-200 font-bold mb-1 italic">Taste Match</h4>
                                 <p className="text-xs text-blue-400/60">Suggestions based on your 5-star ratings.</p>
                             </div>
@@ -228,7 +228,7 @@ export default function Home() {
             <section id="tmdb" className="h-screen w-full flex items-center justify-center bg-[#0d253f] snap-start relative px-4">
                 <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
                     <motion.div {...fadeIn}>
-                        <div className="w-12 h-12 bg-[#90cea1]/10 rounded-xl flex items-center justify-center text-[#90cea1] mb-6">
+                        <div className="w-12 h-12 bg-[#90cea1]/10 rounded-none flex items-center justify-center text-[#90cea1] mb-6">
                             <Database size={24} />
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white leading-none">Powered by the World's Movie Database</h2>
@@ -248,7 +248,7 @@ export default function Home() {
                         whileInView={{ opacity: 1, scale: 1 }}
                         className="relative hidden md:block w-full max-w-md mx-auto"
                     >
-                        <div className="absolute inset-0 bg-[#01b4e4]/10 blur-[100px] rounded-full" />
+                        <div className="absolute inset-0 bg-[#01b4e4]/10 blur-[100px] rounded-none" />
                         
 
                             <div className="relative z-10 grid grid-cols-3 gap-3">
@@ -262,7 +262,7 @@ export default function Home() {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         transition={{ delay: i * 0.1 }}
                                         whileHover={{ scale: 1.05, zIndex: 50 }}
-                                        className="aspect-[2/3] relative rounded-xl border border-white/10 overflow-hidden shadow-2xl group/poster bg-black/20"
+                                        className="aspect-[2/3] relative rounded-none border border-white/10 overflow-hidden shadow-2xl group/poster bg-black/20"
                                     >
                                         <img 
                                             src={`https://image.tmdb.org/t/p/w500${movie.path}`} 
@@ -288,22 +288,22 @@ export default function Home() {
                 <div className="max-w-4xl mx-auto text-center">
                     <motion.div {...fadeIn}>
                         <div className="flex items-center justify-center gap-3 mb-6">
-                            <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-xl flex items-center justify-center text-[var(--primary)]">
+                            <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-none flex items-center justify-center text-[var(--primary)]">
                                 <Compass size={24} />
                             </div>
-                            <span className="px-3 py-1 bg-[var(--primary)]/20 text-[var(--primary)] text-[10px] font-black uppercase tracking-widest rounded-full border border-[var(--primary)]/30">Coming Soon</span>
+                            <span className="px-3 py-1 bg-[var(--primary)]/20 text-[var(--primary)] text-[10px] font-black uppercase tracking-widest rounded-none border border-[var(--primary)]/30">Coming Soon</span>
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">The Cinematic Galaxy</h2>
                         <p className="text-gray-300 text-lg leading-relaxed mb-12">
                             A new way to browse. See movies as stars in a connected constellation. Navigate through visual clusters of genres, moods, and directorial styles.
                         </p>
-                        <div className="relative h-[400px] md:h-[500px] w-full bg-white/[0.03] backdrop-blur-3xl rounded-[40px] border border-white/10 overflow-hidden group">
+                        <div className="relative h-[400px] md:h-[500px] w-full bg-white/[0.03] backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden group">
                              {stars.map((star) => (
                                 <motion.div 
                                     key={star.id}
                                     animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.2, 1] }}
                                     transition={{ duration: star.duration, repeat: Infinity }}
-                                    className="absolute w-1 h-1 bg-white rounded-full"
+                                    className="absolute w-1 h-1 bg-white rounded-none"
                                     style={{ top: star.top, left: star.left }}
                                 />
                              ))}
@@ -319,9 +319,9 @@ export default function Home() {
             {/* SECTION 7: CTA & FOOTER (BLACK) */}
             <section id="cta" className="h-screen w-full flex flex-col justify-between bg-black snap-start relative">
                 <div className="flex-1 flex items-center justify-center px-4">
-                    <motion.div {...fadeIn} className="max-w-4xl w-full p-12 rounded-[40px] bg-gradient-to-br from-white/5 to-transparent border border-white/10 text-center relative overflow-hidden">
+                    <motion.div {...fadeIn} className="max-w-4xl w-full p-12 rounded-none bg-gradient-to-br from-white/5 to-transparent border border-white/10 text-center relative overflow-hidden">
                         <h2 className="text-5xl md:text-7xl font-black mb-10 text-white leading-tight">Ready to find<br />something real?</h2>
-                        <Link href="/search" className="inline-flex items-center gap-4 px-12 py-6 bg-[var(--primary)] text-black font-black uppercase tracking-widest text-xs rounded-full hover:scale-110 transition-all shadow-[0_0_50px_rgba(217,70,239,0.3)]">
+                        <Link href="/search" className="inline-flex items-center gap-4 px-12 py-6 bg-[var(--primary)] text-black font-black uppercase tracking-widest text-xs rounded-none hover:scale-110 transition-all shadow-[0_0_50px_rgba(217,70,239,0.3)]">
                             Launch Search <ChevronRight size={20} />
                         </Link>
                     </motion.div>

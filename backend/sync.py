@@ -10,6 +10,7 @@ import json
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import List, Dict, Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException, Depends
 from database import get_db_connection
 from auth import get_current_user
@@ -124,18 +125,46 @@ async def get_tmdb_id_from_letterboxd(lb_url: str, client: httpx.AsyncClient) ->
 async def process_single_movie(movie: dict, user_id: str, client: httpx.AsyncClient, semaphore: asyncio.Semaphore):
     async with semaphore:
         title = movie.get('movie_title')
+        lb_url = movie.get('letterboxd_uri')
+        interaction = movie.get('interaction_type', 'watched')
+        
         try:
-            lb_url = movie.get('letterboxd_uri')
+            # 1. QUICK CHECK: See if we already resolved this LB URL recently
             tmdb_id = movie.get('tmdb_id')
             poster_path = movie.get('poster_path')
-            
-            if tmdb_id and not poster_path:
-                poster_path = await get_poster_path_from_tmdb(tmdb_id, client)
-            
+
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                # Check letterboxd_mappings first
+                if not tmdb_id and lb_url:
+                    cur.execute("SELECT tmdb_id, poster_path FROM letterboxd_mappings WHERE letterboxd_url = %s", (lb_url,))
+                    row = cur.fetchone()
+                    if row:
+                        tmdb_id, poster_path = row
+                
+                # Check if this user already has this movie in user_ratings (to skip redundant inserts)
+                if tmdb_id:
+                    cur.execute("SELECT rating, watched_date, is_liked FROM user_ratings WHERE user_id = %s AND tmdb_id = %s AND interaction_type = %s", (user_id, tmdb_id, interaction))
+                    existing = cur.fetchone()
+                    
+                    # If everything matches exactly, we can skip entirely
+                    if existing:
+                        # For watched/ratings, check if date/rating matches to decide if update is needed
+                        # But for a "very quick" sync, if it exists, we usually skip unless it's a force refresh
+                        # Let's assume if it exists, we are good.
+                        conn.close()
+                        return
+            conn.close()
+
+            # 2. RESOLVE: If still missing ID, fetch it
             if not tmdb_id and lb_url:
                 res = await get_tmdb_id_from_letterboxd(lb_url, client)
                 if res: tmdb_id, poster_path = res
             
+            if tmdb_id and not poster_path:
+                poster_path = await get_poster_path_from_tmdb(tmdb_id, client)
+            
+            # 3. SAVE
             if tmdb_id:
                 conn = get_db_connection()
                 with conn.cursor() as cur:
@@ -145,7 +174,7 @@ async def process_single_movie(movie: dict, user_id: str, client: httpx.AsyncCli
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                         ON CONFLICT (user_id, tmdb_id, interaction_type) 
                         DO UPDATE SET rating = EXCLUDED.rating, watched_date = EXCLUDED.watched_date, is_liked = EXCLUDED.is_liked, poster_path = EXCLUDED.poster_path, letterboxd_uri = EXCLUDED.letterboxd_uri
-                    """, (user_id, title, movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), movie.get('interaction_type', 'watched'), tmdb_id, poster_path, lb_url))
+                    """, (user_id, title, movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), interaction, tmdb_id, poster_path, lb_url))
                     conn.commit()
                 conn.close()
                 print(f"✅ [SYNC] Resolved: {title}")
@@ -167,7 +196,7 @@ async def resolve_tmdb_ids(movies: List[Dict], user_id: str):
 
 @router.get("/status")
 async def get_sync_status(user_id: str = Depends(get_current_user)):
-    return SYNC_PROGRESS.get(user_id, {"status": "not_found", "processed": 0, "total": 100})
+    return SYNC_PROGRESS.get(user_id, {"status": "idle", "processed": 0, "total": 0})
 
 async def sync_live_history(username: str, user_id: str):
     SYNC_PROGRESS[user_id] = {"status": "syncing", "processed": 0, "total": 1}
@@ -227,6 +256,93 @@ async def sync_live_history(username: str, user_id: str):
     except Exception as e:
         print(f"🚨 [SYNC ERROR] {e}")
         SYNC_PROGRESS[user_id] = {"status": "error", "message": str(e)}
+
+class CheckLikedRequest(BaseModel):
+    tmdb_ids: List[int]
+
+@router.post("/check_liked")
+async def check_liked(request: CheckLikedRequest, user_id: str = Depends(get_current_user)):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            if not request.tmdb_ids:
+                return {}
+            # Filter None/invalid IDs just in case
+            valid_ids = [tid for tid in request.tmdb_ids if tid is not None]
+            if not valid_ids:
+                return {}
+            format_strings = ','.join(['%s'] * len(valid_ids))
+            cur.execute(f"SELECT tmdb_id FROM user_ratings WHERE user_id = %s AND is_liked = TRUE AND tmdb_id IN ({format_strings})", [user_id] + valid_ids)
+            liked_ids = {row[0]: True for row in cur.fetchall()}
+            return liked_ids
+    finally:
+        conn.close()
+
+@router.post("/letterboxd")
+async def sync_letterboxd_zip(background_tasks: BackgroundTasks, file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
+    try:
+        content = await file.read()
+        z = zipfile.ZipFile(io.BytesIO(content))
+        
+        movies_to_sync = []
+        # Process files: ratings.csv, watched.csv, watchlist.csv, likes.csv
+        file_map = {
+            "ratings.csv": "watched",
+            "watched.csv": "watched",
+            "watchlist.csv": "watchlist",
+            "likes.csv": "liked"
+        }
+        
+        # Track seen to avoid duplicates within the ZIP
+        seen_keys = set()
+
+        for filename, interaction in file_map.items():
+            if filename in z.namelist():
+                with z.open(filename) as f:
+                    # Letterboxd CSVs are usually UTF-8
+                    reader = csv.DictReader(io.TextIOWrapper(f, encoding='utf-8'))
+                    for row in reader:
+                        title = row.get('Name') or row.get('Title')
+                        year = row.get('Year') or row.get('Release Year')
+                        uri = row.get('Letterboxd URI') or row.get('Link')
+                        rating = row.get('Rating')
+                        date = row.get('Date') or row.get('Watched Date')
+                        
+                        if not title: continue
+                        
+                        # Create a unique key for this entry
+                        key = f"{title}-{year}-{interaction}"
+                        if key in seen_keys: continue
+                        seen_keys.add(key)
+
+                        movie_data = {
+                            "movie_title": title,
+                            "release_year": int(year) if year and year.isdigit() else None,
+                            "letterboxd_uri": uri,
+                            "interaction_type": interaction if interaction != 'liked' else 'watched',
+                            "is_liked": interaction == 'liked',
+                            "rating": float(rating) if rating else None,
+                            "watched_date": date
+                        }
+                        
+                        # If it's a rating, it's already 'watched', but we might have a 'liked' status from elsewhere
+                        # Merging logic could be complex, but for now we just append
+                        movies_to_sync.append(movie_data)
+
+        if not movies_to_sync:
+            raise HTTPException(status_code=400, detail="No valid movies found in ZIP")
+
+        # Initialize progress
+        SYNC_PROGRESS[user_id] = {"status": "syncing", "processed": 0, "total": len(movies_to_sync)}
+        
+        # Start background resolution
+        background_tasks.add_task(resolve_tmdb_ids, movies_to_sync, user_id)
+        
+        return {"status": "started", "total_movies": len(movies_to_sync)}
+        
+    except Exception as e:
+        print(f"❌ [ZIP SYNC ERROR] {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/live")
 async def trigger_live_sync(background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):

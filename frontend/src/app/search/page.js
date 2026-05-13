@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check } from 'lucide-react';
+import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import VibeSpinner from '@/components/spinner';
 
 // --- MovieCard Component with Living Poster Effect ---
 const MovieCard = ({ movie, index, onGenreClick }) => {
@@ -53,64 +52,63 @@ const MovieCard = ({ movie, index, onGenreClick }) => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05, duration: 0.8 }}
-            whileHover={{ y: -12, scale: 1.05 }}
+            whileHover={{ y: -4, scale: 1.05 }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={() => setIsHovered(false)}
-            className="w-[220px] flex-shrink-0 group cursor-pointer"
+            onClick={() => window.open(`https://www.themoviedb.org/movie/${movie.id}`, '_blank')}
+            className="group cursor-pointer"
         >
-            <div className="relative transition-all duration-500 rounded-3xl group-hover:shadow-[0_0_60px_rgba(var(--primary-rgb),0.4)]">
-                <div className="relative aspect-[2/3] rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl transition-all duration-500 ">
-                    <AnimatePresence mode='wait'>
-                        <motion.img
-                            key={currentPoster}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.8 }}
-                            src={currentPoster}
-                            alt={movie.title}
-                            className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-700'
-                        />
-                    </AnimatePresence>
-                    
-                    {loadingVariants && isHovered && (
-                        <div className="absolute top-2 right-2 p-1.5 bg-black/50 backdrop-blur-md rounded-full">
-                            <Loader2 size={12} className="animate-spin text-[var(--primary)]" />
-                        </div>
+            <div className="relative aspect-[2/3] rounded-none overflow-hidden border border-white/10 bg-black/40 transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] group-hover:border-white/30">
+                <AnimatePresence mode='wait'>
+                    <motion.img
+                        key={currentPoster}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.8 }}
+                        src={currentPoster}
+                        alt={movie.title}
+                        className='w-full h-full object-cover transition-transform duration-700 group-hover:scale-110'
+                    />
+                </AnimatePresence>
+                
+                {loadingVariants && isHovered && (
+                    <div className="absolute top-2 right-2 p-1.5 bg-black/50 backdrop-blur-md rounded-none">
+                        <Loader2 size={12} className="animate-spin text-[var(--primary)]" />
+                    </div>
+                )}
+
+                <div className="absolute -inset-1 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end items-center p-3 text-center">
+                    {movie.is_liked && <Heart size={14} className="fill-[#ff8000] text-[#ff8000] mb-2" />}
+                    <div className="text-[9px] font-black text-[var(--primary)] uppercase tracking-tighter mb-2 bg-[var(--primary)]/10 px-2 py-0.5 rounded-none border border-[var(--primary)]/20">
+                        {Math.round(movie.score * 100)}% MATCH
+                    </div>
+                    {movie.reason && (
+                        <p className="text-white/80 text-[7px] leading-tight font-bold italic tracking-tight line-clamp-3">
+                            "{movie.reason}"
+                        </p>
                     )}
                 </div>
+            </div>
 
-                <div className="absolute -inset-px rounded-3xl bg-gradient-to-t from-black via-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end items-center p-6 text-center z-10">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                        <div className="px-3 py-1 bg-[var(--primary)] text-black text-[10px] font-black rounded-full uppercase tracking-tighter">
-                            {Math.round(movie.score * 100)}% Match
-                        </div>
-                    </div>
-                    <p className="text-white/90 text-[10px] leading-relaxed font-bold italic tracking-tight">
-                        "{movie.reason}"
-                    </p>
+            <h3 className='text-[8px] font-black mt-2 text-center group-hover:text-white transition-colors uppercase tracking-tight px-1 truncate leading-none'>{movie.title}</h3>
+            <p className="text-center text-[7px] text-white/40 font-bold mt-0.5 mb-1">{movie.year}</p>
+            {movie.genres && movie.genres.length > 0 && (
+                <div className="flex gap-1 justify-center items-center flex-wrap">
+                    {movie.genres.slice(0, 2).map((g, i) => (
+                        <button 
+                            key={i} 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onGenreClick(g);
+                            }}
+                            className="text-[6px] uppercase tracking-widest text-white/60 font-bold hover:text-white transition-colors"
+                        >
+                            {g}
+                        </button>
+                    ))}
                 </div>
-            </div>
-
-            <h3 className='text-base font-black mt-4 text-center group-hover:text-[var(--primary)] transition-all duration-300 line-clamp-2 leading-tight tracking-tight px-2 min-h-[2.5rem] flex items-center justify-center'>
-                {movie.title}
-            </h3>
-            <div className="flex gap-2 justify-center items-center mt-1">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{movie.year}</span>
-                <span className="w-1 h-1 bg-gray-800 rounded-full" />
-                {movie.genres?.slice(0, 2).map((g, i) => (
-                    <button 
-                        key={i} 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onGenreClick(g);
-                        }}
-                        className="text-[10px] uppercase tracking-widest text-gray-600 font-bold hover:text-[var(--primary)] transition-colors"
-                    >
-                        {g}
-                    </button>
-                ))}
-            </div>
+            )}
         </motion.div>
     );
 };
@@ -221,14 +219,42 @@ export default function SearchPage() {
 
             const data = await response.json();
             console.log("✅ [Search] Results received:", data?.length || 0);
+            
+            // Check liked status from the local database
+            const token = localStorage.getItem("token");
+            if (token && data && data.length > 0) {
+                try {
+                    const tmdbIds = data.map(m => m.id);
+                    const likedRes = await fetch("http://localhost:8000/sync/check_liked", {
+                        method: "POST",
+                        headers: { 
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ tmdb_ids: tmdbIds })
+                    });
+                    
+                    if (likedRes.ok) {
+                        const likedData = await likedRes.json();
+                        data.forEach(m => {
+                            if (likedData[m.id]) {
+                                m.is_liked = true;
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to check liked status", e);
+                }
+            }
+            
             setMovies(data);
         } catch (error) {
             console.error("🚨 [Search] Critical Connection Failure:", error);
             setMovies([]);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     const sortedMovies = useMemo(() => {
         if (!movies) return [];
@@ -267,18 +293,18 @@ export default function SearchPage() {
                             value={query}
                             onChange={(e) => SetQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            className="w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 py-5 rounded-2xl outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all text-lg placeholder:text-gray-500 shadow-2xl"
+                            className="w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 py-5 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all text-lg placeholder:text-gray-500 shadow-2xl"
                         />
                     </div>
                     <div className="flex gap-4">
                         <button 
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`p-5 rounded-2xl border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'}`}
+                            className={`p-5 rounded-none border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'}`}
                         >
                             <Filter size={20} />
                         </button>
                         <button 
-                            className={`bg-[var(--primary)] px-10 rounded-2xl font-black text-black uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'}`}
+                            className={`bg-[var(--primary)] px-10 rounded-none font-black text-black uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'}`}
                             onClick={() => handleSearch()}
                             disabled={loading}
                         >
@@ -305,7 +331,7 @@ export default function SearchPage() {
                             initial={{ height: 0, opacity: 0, y: -10 }}
                             animate={{ height: 'auto', opacity: 1, y: 0 }}
                             exit={{ height: 0, opacity: 0, y: -10 }}
-                            className="overflow-hidden mt-4 grid grid-cols-2 md:grid-cols-5 gap-4 p-6 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl"
+                            className="overflow-hidden mt-4 grid grid-cols-2 md:grid-cols-5 gap-4 p-6 bg-white/5 border border-white/10 rounded-none backdrop-blur-xl"
                         >
                             <div className="flex flex-col gap-2">
                                 <label className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] flex items-center gap-2">
@@ -316,7 +342,7 @@ export default function SearchPage() {
                                     placeholder="1990"
                                     value={minYear}
                                     onChange={(e) => setMinYear(e.target.value)}
-                                    className="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none"
+                                    className="bg-black/20 border border-white/5 rounded-none px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -328,7 +354,7 @@ export default function SearchPage() {
                                     placeholder="2024"
                                     value={maxYear}
                                     onChange={(e) => setMaxYear(e.target.value)}
-                                    className="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none"
+                                    className="bg-black/20 border border-white/5 rounded-none px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -338,7 +364,7 @@ export default function SearchPage() {
                                 <select 
                                     value={language}
                                     onChange={(e) => setLanguage(e.target.value)}
-                                    className="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none appearance-none cursor-pointer"
+                                    className="bg-black/20 border border-white/5 rounded-none px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none appearance-none cursor-pointer"
                                 >
                                     {tmdbLanguages.map(lang => (
                                         <option key={lang.value} value={lang.value} className="bg-[#0a0a0a]">{lang.name}</option>
@@ -355,7 +381,7 @@ export default function SearchPage() {
                                     placeholder="7.5"
                                     value={minVote}
                                     onChange={(e) => setMinVote(e.target.value)}
-                                    className="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none"
+                                    className="bg-black/20 border border-white/5 rounded-none px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -365,7 +391,7 @@ export default function SearchPage() {
                                 <select 
                                     value={resultCount}
                                     onChange={(e) => setResultCount(parseInt(e.target.value))}
-                                    className="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none appearance-none cursor-pointer"
+                                    className="bg-black/20 border border-white/5 rounded-none px-3 py-2 text-sm focus:border-[var(--primary)]/50 outline-none appearance-none cursor-pointer"
                                 >
                                     {resultOptions.map(opt => (
                                         <option key={opt} value={opt} className="bg-[#0a0a0a]">{opt}</option>
@@ -375,7 +401,7 @@ export default function SearchPage() {
                             <div className="md:col-span-5 flex justify-center mt-6 pt-4 border-t border-white/5">
                                 <button 
                                     onClick={clearFilters}
-                                    className="px-8 py-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                    className="px-8 py-2.5 rounded-none border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                 >
                                     <X size={12} /> Reset All Filters
                                 </button>
@@ -399,7 +425,7 @@ export default function SearchPage() {
                     </div>
 
                     {sortedMovies.length > 0 && (
-                        <div className="flex items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-2xl">
+                        <div className="flex items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-none">
                             <ListOrdered size={16} className="text-[var(--primary)]" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sort By:</span>
                             <div className="flex gap-2">
@@ -411,7 +437,7 @@ export default function SearchPage() {
                                     <button
                                         key={option.value}
                                         onClick={() => setSortBy(option.value)}
-                                        className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all ${sortBy === option.value ? 'bg-[var(--primary)] text-black shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                                        className={`px-4 py-1.5 rounded-none text-[10px] font-black uppercase tracking-tighter transition-all ${sortBy === option.value ? 'bg-[var(--primary)] text-black shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]' : 'bg-white/5 text-gray-400 hover:text-white'}`}
                                     >
                                         {option.name}
                                     </button>
@@ -424,7 +450,7 @@ export default function SearchPage() {
 
             {loading && (
                 <div className="flex flex-col items-center gap-4 my-20">
-                    <VibeSpinner />
+                    <Loader2 className="animate-spin text-[var(--primary)]" size={32} />
                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--primary)] animate-pulse">Analyzing Cinematic Vibes...</p>
                 </div>
             )}
@@ -451,7 +477,7 @@ export default function SearchPage() {
                             <button
                                 key={index}
                                 onClick={() => SetQuery(vibe)}
-                                className="px-6 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/10 transition-all"
+                                className="px-6 py-2 rounded-none border border-white/10 bg-white/5 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/10 transition-all"
                             >
                                 {vibe}
                             </button>
@@ -465,7 +491,7 @@ export default function SearchPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.8 }}
-                    className="flex flex-wrap justify-center gap-10 w-full max-w-7xl mx-auto pb-40"
+                    className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-6 w-full max-w-7xl mx-auto pb-40 px-8"
                 >
                     {sortedMovies.map((movie, index) => (
                         <MovieCard key={movie.id} movie={movie} index={index} onGenreClick={handleGenreClick} />

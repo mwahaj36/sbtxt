@@ -47,8 +47,9 @@ async def lifespan(app: FastAPI):
 app=FastAPI(
     title="Subtext",
     description="Vector based discovery engine",
-    version="1.3",
-    lifespan=lifespan
+    version="1.4",
+    lifespan=lifespan,
+    redirect_slashes=True # This will handle /auth/login and /auth/login/
 )
 
 # Debug endpoint to see all registered routes

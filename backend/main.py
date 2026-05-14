@@ -61,7 +61,7 @@ def get_all_routes():
 app.include_router(auth.router,prefix="/sbtxt-auth",tags=["Authentication"])
 app.include_router(sync.router,prefix="/sbtxt-sync",tags=["Letterboxd Sync"])
 
-#implement middlewre
+#implement middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -69,6 +69,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"📥 Incoming: {request.method} {request.url.path}")
+    response = await call_next(request)
+    print(f"📤 Outgoing Status: {response.status_code}")
+    return response
 
 # Optional auth — returns user_id if token present, None otherwise
 optional_security = HTTPBearer(auto_error=False)

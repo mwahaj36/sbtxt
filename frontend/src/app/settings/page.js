@@ -31,7 +31,7 @@ export default function SettingsPage() {
                 return;
             }
             try {
-                const res = await fetch(`${API_URL}/auth/me`, {
+                const res = await fetch(`${API_URL}/sbtxt-auth/me`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -49,7 +49,7 @@ export default function SettingsPage() {
         const token = localStorage.getItem("token");
         setToast("Starting live sync...");
         try {
-            const res = await fetch(`${API_URL}/sync/profile?username=${user.letterboxd_username}`, {
+            const res = await fetch(`${API_URL}/sbtxt-sync/profile?username=${user.letterboxd_username}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await res.json();
@@ -104,7 +104,7 @@ export default function SettingsPage() {
         formData.append('wipe', wipe ? 'true' : 'false');
         
         try {
-            const res = await fetch(`${API_URL}/sync/letterboxd`, {
+            const res = await fetch(`${API_URL}/sbtxt-sync/letterboxd`, {
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData,
@@ -171,7 +171,7 @@ export default function SettingsPage() {
                             setToast("Updating profile...");
                             const lbUsername = formData.get('letterboxd_username');
                             try {
-                                const res = await fetch(`${API_URL}/auth/update`, {
+                                const res = await fetch(`${API_URL}/sbtxt-auth/update`, {
                                     method: 'PUT',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -185,7 +185,7 @@ export default function SettingsPage() {
                                 });
                                 if (res.ok) {
                                     setToast("Profile updated successfully!");
-                                    const updatedRes = await fetch(`${API_URL}/auth/me`, {
+                                    const updatedRes = await fetch(`${API_URL}/sbtxt-auth/me`, {
                                         headers: { "Authorization": `Bearer ${token}` }
                                     });
                                     setUser(await updatedRes.json());

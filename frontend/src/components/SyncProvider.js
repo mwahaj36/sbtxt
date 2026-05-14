@@ -17,7 +17,7 @@ export function SyncProvider({ children }) {
                 if (!token) return;
 
                 try {
-                    const res = await fetch(`${API_URL}/sync/status`, {
+                    const res = await fetch(`${API_URL}/sbtxt-sync/status`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     });
                     const data = await res.json();

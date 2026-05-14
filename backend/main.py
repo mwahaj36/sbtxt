@@ -161,7 +161,7 @@ async def get_rec(movie_id:str):
 #root
 @app.get("/")
 def read_root():
-    return{"status":"Subtext is online"}
+    return{"status":"Subtext is online", "version": "1.4"}
 
 # V28.7 REFRESH
 if __name__=="__main__":

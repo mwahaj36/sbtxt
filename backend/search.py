@@ -559,7 +559,8 @@ def compute_multi_vibe_bonus(q_low: str, doc_genres: list) -> float:
 
 def score_movie(
     query, query_vec, doc_vec, doc, mode, entities,
-    anchor_genres=None, anchor_rating=7.0, ref_doc=None, query_focus=""
+    anchor_genres=None, anchor_rating=7.0, ref_doc=None, query_focus="",
+    user_top_genres=None
 ):
     q_low = query.lower()
     doc_genres = doc.get("genres", [])
@@ -708,6 +709,16 @@ def score_movie(
             dna_boost += 0.15
 
     # --- Final Score ---
+    score = 0.0
+    
+    # Explicit Top Genre Boost
+    # If the user has identified favorite genres, give those movies a tiny nudge
+    if user_top_genres:
+        for g_data in user_top_genres:
+            if g_data["genre"] in doc_genres:
+                # 0.02 to 0.05 boost depending on how much they like the genre
+                vibe_boost += (g_data["affinity"] / 100.0) * 0.05
+
     if mode == "SIBLING_DISCOVERY":
         score = (
             (semantic * 2.0)
@@ -835,7 +846,19 @@ def search(
     exclude_genres: list = None,
     min_vote: float = None,
     debug: bool = False,
+    taste_vector: object = None,
+    taste_blend: float = None,
+    watchlist_ids: list = None,
+    exclude_ids: list = None,
+    user_top_genres: list = None,
 ):
+    # Handle "For You" mode — empty query with taste vector
+    is_for_you = False
+    if not query.strip() and taste_vector is not None:
+        is_for_you = True
+        query = "cinematic experience"
+        taste_blend = 1.0
+    
     q_low = query.lower()
 
     # --- AUTO-FILTER PARSING ---
@@ -988,9 +1011,21 @@ def search(
         # Use expanded query for embedding (sensory expansions applied here)
         search_vec = embed(embedding_query)
 
+    # --- PERSONALIZATION BLEND ---
+    if taste_vector is not None and taste_blend is not None and taste_blend > 0:
+        print(f"🧬 [PERSONALIZATION] Blending search vector with user taste DNA (blend={taste_blend})")
+        taste_vec_arr = np.array(taste_vector, dtype=float)
+        # Normalize both before blending to ensure equal weight
+        search_vec = search_vec / (np.linalg.norm(search_vec) + 1e-9)
+        taste_vec_arr = taste_vec_arr / (np.linalg.norm(taste_vec_arr) + 1e-9)
+        # Blend: (1 - blend) * query + blend * taste
+        search_vec = (search_vec * (1 - taste_blend)) + (taste_vec_arr * taste_blend)
+
     # -------------------------------------------------------------------------
     # 3. FILTERS
     # -------------------------------------------------------------------------
+    # We do NOT include watchlist_ids or exclude_ids here because AstraDB has a 100-item limit for $in/$nin.
+    # We will handle these via in-memory filtering later.
     filters = [{"genres": {"$nin": ["Documentary", "TV Movie"]}}]
     if min_year:
         filters.append({"release_year": {"$gte": min_year}})
@@ -1015,58 +1050,69 @@ def search(
     # -------------------------------------------------------------------------
     # 4. HYBRID RETRIEVAL
     # -------------------------------------------------------------------------
-    if np.all(search_vec == 0):
-        print("⚠️ Warning: Embedding failed. Falling back to Keyword Search.")
+    candidate_map = {}
+
+    # PATH A: Watchlist-Only Mode (Fetch everything in watchlist and score it)
+    if watchlist_ids is not None and len(watchlist_ids) > 0:
+        print(f"📥 [SEARCH] Watchlist-Only Mode: Fetching {len(watchlist_ids)} items in batches...")
+        watchlist_docs = []
+        # Batch by 100 to stay under AstraDB limits
+        for i in range(0, len(watchlist_ids), 100):
+            batch = watchlist_ids[i:i+100]
+            try:
+                batch_docs = list(collection.find(
+                    filter={"_id": {"$in": batch}},
+                    projection=proj
+                ))
+                watchlist_docs.extend(batch_docs)
+            except Exception as e:
+                print(f"⚠️ Batch fetch failed: {e}")
+        
+        candidate_map = {doc["_id"]: doc for doc in watchlist_docs}
+        
+    else:
+        # PATH B: Global Discovery Mode
         try:
-            keyword_results = list(collection.find(
-                filter={},
-                limit=10,
-                projection=proj
-            ))
-            return keyword_results
-        except Exception as e:
-            print(f"❌ Keyword Fallback Failed: {e}")
-            return []
-
-    try:
-        pool_a = list(collection.find(
-            filter=search_filter,
-            sort={"$vector": search_vec.tolist()},
-            limit=100,
-            projection=proj
-        ))
-
-        pool_b = []
-        if mode == "SIBLING_DISCOVERY" and ref_doc:
-            pool_b = list(collection.find(
-                filter={**search_filter, "vote_average": {"$gte": 7.5}},
+            # We fetch a larger pool (150) to allow for in-memory exclusion of watched movies
+            pool_a = list(collection.find(
+                filter=search_filter,
                 sort={"$vector": search_vec.tolist()},
-                limit=30,
-                projection=proj
-            ))
-    except Exception as e:
-        print(f"❌ Database Retrieval Error: {e}")
-        return []
-
-    pool_c = []
-    if mode == "SIBLING_DISCOVERY" and ref_doc:
-        kw_list = ref_doc.get("keywords", [])[:5]
-        if kw_list:
-            pool_c = list(collection.find(
-                filter={**search_filter, "keywords": {"$in": kw_list}},
-                limit=30,
+                limit=150, 
                 projection=proj
             ))
 
-    pool_d = []
-    if ref_doc and ref_doc.get("director"):
-        pool_d = list(collection.find(
-            filter={**search_filter, "director": ref_doc["director"]},
-            limit=20,
-            projection=proj
-        ))
+            pool_b = []
+            if mode == "SIBLING_DISCOVERY" and ref_doc:
+                pool_b = list(collection.find(
+                    filter={**search_filter, "vote_average": {"$gte": 7.5}},
+                    sort={"$vector": search_vec.tolist()},
+                    limit=50,
+                    projection=proj
+                ))
+                
+            pool_c = []
+            if mode == "SIBLING_DISCOVERY" and ref_doc:
+                kw_list = ref_doc.get("keywords", [])[:5]
+                if kw_list:
+                    pool_c = list(collection.find(
+                        filter={**search_filter, "keywords": {"$in": kw_list}},
+                        limit=30,
+                        projection=proj
+                    ))
 
-    candidate_map = {doc["_id"]: doc for doc in pool_a + pool_b + pool_c + pool_d}
+            pool_d = []
+            if ref_doc and ref_doc.get("director"):
+                pool_d = list(collection.find(
+                    filter={**search_filter, "director": ref_doc["director"]},
+                    limit=20,
+                    projection=proj
+                ))
+            
+            candidate_map = {doc["_id"]: doc for doc in pool_a + pool_b + pool_c + pool_d}
+            
+        except Exception as e:
+            print(f"❌ Database Retrieval Error: {e}")
+            return []
 
     s_norm = np.linalg.norm(search_vec)
 
@@ -1082,6 +1128,34 @@ def search(
         key=lambda x: fast_sim(x.get("$vector")),
         reverse=True
     )
+
+    # -------------------------------------------------------------------------
+    # 5. IN-MEMORY FILTERING (Bypasses AstraDB 100-item limit)
+    # -------------------------------------------------------------------------
+    filtered_candidates = []
+    seen_ids = set()
+    
+    # Pre-calculate exclusion sets for O(1) lookup
+    watchlist_set = set(watchlist_ids) if watchlist_ids is not None else None
+    exclude_set = set(exclude_ids) if exclude_ids is not None else set()
+
+    for doc in candidates:
+        doc_id = str(doc["_id"])
+        if doc_id in seen_ids: continue
+        
+        # 1. Exclusion filter (Watched movies)
+        if doc_id in exclude_set: continue
+        
+        # 2. Inclusion filter (Watchlist only)
+        if watchlist_set is not None and doc_id not in watchlist_set: continue
+        
+        seen_ids.add(doc_id)
+        filtered_candidates.append(doc)
+        
+        if len(filtered_candidates) >= k:
+            break
+
+    candidates = filtered_candidates
 
     # -------------------------------------------------------------------------
     # 5. SCORING
@@ -1103,11 +1177,33 @@ def search(
         score, reason, breakdown = score_movie(
             vibe_anchor_text, search_vec, doc_v, doc, mode, entities,
             anchor_genres=anchor_genres, anchor_rating=anchor_rating,
-            ref_doc=ref_doc, query_focus=query_focus
+            ref_doc=ref_doc, query_focus=query_focus,
+            user_top_genres=user_top_genres
         )
 
         if score > 0.1:
             display_score = normalize_score(score, mode)
+
+            # Taste blending — adjust score based on user taste similarity
+            taste_sim = 0.0
+            if taste_vector is not None and taste_blend and taste_blend > 0:
+                taste_sim = cosine_similarity(taste_vector, doc_v)
+                blended_score = (1 - taste_blend) * display_score + taste_blend * max(0, taste_sim)
+                display_score = round(blended_score, 4)
+
+            # DAILY DRIFT: If it's a "For You" discovery query, add a daily user-specific jitter
+            if is_for_you and user_id:
+                try:
+                    import random
+                    from datetime import datetime
+                    # Seed with user_id and current date so it changes daily but stays consistent for the user during the day
+                    day_str = datetime.now().strftime("%Y-%m-%d")
+                    # Use a stable hash of user_id + date + doc_id to keep the jitter consistent for this specific movie today
+                    seed_str = f"{user_id}_{day_str}_{str(doc.get('_id'))}"
+                    random.seed(seed_str)
+                    jitter = random.uniform(-0.04, 0.04)
+                    display_score = round(max(0.01, display_score + jitter), 4)
+                except: pass
 
             result = {
                 "id": str(doc.get("_id")),
@@ -1115,12 +1211,15 @@ def search(
                 "year": doc.get("release_year", 0),
                 "score": display_score,
                 "ranking_score": round(float(score), 4),
-                "reason": reason,
-                "mode": mode,
+                "reason": reason if not is_for_you else "Matches your cinematic taste profile.",
+                "mode": "TASTE_DISCOVERY" if is_for_you else mode,
                 "genres": doc.get("genres", []),
                 "vote": doc.get("vote_average", 0),
                 "poster_path": doc.get("poster_path"),
             }
+            # Add taste match percentage for badge display
+            if taste_vector is not None and taste_sim > 0:
+                result["taste_match"] = round(taste_sim * 100)
             if debug:
                 result["breakdown"] = breakdown
             scored_results.append(result)

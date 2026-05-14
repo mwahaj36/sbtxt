@@ -1,0 +1,14 @@
+name: Daily Library Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs at 00:00 UTC every day
+  workflow_dispatch:      # Allows you to click a button in GitHub to run it manually
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Mass Sync
+        run: |
+          curl -X POST "${{ secrets.BACKEND_URL }}/sync/mass?secret=${{ secrets.ADMIN_SECRET }}"

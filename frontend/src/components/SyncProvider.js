@@ -101,13 +101,14 @@ export function SyncProvider({ children }) {
                         <div className="flex flex-col pr-4">
                             <p className={`text-[10px] font-black uppercase tracking-widest
                                 ${syncStatus.status === 'error' ? 'text-red-400' : 'text-white'}`}>
-                                {syncStatus.status === 'syncing' ? 'Mapping DNA' : 
+                                {syncStatus.status === 'syncing' ? (syncStatus.message || 'Syncing Vault') : 
                                  syncStatus.status === 'completed_recently' ? 'DNA Mapped' : 'Sync Failed'}
                             </p>
                             <p className="text-[9px] text-white/40 font-bold leading-tight mt-1 max-w-[180px]">
                                 {syncStatus.status === 'error' ? (syncStatus.message || "Unknown Error") :
                                  syncStatus.status === 'completed_recently' ? 'Vault fully synchronized' : 
-                                 `${syncStatus.processed} / ${syncStatus.total || 0} movies resolved`}
+                                 syncStatus.message ? `${syncStatus.processed} / ${syncStatus.total || 0} items — ${syncStatus.message}` :
+                                 `${syncStatus.processed} / ${syncStatus.total || 0} items resolved`}
                             </p>
                         </div>
                         

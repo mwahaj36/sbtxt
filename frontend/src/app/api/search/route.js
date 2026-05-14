@@ -16,11 +16,20 @@ export async function GET(request) {
         const url = `${backendUrl}/search?${searchParams.toString()}`;
         console.log("📡 Proxying request to:", url);
 
+        // Build headers — include user's JWT if provided for personalization
+        const headers = {
+            "Authorization": `Bearer ${hfToken}`
+        };
+
+        // Forward user's auth token for taste-based personalization
+        const userToken = request.headers.get('x-user-token');
+        if (userToken) {
+            headers["Authorization"] = `Bearer ${userToken}`;
+        }
+
         const response = await fetch(url, {
             cache: 'no-store',
-            headers: {
-                "Authorization": `Bearer ${hfToken}`
-            }
+            headers
         });
 
         if (!response.ok) {

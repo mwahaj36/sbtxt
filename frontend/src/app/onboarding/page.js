@@ -166,6 +166,9 @@ export default function Onboard() {
                             className="w-full bg-transparent border-b-2 border-white/10 py-4 text-3xl font-bold text-center outline-none focus:border-[var(--primary)] transition-all placeholder:text-white/10"
                         />
                         {isFinding && <Loader2 className="absolute right-4 top-5 animate-spin text-[var(--primary)]" />}
+                        <p className="mt-4 text-[10px] text-white/20 font-black uppercase tracking-[0.2em]">
+                            Note: Your Letterboxd username will also be your username on Sbtxt.
+                        </p>
                     </div>
                     
                     {profile ? (

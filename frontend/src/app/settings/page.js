@@ -16,6 +16,13 @@ export default function SettingsPage() {
     const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(""), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
+
+    useEffect(() => {
         const fetchUserData = async () => {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -79,14 +86,21 @@ export default function SettingsPage() {
         }
     };
 
-    const startSync = async () => {
+    const startSync = async (wipe = false) => {
         if (!file) return;
+        
+        if (wipe) {
+            const confirmed = window.confirm("⚠️ DANGER: This will PERMANENTLY WIPE your entire Subtext library before importing from the ZIP. Are you absolutely sure?");
+            if (!confirmed) return;
+        }
+
         const token = localStorage.getItem("token");
         triggerSync(1);
-        setToast("Sync started in background!");
+        setToast(wipe ? "Wipe & Sync started!" : "Sync started in background!");
         
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('wipe', wipe ? 'true' : 'false');
         
         try {
             const res = await fetch(`http://localhost:8000/sync/letterboxd`, {
@@ -108,7 +122,7 @@ export default function SettingsPage() {
     );
 
     return (
-        <main className="w-full bg-black text-white">
+        <main className="w-full bg-black text-white snap-y snap-mandatory h-screen overflow-y-auto">
             
             {/* Custom Toast */}
             <AnimatePresence>
@@ -249,12 +263,15 @@ export default function SettingsPage() {
                                         <Database size={32} className="text-white" />
                                     </div>
                                     <p className="text-lg font-bold text-white">{file.name}</p>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); startSync(); }}
-                                        className="px-8 py-4 bg-[var(--primary)] text-black rounded-none font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-lg"
-                                    >
-                                        Start Letterboxd Sync
-                                    </button>
+                                    <div className="flex flex-col gap-3">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); startSync(false); }}
+                                            className="px-8 py-4 bg-[var(--primary)] text-black rounded-none font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-lg"
+                                        >
+                                            Start Letterboxd Sync
+                                        </button>
+                                        <p className="text-[8px] uppercase font-black text-white/30 tracking-widest">Safe, additive sync (Recommended)</p>
+                                    </div>
                                 </div>
                             ) : (
                                 <>
@@ -265,16 +282,59 @@ export default function SettingsPage() {
                             )}
                         </div>
 
-                        <div className="p-8 bg-black/20 border border-white/10 rounded-none flex flex-col items-center justify-center gap-4">
-                            <h4 className="font-bold uppercase tracking-widest text-xs text-white">Live Username Sync</h4>
-                            <p className="text-white/40 text-xs leading-relaxed max-w-sm">Scrape your latest ratings and profile details directly from your public Letterboxd page.</p>
-                            <button 
-                                onClick={handleUsernameSync}
-                                className="mt-4 px-8 py-4 bg-[var(--primary)] text-black rounded-none hover:brightness-110 transition-all font-black uppercase tracking-widest text-[10px] w-fit shadow-lg"
-                            >
-                                Trigger Sync
-                            </button>
+                        <div className="p-8 bg-black/20 border border-white/10 rounded-none flex flex-col items-center justify-center gap-6">
+                            <div className="flex flex-col items-center gap-2">
+                                <h4 className="font-bold uppercase tracking-widest text-[10px] text-[var(--primary)]">Sync Intelligence</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center md:text-left mt-2">
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-[11px] font-black text-white uppercase tracking-widest">Live Sync (Daily)</p>
+                                        <p className="text-[10px] text-white/40 leading-relaxed">The "Fast Lane." Instantly pulls new ratings and reviews. Use this for daily updates. <span className="text-white/20 italic">(Note: Cannot detect deletions)</span></p>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-[11px] font-black text-white uppercase tracking-widest">ZIP Sync (Additive)</p>
+                                        <p className="text-[10px] text-white/40 leading-relaxed">The "Deep Clean." Reconciles your entire library. Now strictly additive to keep your data safe. <span className="text-white/20 italic">(For deletions, use the Danger Zone below)</span></p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce opacity-20">
+                    <ChevronDown size={24} className="text-white" />
+                </div>
+            </section>
+
+            {/* DECK 3: DANGER ZONE */}
+            <section className="h-screen w-full snap-start flex flex-col pt-32 px-8 relative overflow-hidden bg-black">
+                <div className="max-w-4xl mx-auto w-full h-full flex flex-col items-center justify-center text-center">
+                    <div className="p-12 border-2 border-red-500/30 bg-red-500/5 flex flex-col items-center gap-8 max-w-2xl">
+                        <div className="p-4 bg-red-500/20 rounded-none text-red-500">
+                            <Shield size={48} strokeWidth={3} />
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <h2 className="font-['Arkhip'] text-3xl uppercase tracking-tight text-red-500">Danger Zone</h2>
+                            <p className="text-sm text-white/60 leading-relaxed">
+                                Use this only if you want to perform a <span className="text-white font-bold">Full Database Reset</span>. 
+                                This will wipe all existing movie data in Subtext and re-import everything from your ZIP file. 
+                                <br/><br/>
+                                This is the only way to synchronize deletions (movies you removed from Letterboxd).
+                            </p>
+                        </div>
+
+                        {file ? (
+                            <button 
+                                onClick={() => startSync(true)}
+                                className="px-12 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] text-xs hover:bg-red-500 transition-all shadow-[0_0_30px_rgba(220,38,38,0.3)]"
+                            >
+                                WIPE DATABASE & START FRESH
+                            </button>
+                        ) : (
+                            <p className="text-red-500/40 text-[10px] font-black uppercase tracking-widest">
+                                Upload a ZIP file in the Sync section to enable this button
+                            </p>
+                        )}
                     </div>
                 </div>
             </section>

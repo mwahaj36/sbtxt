@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+import json
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from passlib.context import CryptContext
@@ -158,6 +159,7 @@ async def get_me(user_id: str = Depends(get_current_user)):
 @router.put("/update")
 async def update_profile(
     req: ProfileUpdateRequest,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user)
 ):
     conn = get_db_connection()
@@ -183,9 +185,118 @@ async def update_profile(
             
             cur.execute(query, params)
             conn.commit()
+
+            # If Letterboxd username was updated, trigger a live sync
+            if req.letterboxd_username:
+                try:
+                    from sync import sync_live_history
+                    background_tasks.add_task(sync_live_history, req.letterboxd_username, user_id)
+                except Exception as e:
+                    print(f"Error triggering sync: {e}")
+
             return {"status": "success", "message": "Profile updated successfully"}
     except psycopg2.errors.UniqueViolation:
         conn.rollback()
         raise HTTPException(status_code=400, detail="Username or email already taken")
+    finally:
+        conn.close()
+
+@router.get("/taste")
+async def get_taste_status(user_id: str = Depends(get_current_user)):
+    """Returns taste vector metadata."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT taste_vector_updated_at, taste_vector_movie_count, taste_top_genres FROM users WHERE id = %s",
+                (user_id,)
+            )
+            row = cur.fetchone()
+            if not row or not row[0]:
+                return {
+                    "has_taste_vector": False,
+                    "movie_count": 0,
+                    "last_updated": None,
+                    "top_genres": [],
+                }
+            
+            top_genres = row[2]
+            if isinstance(top_genres, str):
+                try:
+                    top_genres = json.loads(top_genres)
+                except:
+                    top_genres = []
+            
+            return {
+                "has_taste_vector": True,
+                "movie_count": row[1] or 0,
+                "last_updated": row[0].isoformat() if row[0] else None,
+                "top_genres": top_genres or [],
+            }
+    finally:
+        conn.close()
+
+@router.post("/taste/refresh")
+async def force_taste_refresh(
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user)
+):
+    """Manual taste vector refresh."""
+    from taste import refresh_taste_vector_bg
+    background_tasks.add_task(refresh_taste_vector_bg, user_id)
+    return {"status": "refreshing"}
+
+@router.get("/bundle")
+async def get_profile_bundle(user_id: str = Depends(get_current_user)):
+    """The 'Turbo' endpoint: Fetches profile, taste DNA, and initial library in one connection."""
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    try:
+        with conn.cursor() as cur:
+            # 1. Fetch Profile Info
+            cur.execute("SELECT username, email, letterboxd_username, avatar_url, bio, letterboxd_films_count, favorites FROM users WHERE id = %s", (user_id,))
+            u = cur.fetchone()
+            if not u: raise HTTPException(status_code=404, detail="User not found")
+            
+            favs = u[6]
+            if isinstance(favs, str): favs = json.loads(favs)
+
+            profile = {
+                "id": user_id,
+                "username": u[0],
+                "email": u[1],
+                "letterboxd_username": u[2],
+                "avatar": u[3],
+                "bio": u[4],
+                "films_count": u[5],
+                "favorites": favs or []
+            }
+
+            # 2. Fetch Taste DNA
+            cur.execute("SELECT taste_vector_updated_at, taste_vector_movie_count, taste_top_genres FROM users WHERE id = %s", (user_id,))
+            t = cur.fetchone()
+            taste = {
+                "has_taste_vector": bool(t and t[0]),
+                "movie_count": t[1] if t else 0,
+                "last_updated": t[0].isoformat() if t and t[0] else None,
+                "top_genres": json.loads(t[2]) if t and t[2] else []
+            }
+
+            # 3. Fetch Top 8 Recent (for the identity card)
+            cur.execute("""
+                SELECT movie_title, release_year, tmdb_id, poster_path, rating, is_liked 
+                FROM user_ratings 
+                WHERE user_id = %s AND interaction_type = 'watched' 
+                ORDER BY watched_date DESC NULLS LAST, id DESC LIMIT 8
+            """, (user_id,))
+            recent = [{"title": r[0], "year": r[1], "tmdb_id": r[2], "poster_path": r[3], "rating": float(r[4]) if r[4] else None, "is_liked": r[5]} for r in cur.fetchall()]
+
+            return {
+                "profile": profile,
+                "taste": taste,
+                "recent": recent
+            }
     finally:
         conn.close()

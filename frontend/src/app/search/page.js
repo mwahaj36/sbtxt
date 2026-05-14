@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart } from 'lucide-react';
+import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart, Dna, Sparkles, BookMarked } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- MovieCard Component with Living Poster Effect ---
@@ -80,6 +80,11 @@ const MovieCard = ({ movie, index, onGenreClick }) => {
 
                 <div className="absolute -inset-1 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end items-center p-3 text-center">
                     {movie.is_liked && <Heart size={14} className="fill-[#ff8000] text-[#ff8000] mb-2" />}
+                    {movie.taste_match && movie.taste_match > 70 && (
+                        <div className="text-[9px] font-black text-[#d946ef] uppercase tracking-tighter mb-1 bg-[#d946ef]/10 px-2 py-0.5 rounded-none border border-[#d946ef]/20 flex items-center gap-1">
+                            <Dna size={8} /> {movie.taste_match}% YOUR TASTE
+                        </div>
+                    )}
                     <div className="text-[9px] font-black text-[var(--primary)] uppercase tracking-tighter mb-2 bg-[var(--primary)]/10 px-2 py-0.5 rounded-none border border-[var(--primary)]/20">
                         {Math.round(movie.score * 100)}% MATCH
                     </div>
@@ -130,6 +135,12 @@ export default function SearchPage() {
     const [minVote, setMinVote] = useState("");
     const [resultCount, setResultCount] = useState(25);
 
+    // Taste Vector State
+    const [hasTasteVector, setHasTasteVector] = useState(false);
+    const [tasteBlend, setTasteBlend] = useState(0.5);
+    const [watchlistOnly, setWatchlistOnly] = useState(false);
+    const [tasteEnabled, setTasteEnabled] = useState(false);
+
     const resultOptions = [10, 25, 50, 100];
 
     useEffect(() => {
@@ -157,6 +168,17 @@ export default function SearchPage() {
             }
         }
         fetchLanguages();
+
+        // Check taste vector status
+        const token = localStorage.getItem("token");
+        if (token) {
+            fetch("http://localhost:8000/auth/taste", {
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            .then(res => res.json())
+            .then(data => setHasTasteVector(data.has_taste_vector))
+            .catch(() => {});
+        }
 
         // 1. Auto-focus on load
         inputRef.current?.focus();
@@ -190,24 +212,50 @@ export default function SearchPage() {
         }, 100);
     };
 
-    const handleSearch = async (overrideQuery = null) => {
-        const searchQuery = overrideQuery || query;
-        if (!searchQuery.trim()) return;
+    const handleForYou = () => {
+        SetQuery("");
+        setLoading(true);
+        setIsSearched(true);
+        handleSearch("", true);
+    };
+
+    const handleSearch = async (overrideQuery = null, forYou = false) => {
+        const searchQuery = overrideQuery !== null ? overrideQuery : query;
+        if (!searchQuery.trim() && !forYou) return;
         setLoading(true);
         setIsSearched(true);
         try {
-            // We now call our OWN internal proxy instead of the backend directly
-            // This bypasses CORS and keeps your HF Token secret!
             let url = `/api/search?q=${encodeURIComponent(searchQuery)}`;
-            if (minYear) url += `&min_year=${minYear}`;
-            if (maxYear) url += `&max_year=${maxYear}`;
-            if (language) url += `&language=${language}`;
-            if (minVote) url += `&min_vote=${minVote}`;
+            
+            // Filters only apply to regular searches, "For You" (Lucky) is unconstrained
+            if (!forYou) {
+                if (minYear) url += `&min_year=${minYear}`;
+                if (maxYear) url += `&max_year=${maxYear}`;
+                if (language) url += `&language=${language}`;
+                if (minVote) url += `&min_vote=${minVote}`;
+            }
+            
             if (resultCount) url += `&k=${resultCount}`;
+
+            // Taste personalization params
+            const token = localStorage.getItem("token");
+            if (token && hasTasteVector) {
+                if (tasteEnabled || forYou) {
+                    url += `&taste_blend=${forYou ? 1.0 : tasteBlend}`;
+                }
+                if (watchlistOnly) {
+                    url += `&watchlist_only=true`;
+                }
+            }
 
             console.log("🚀 [Search] Fetching from proxy:", url);
 
-            const response = await fetch(url);
+            const headers = {};
+            if (token) {
+                headers['x-user-token'] = token;
+            }
+
+            const response = await fetch(url, { headers });
             console.log("📡 [Search] Status:", response.status, response.statusText);
 
             if (!response.ok) {
@@ -220,8 +268,6 @@ export default function SearchPage() {
             const data = await response.json();
             console.log("✅ [Search] Results received:", data?.length || 0);
             
-            // Check liked status from the local database
-            const token = localStorage.getItem("token");
             if (token && data && data.length > 0) {
                 try {
                     const tmdbIds = data.map(m => m.id);
@@ -263,6 +309,8 @@ export default function SearchPage() {
             return sorted.sort((a, b) => b.year - a.year);
         } else if (sortBy === "rating") {
             return sorted.sort((a, b) => b.vote - a.vote);
+        } else if (sortBy === "taste") {
+            return sorted.sort((a, b) => (b.taste_match || 0) - (a.taste_match || 0));
         }
         return sorted;
     }, [movies, sortBy]);
@@ -296,7 +344,6 @@ export default function SearchPage() {
                             className="w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 py-5 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all text-lg placeholder:text-gray-500 shadow-2xl"
                         />
                     </div>
-                    <div className="flex gap-4">
                         <button 
                             onClick={() => setShowFilters(!showFilters)}
                             className={`p-5 rounded-none border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'}`}
@@ -311,17 +358,30 @@ export default function SearchPage() {
                             {loading ? "..." : "Search"}
                         </button>
                     </div>
-                </div>
 
                 <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-3 px-6 text-center"
+                    className="mt-4 px-6 flex flex-col md:flex-row items-center justify-between gap-4"
                 >
-                    <p className="text-[10px] text-gray-500 font-medium tracking-tight">
+                    <div className="flex items-center gap-4">
+                        {hasTasteVector && (
+                            <button 
+                                onClick={handleForYou}
+                                className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#d946ef] hover:text-white transition-all"
+                            >
+                                <Sparkles size={14} className="group-hover:animate-pulse" />
+                                <span>Search with your DNA</span>
+                                <div className="hidden group-hover:block absolute top-full mt-2 p-3 bg-black/90 border border-white/10 text-[9px] lowercase font-medium tracking-normal text-gray-400 w-48 text-left backdrop-blur-xl z-[100]">
+                                    uses your personal taste dna (calculated from your 1,880 films) to discover hidden gems without needing a query.
+                                </div>
+                            </button>
+                        )}
+                    </div>
+
+                    <p className="text-[10px] text-gray-500 font-medium tracking-tight text-right flex-1">
                         <span className="text-gray-400 font-bold uppercase mr-1">Pro Tip:</span>
-                        Use full movie titles with correct punctuation for the most accurate thematic siblings.
-                        <span className="ml-2 opacity-60">Note: Some results might be outliers—in a good way! Discovery involves finding the unexpected.</span>
+                        Use full movie titles for the most accurate thematic siblings.
                     </p>
                 </motion.div>
 
@@ -398,6 +458,57 @@ export default function SearchPage() {
                                     ))}
                                 </select>
                             </div>
+
+                            {hasTasteVector && (
+                                <>
+                                    <div className="md:col-span-5 h-[1px] bg-white/5 my-2" />
+                                    
+                                    <div className="flex flex-col gap-3 md:col-span-3 justify-end pb-1">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-[10px] text-[#d946ef] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                                <Dna size={12} /> Taste Influence
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <button 
+                                                    onClick={() => setTasteEnabled(!tasteEnabled)}
+                                                    className={`px-3 py-1 text-[8px] font-black uppercase tracking-widest transition-all ${tasteEnabled ? 'bg-[#d946ef] text-black' : 'bg-white/5 text-white/40'}`}
+                                                >
+                                                    {tasteEnabled ? 'Enabled' : 'Disabled'}
+                                                </button>
+                                                <span className="text-[10px] font-black text-white/60">{Math.round(tasteBlend * 100)}%</span>
+                                            </div>
+                                        </div>
+                                        <div className="h-10 flex items-center">
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max="1" 
+                                                step="0.05"
+                                                value={tasteBlend}
+                                                onChange={(e) => {
+                                                    setTasteBlend(parseFloat(e.target.value));
+                                                    if (parseFloat(e.target.value) > 0) setTasteEnabled(true);
+                                                }}
+                                                className="w-full accent-[#d946ef] bg-white/5 h-1 rounded-none appearance-none cursor-pointer"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3 md:col-span-2">
+                                        <label className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                            <BookMarked size={12} /> Search Area
+                                        </label>
+                                        <button 
+                                            onClick={() => setWatchlistOnly(!watchlistOnly)}
+                                            className={`w-full h-10 px-4 border text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-between ${watchlistOnly ? 'border-[#d946ef]/50 bg-[#d946ef]/5 text-[#d946ef]' : 'border-white/10 bg-black/20 text-white/40'}`}
+                                        >
+                                            <span>Watchlist Only</span>
+                                            <div className={`w-3 h-3 rounded-none border ${watchlistOnly ? 'bg-[#d946ef] border-[#d946ef]' : 'border-white/20'}`} />
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
                             <div className="md:col-span-5 flex justify-center mt-6 pt-4 border-t border-white/5">
                                 <button 
                                     onClick={clearFilters}
@@ -431,6 +542,7 @@ export default function SearchPage() {
                             <div className="flex gap-2">
                                 {[
                                     { name: "Match", value: "match" },
+                                    ...(hasTasteVector ? [{ name: "My Taste", value: "taste" }] : []),
                                     { name: "Year", value: "year" },
                                     { name: "Rating", value: "rating" }
                                 ].map(option => (
@@ -491,7 +603,7 @@ export default function SearchPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.8 }}
-                    className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-6 w-full max-w-7xl mx-auto pb-40 px-8"
+                    className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-6 w-full max-w-7xl mx-auto pb-40 px-8"
                 >
                     {sortedMovies.map((movie, index) => (
                         <MovieCard key={movie.id} movie={movie} index={index} onGenreClick={handleGenreClick} />

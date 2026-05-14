@@ -11,29 +11,56 @@ def get_tmdb_headers():
     token = os.getenv("TMDB_TOKEN") or os.getenv("TMDB_API_KEY")
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-async def get_poster_path(tmdb_id, client):
+async def get_poster_path(tmdb_id, title, client):
     try:
+        # 1. Try Movie by ID
         resp = await client.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}", headers=get_tmdb_headers())
         if resp.status_code == 200:
-            return resp.json().get("poster_path")
-    except: pass
-    return None
+            return resp.json().get("poster_path"), tmdb_id
+        
+        # 2. Try TV by ID
+        if resp.status_code == 404:
+            resp = await client.get(f"https://api.themoviedb.org/3/tv/{tmdb_id}", headers=get_tmdb_headers())
+            if resp.status_code == 200:
+                return resp.json().get("poster_path"), tmdb_id
+
+        # 3. Search Fallback (Title Search)
+        print(f"🔍 [SEARCHING] {title}...")
+        search_resp = await client.get(
+            f"https://api.themoviedb.org/3/search/multi", 
+            params={"query": title},
+            headers=get_tmdb_headers()
+        )
+        if search_resp.status_code == 200:
+            results = search_resp.json().get("results", [])
+            if results:
+                best = results[0] # Best match
+                return best.get("poster_path"), best.get("id")
+
+    except Exception as e:
+        print(f"⚠️ [API ERROR] {title} ({tmdb_id}): {type(e).__name__} - {e}")
+    return None, tmdb_id
 
 async def fix_single_movie(row, client, semaphore, stats):
     async with semaphore:
         movie_id, title, tmdb_id = row
-        new_poster = await get_poster_path(tmdb_id, client)
+        new_poster, corrected_id = await get_poster_path(tmdb_id, title, client)
         if new_poster:
-            # Open a fresh connection per update to avoid async race conditions
             conn = get_db_connection()
+            if not conn:
+                print(f"❌ [DB ERROR] Could not connect to heal {title}")
+                return
             with conn.cursor() as cur:
-                cur.execute("UPDATE user_ratings SET poster_path = %s WHERE id = %s", (new_poster, movie_id))
-                cur.execute("UPDATE letterboxd_mappings SET poster_path = %s WHERE tmdb_id = %s", (new_poster, tmdb_id))
+                # Update with new poster AND correct the tmdb_id if it changed
+                cur.execute("UPDATE user_ratings SET poster_path = %s, tmdb_id = %s WHERE id = %s", (new_poster, corrected_id, movie_id))
+                cur.execute("UPDATE letterboxd_mappings SET poster_path = %s, tmdb_id = %s WHERE tmdb_id = %s", (new_poster, corrected_id, tmdb_id))
                 conn.commit()
             conn.close()
             stats['healed'] += 1
+            print(f"✅ [HEALED] {title} (New ID: {corrected_id})")
         else:
             stats['failed'] += 1
+            print(f"❌ [FAILED] {title} (ID: {tmdb_id})")
         
         # Heartbeat log every 100 items
         processed = stats['healed'] + stats['failed']
@@ -48,14 +75,16 @@ async def fix_favorites(user_id, favorites, client, semaphore, stats):
             tmdb_id = fav.get('tmdb_id')
             poster = fav.get('poster_path')
             if tmdb_id and (not poster or poster.startswith('http')):
-                new_path = await get_poster_path(tmdb_id, client)
+                new_path, corrected_id = await get_poster_path(tmdb_id, fav.get('title', 'Favorite'), client)
                 if new_path:
                     fav['poster_path'] = new_path
+                    fav['tmdb_id'] = corrected_id
                     updated = True
             new_favs.append(fav)
         
         if updated:
             conn = get_db_connection()
+            if not conn: return
             with conn.cursor() as cur:
                 cur.execute("UPDATE users SET favorites = %s WHERE id = %s", (json.dumps(new_favs), user_id))
                 conn.commit()

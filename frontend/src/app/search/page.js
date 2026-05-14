@@ -144,6 +144,22 @@ export default function SearchPage() {
     const [tasteEnabled, setTasteEnabled] = useState(false);
 
     const resultOptions = [10, 25, 50, 100];
+    const [placeholderIndex, setPlaceholderIndex] = useState(0);
+    const placeholders = [
+        "What kind of story are you looking for?",
+        "Search by vibe: 'Rainy neon city noir'...",
+        "Search by similarity: 'Like Inception but grounded'...",
+        "Search by emotion: 'Something to make me cry'...",
+        "Search by trope: 'Gritty 70s heist'...",
+        "Search by setting: 'Isolated arctic horror'..."
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+        }, 4000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         async function fetchLanguages() {
@@ -342,12 +358,12 @@ export default function SearchPage() {
                         <input
                             ref={inputRef}
                             type="text"
-                            placeholder='What kind of story are you looking for?'
+                            placeholder={placeholders[placeholderIndex]}
                             autoComplete="off"
                             value={query}
                             onChange={(e) => SetQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            className="w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 py-5 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all text-lg placeholder:text-gray-500 shadow-2xl"
+                            className="w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 py-5 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all text-lg placeholder:text-gray-400/30 shadow-2xl"
                         />
                     </div>
                         <button 
@@ -378,6 +394,9 @@ export default function SearchPage() {
                             >
                                 <Sparkles size={14} className="group-hover:animate-pulse" />
                                 <span>Search with your DNA</span>
+                                <span className="ml-2 px-2 py-0.5 bg-[#d946ef]/10 border border-[#d946ef]/20 text-[8px] lowercase tracking-normal text-[#d946ef]/60 group-hover:text-white transition-colors">
+                                    uses your personal taste profile
+                                </span>
                             </button>
                         )}
                     </div>

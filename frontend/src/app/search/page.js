@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart, Dna, Sparkles, BookMarked } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_URL } from '@/config';
 
 // --- MovieCard Component with Living Poster Effect ---
 const MovieCard = ({ movie, index, onGenreClick }) => {
@@ -172,7 +173,7 @@ export default function SearchPage() {
         // Check taste vector status
         const token = localStorage.getItem("token");
         if (token) {
-            fetch("http://localhost:8000/auth/taste", {
+            fetch(`${API_URL}/auth/taste`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             .then(res => res.json())
@@ -271,7 +272,7 @@ export default function SearchPage() {
             if (token && data && data.length > 0) {
                 try {
                     const tmdbIds = data.map(m => m.id);
-                    const likedRes = await fetch("http://localhost:8000/sync/check_liked", {
+                    const likedRes = await fetch(`${API_URL}/sync/check_liked`, {
                         method: "POST",
                         headers: { 
                             "Content-Type": "application/json",

@@ -2,6 +2,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { API_URL } from '@/config';
 
 const SyncContext = createContext();
 
@@ -16,7 +17,7 @@ export function SyncProvider({ children }) {
                 if (!token) return;
 
                 try {
-                    const res = await fetch(`http://localhost:8000/sync/status`, {
+                    const res = await fetch(`${API_URL}/sync/status`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     });
                     const data = await res.json();

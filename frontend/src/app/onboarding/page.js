@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, UploadCloud, FileArchive, X, CheckCircle2 } from 'l
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useSync } from '@/components/SyncProvider';
+import { API_URL } from '@/config';
 
 export default function Onboard() {
     const router = useRouter();
@@ -47,7 +48,7 @@ export default function Onboard() {
         formData.append('file', file);
         
         try {
-            const res = await fetch(`http://localhost:8000/sync/letterboxd`, {
+            const res = await fetch(`${API_URL}/sync/letterboxd`, {
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData,
@@ -64,7 +65,7 @@ export default function Onboard() {
         setIsFinding(true);
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`http://localhost:8000/sync/profile?username=${lbUsername}`, {
+            const res = await fetch(`${API_URL}/sync/profile?username=${lbUsername}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await res.json();
@@ -86,7 +87,7 @@ export default function Onboard() {
     const savePreferences = async () => {
         const token = localStorage.getItem("token");
         try {
-            await fetch(`http://localhost:8000/auth/preferences`, {
+            await fetch(`${API_URL}/auth/preferences`, {
                 method: 'POST',
                 headers: { 
                     "Content-Type": "application/json",

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSync } from '@/components/SyncProvider';
 import { Loader2, Film, Star, ChevronLeft, ChevronRight, Heart, Search, ChevronDown, RefreshCw, ExternalLink, Settings, Dna } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { API_URL } from '@/config';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -33,8 +34,8 @@ export default function ProfilePage() {
             }
             setIsLoading(true);
             try {
-                // Profile Turbo: Fetch Bundle (Profile + DNA + Recent 8) in one go
-                const bundleRes = await fetch('http://localhost:8000/auth/bundle', {
+                // Profile Turbo: Fetch Bundle (Profile + DNA + Recent 4) in one go
+                const bundleRes = await fetch(`${API_URL}/auth/bundle`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const bundle = await bundleRes.json();
@@ -65,10 +66,10 @@ export default function ProfilePage() {
             const token = localStorage.getItem("token");
             try {
                 const [resWatched, resWatchlist] = await Promise.all([
-                    fetch(`http://localhost:8000/sync/library?type=watched&page=${watchedPage}&query=${watchedSearch}`, {
+                    fetch(`${API_URL}/sync/library?type=watched&page=${watchedPage}&query=${watchedSearch}`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     }),
-                    fetch(`http://localhost:8000/sync/library?type=watchlist&page=${watchlistPage}&query=${watchlistSearch}`, {
+                    fetch(`${API_URL}/sync/library?type=watchlist&page=${watchlistPage}&query=${watchlistSearch}`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     })
                 ]);
@@ -99,7 +100,7 @@ export default function ProfilePage() {
         setIsSyncing(true);
         const token = localStorage.getItem("token");
         try {
-            await fetch("http://localhost:8000/sync/live", {
+            await fetch(`${API_URL}/sync/live`, {
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${token}` }
             });

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { API_URL } from '@/config';
+
 export default function AuthPage() {
     const router = useRouter();
     const [isLogin, setIsLogin] = useState(true);
@@ -50,7 +52,7 @@ export default function AuthPage() {
                 ? { identifier: cleanIdentifier, password } 
                 : { email: cleanEmail, username: cleanUsername, password, letterboxd_username: cleanUsername };
 
-            const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+            const response = await fetch(`${API_URL}${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

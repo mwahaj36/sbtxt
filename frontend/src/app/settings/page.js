@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, User, Database, Shield, LogOut, Loader2, CheckCircle2, RefreshCw, UploadCloud, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSync } from '@/components/SyncProvider';
+import { API_URL } from '@/config';
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -30,7 +31,7 @@ export default function SettingsPage() {
                 return;
             }
             try {
-                const res = await fetch("http://localhost:8000/auth/me", {
+                const res = await fetch(`${API_URL}/auth/me`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -48,7 +49,7 @@ export default function SettingsPage() {
         const token = localStorage.getItem("token");
         setToast("Starting live sync...");
         try {
-            const res = await fetch(`http://localhost:8000/sync/profile?username=${user.letterboxd_username}`, {
+            const res = await fetch(`${API_URL}/sync/profile?username=${user.letterboxd_username}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await res.json();
@@ -103,7 +104,7 @@ export default function SettingsPage() {
         formData.append('wipe', wipe ? 'true' : 'false');
         
         try {
-            const res = await fetch(`http://localhost:8000/sync/letterboxd`, {
+            const res = await fetch(`${API_URL}/sync/letterboxd`, {
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData,
@@ -170,7 +171,7 @@ export default function SettingsPage() {
                             setToast("Updating profile...");
                             const lbUsername = formData.get('letterboxd_username');
                             try {
-                                const res = await fetch(`http://localhost:8000/auth/update`, {
+                                const res = await fetch(`${API_URL}/auth/update`, {
                                     method: 'PUT',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -184,7 +185,7 @@ export default function SettingsPage() {
                                 });
                                 if (res.ok) {
                                     setToast("Profile updated successfully!");
-                                    const updatedRes = await fetch("http://localhost:8000/auth/me", {
+                                    const updatedRes = await fetch(`${API_URL}/auth/me`, {
                                         headers: { "Authorization": `Bearer ${token}` }
                                     });
                                     setUser(await updatedRes.json());

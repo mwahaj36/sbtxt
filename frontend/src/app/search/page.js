@@ -140,6 +140,7 @@ export default function SearchPage() {
     const [hasTasteVector, setHasTasteVector] = useState(false);
     const [tasteBlend, setTasteBlend] = useState(0.5);
     const [watchlistOnly, setWatchlistOnly] = useState(false);
+    const [showSeen, setShowSeen] = useState(false);
     const [tasteEnabled, setTasteEnabled] = useState(false);
 
     const resultOptions = [10, 25, 50, 100];
@@ -246,6 +247,9 @@ export default function SearchPage() {
                 }
                 if (watchlistOnly) {
                     url += `&watchlist_only=true`;
+                }
+                if (showSeen) {
+                    url += `&show_seen=true`;
                 }
             }
 
@@ -500,13 +504,22 @@ export default function SearchPage() {
                                         <label className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] flex items-center gap-2">
                                             <BookMarked size={12} /> Search Area
                                         </label>
-                                        <button 
-                                            onClick={() => setWatchlistOnly(!watchlistOnly)}
-                                            className={`w-full h-10 px-4 border text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-between ${watchlistOnly ? 'border-[#d946ef]/50 bg-[#d946ef]/5 text-[#d946ef]' : 'border-white/10 bg-black/20 text-white/40'}`}
-                                        >
-                                            <span>Watchlist Only</span>
-                                            <div className={`w-3 h-3 rounded-none border ${watchlistOnly ? 'bg-[#d946ef] border-[#d946ef]' : 'border-white/20'}`} />
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => setWatchlistOnly(!watchlistOnly)}
+                                                className={`flex-1 h-10 px-4 border text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-between ${watchlistOnly ? 'border-[#d946ef]/50 bg-[#d946ef]/5 text-[#d946ef]' : 'border-white/10 bg-black/20 text-white/40'}`}
+                                            >
+                                                <span>Watchlist</span>
+                                                <div className={`w-3 h-3 rounded-none border ${watchlistOnly ? 'bg-[#d946ef] border-[#d946ef]' : 'border-white/20'}`} />
+                                            </button>
+                                            <button 
+                                                onClick={() => setShowSeen(!showSeen)}
+                                                className={`flex-1 h-10 px-4 border text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-between ${showSeen ? 'border-white/50 bg-white/5 text-white' : 'border-white/10 bg-black/20 text-white/40'}`}
+                                            >
+                                                <span>Include Seen</span>
+                                                <div className={`w-3 h-3 rounded-none border ${showSeen ? 'bg-white border-white' : 'border-white/20'}`} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -522,6 +535,23 @@ export default function SearchPage() {
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Discovery Protocol Disclaimer */}
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-8 p-4 bg-white/[0.02] border border-white/5 rounded-none flex flex-col md:flex-row items-center gap-4 text-[9px] uppercase tracking-[0.1em] text-gray-500 font-medium"
+                >
+                    <div className="flex items-center gap-2 text-[var(--primary)] font-black">
+                        <Sparkles size={12} />
+                        <span>Discovery Protocol Active</span>
+                    </div>
+                    <div className="hidden md:block w-px h-3 bg-white/10" />
+                    <p className="text-center md:text-left leading-relaxed">
+                        By default, Subtext filters out movies you've already seen to prioritize <span className="text-white">New Experiences</span>. 
+                        {hasTasteVector && " Results are intelligently nudged by your Taste DNA for maximum resonance."}
+                    </p>
+                </motion.div>
             </motion.div>
 
             {isSearched && !loading && (

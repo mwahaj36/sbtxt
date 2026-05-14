@@ -100,6 +100,7 @@ async def get_movies(
     k: int = 10,
     taste_blend: Optional[float] = None,
     watchlist_only: Optional[bool] = False,
+    show_seen: bool = False,
     user_id: Optional[str] = Depends(get_optional_user),
 ):
     # Fetch taste vector and watched history if personalization requested
@@ -109,17 +110,18 @@ async def get_movies(
     user_top_genres = None
     
     if user_id:
-        # Get watched/liked movies to exclude from "For You"
+        # Get watched/liked movies to exclude from results
         conn = database.get_db_connection()
         if conn:
             try:
                 with conn.cursor() as cur:
-                    # 1. Fetch Watched history to exclude (watched + rated)
-                    cur.execute(
-                        "SELECT tmdb_id FROM user_ratings WHERE user_id = %s AND interaction_type IN ('watched', 'rated') AND tmdb_id IS NOT NULL",
-                        (user_id,)
-                    )
-                    exclude_ids = [str(row[0]) for row in cur.fetchall()]
+                    # 1. Fetch Watched history to exclude ONLY if show_seen is False
+                    if not show_seen:
+                        cur.execute(
+                            "SELECT tmdb_id FROM user_ratings WHERE user_id = %s AND interaction_type IN ('watched', 'rated') AND tmdb_id IS NOT NULL",
+                            (user_id,)
+                        )
+                        exclude_ids = [str(row[0]) for row in cur.fetchall()]
                     
                     # 2. Fetch Watchlist if requested
                     if watchlist_only:

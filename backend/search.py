@@ -173,6 +173,11 @@ VIBE_RULES = {
         "boost_genres": ["Drama"],
         "kill_genres": ["Action", "Science Fiction", "Horror", "Animation", "Comedy"]
     },
+    "superhero": {
+        "keywords": ["superhero", "marvel", "dc", "superpowers", "masked vigilante", "comic book", "savior", "multiverse"],
+        "boost_genres": ["Action", "Adventure", "Science Fiction", "Fantasy"],
+        "kill_genres": ["Documentary", "History", "War"]
+    },
 }
 
 # =============================================================================

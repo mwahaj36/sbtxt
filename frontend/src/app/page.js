@@ -204,7 +204,6 @@ export default function Home() {
                             <div className="w-12 h-12 bg-blue-500/10 rounded-none flex items-center justify-center text-blue-400">
                                 <Library size={24} />
                             </div>
-                            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-none border border-blue-500/30">Coming Soon</span>
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Personalized Radar</h2>
                         <p className="text-gray-300 text-lg leading-relaxed mb-8">

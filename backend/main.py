@@ -47,12 +47,19 @@ async def lifespan(app: FastAPI):
 app=FastAPI(
     title="Subtext",
     description="Vector based discovery engine",
-    version="1.2",
+    version="1.3",
     lifespan=lifespan
 )
 
+# Debug endpoint to see all registered routes
+@app.get("/debug/routes")
+def get_all_routes():
+    return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.routes]
+
+# Move these UP before other logic
 app.include_router(auth.router,prefix="/auth",tags=["Authentication"])
 app.include_router(sync.router,prefix="/sync",tags=["Letterboxd Sync"])
+
 #implement middlewre
 app.add_middleware(
     CORSMiddleware,

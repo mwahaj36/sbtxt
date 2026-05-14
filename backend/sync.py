@@ -47,7 +47,13 @@ def get_tmdb_headers():
 
 async def get_poster_path_from_tmdb(tmdb_id: int, client: httpx.AsyncClient) -> Optional[str]:
     try:
+        # Try movie first
         resp = await client.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}", headers=get_tmdb_headers())
+        if resp.status_code == 200:
+            return resp.json().get('poster_path')
+        
+        # If not found, try tv
+        resp = await client.get(f"https://api.themoviedb.org/3/tv/{tmdb_id}", headers=get_tmdb_headers())
         if resp.status_code == 200:
             return resp.json().get('poster_path')
     except: pass
@@ -56,11 +62,13 @@ async def get_poster_path_from_tmdb(tmdb_id: int, client: httpx.AsyncClient) -> 
 async def search_tmdb_for_poster(title: str, client: httpx.AsyncClient) -> Optional[tuple]:
     try:
         clean_title = re.sub(r'\s\(\d{4}\)$', '', title)
-        resp = await client.get("https://api.themoviedb.org/3/search/movie", params={"query": clean_title}, headers=get_tmdb_headers())
+        resp = await client.get("https://api.themoviedb.org/3/search/multi", params={"query": clean_title}, headers=get_tmdb_headers())
         data = resp.json()
         if data.get('results'):
-            movie = data['results'][0]
-            return movie['id'], movie.get('poster_path')
+            # Grab the first result that is either movie or tv
+            for res in data['results']:
+                if res.get('media_type') in ['movie', 'tv']:
+                    return res['id'], res.get('poster_path')
     except: pass
     return None
 

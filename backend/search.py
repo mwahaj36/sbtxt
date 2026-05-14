@@ -204,6 +204,7 @@ SENSORY_EXPANSIONS = {
     "paranoid":         "conspiracy surveillance deception institutional mistrust",
     "glamorous":        "stylish extravagant decadent fame ambition self-destruction",
     "self-destructive": "excess ambition unraveling tragic glamour downfall",
+    "superhero":        "heroic journey mythic powers high stakes spectacle vigilante blockbuster justice",
 }
 
 def expand_query_for_embedding(query: str) -> str:

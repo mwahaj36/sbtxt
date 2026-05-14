@@ -25,7 +25,9 @@ async def lifespan(app: FastAPI):
         try:
             with conn.cursor() as cur:
                 cur.execute("ALTER TABLE letterboxd_mappings ADD COLUMN IF NOT EXISTS poster_path TEXT;")
+                cur.execute("ALTER TABLE letterboxd_mappings ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT 'movie';")
                 cur.execute("ALTER TABLE user_ratings ADD COLUMN IF NOT EXISTS poster_path TEXT;")
+                cur.execute("ALTER TABLE user_ratings ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT 'movie';")
                 cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS letterboxd_films_count TEXT;")
                 cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS taste_vector FLOAT8[];")
                 cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS taste_vector_updated_at TIMESTAMPTZ;")

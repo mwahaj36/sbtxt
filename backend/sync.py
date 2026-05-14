@@ -45,19 +45,19 @@ def get_tmdb_headers():
     token = os.getenv("TMDB_TOKEN") or os.getenv("TMDB_API_KEY")
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-async def get_poster_path_from_tmdb(tmdb_id: int, client: httpx.AsyncClient) -> Optional[str]:
+async def get_poster_path_from_tmdb(tmdb_id: int, client: httpx.AsyncClient) -> Optional[tuple]:
     try:
         # Try movie first
         resp = await client.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}", headers=get_tmdb_headers())
         if resp.status_code == 200:
-            return resp.json().get('poster_path')
+            return resp.json().get('poster_path'), 'movie'
         
         # If not found, try tv
         resp = await client.get(f"https://api.themoviedb.org/3/tv/{tmdb_id}", headers=get_tmdb_headers())
         if resp.status_code == 200:
-            return resp.json().get('poster_path')
+            return resp.json().get('poster_path'), 'tv'
     except: pass
-    return None
+    return None, 'movie'
 
 async def search_tmdb_for_poster(title: str, client: httpx.AsyncClient) -> Optional[tuple]:
     try:
@@ -67,8 +67,9 @@ async def search_tmdb_for_poster(title: str, client: httpx.AsyncClient) -> Optio
         if data.get('results'):
             # Grab the first result that is either movie or tv
             for res in data['results']:
-                if res.get('media_type') in ['movie', 'tv']:
-                    return res['id'], res.get('poster_path')
+                m_type = res.get('media_type')
+                if m_type in ['movie', 'tv']:
+                    return res['id'], res.get('poster_path'), m_type
     except: pass
     return None
 
@@ -135,30 +136,29 @@ async def get_tmdb_id_from_letterboxd(lb_url: str, client: httpx.AsyncClient) ->
 def _process_movie_db_sync(movie: dict, user_id: str, tmdb_id: Optional[int], poster_path: Optional[str]):
     """Synchronous DB logic for processing a movie."""
     conn = get_db_connection()
-    if not conn: return
+    media_type = 'movie'
+    if not conn: return tmdb_id, poster_path, media_type, False
     try:
         with conn.cursor() as cur:
             # Check mapping
             if not tmdb_id and movie.get('letterboxd_uri'):
-                cur.execute("SELECT tmdb_id, poster_path FROM letterboxd_mappings WHERE letterboxd_url = %s", (movie['letterboxd_uri'],))
+                cur.execute("SELECT tmdb_id, poster_path, media_type FROM letterboxd_mappings WHERE letterboxd_url = %s", (movie['letterboxd_uri'],))
                 row = cur.fetchone()
-                if row: tmdb_id, poster_path = row
+                if row: tmdb_id, poster_path, media_type = row
             
-            # Check existing rating - include date in check to allow rewatches to be updated/added
+            # Check existing rating
             if tmdb_id:
                 interaction = movie.get('interaction_type', 'watched')
                 watched_date = movie.get('watched_date')
                 
-                # We check for exact match of user, movie, type AND date. 
-                # If date is different, we want to proceed so the date gets updated.
                 if watched_date:
                     cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND tmdb_id = %s AND interaction_type = %s AND watched_date = %s", (user_id, tmdb_id, interaction, watched_date))
                 else:
                     cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND tmdb_id = %s AND interaction_type = %s AND watched_date IS NULL", (user_id, tmdb_id, interaction))
                 
-                if cur.fetchone(): return tmdb_id, poster_path, True # Found exact record, skip
+                if cur.fetchone(): return tmdb_id, poster_path, media_type, True # Found exact record, skip
                 
-        return tmdb_id, poster_path, False
+        return tmdb_id, poster_path, media_type, False
     finally: conn.close()
 
 def _save_movies_batch(results: List[tuple], user_id: str):
@@ -169,18 +169,18 @@ def _save_movies_batch(results: List[tuple], user_id: str):
         return
     try:
         with conn.cursor() as cur:
-            for movie, tmdb_id, poster_path in results:
+            for movie, tmdb_id, poster_path, media_type in results:
                 # 1. Update Mapping Cache
-                cur.execute("INSERT INTO letterboxd_mappings (letterboxd_url, tmdb_id, poster_path) VALUES (%s, %s, %s) ON CONFLICT (letterboxd_url) DO UPDATE SET tmdb_id = EXCLUDED.tmdb_id, poster_path = EXCLUDED.poster_path", (movie['letterboxd_uri'], tmdb_id, poster_path))
+                cur.execute("INSERT INTO letterboxd_mappings (letterboxd_url, tmdb_id, poster_path, media_type) VALUES (%s, %s, %s, %s) ON CONFLICT (letterboxd_url) DO UPDATE SET tmdb_id = EXCLUDED.tmdb_id, poster_path = EXCLUDED.poster_path, media_type = EXCLUDED.media_type", (movie['letterboxd_uri'], tmdb_id, poster_path, media_type))
                 
                 # 2. Save User Rating/Watchlist Item
                 interaction = movie.get('interaction_type', 'watched')
                 cur.execute("""
-                    INSERT INTO user_ratings (user_id, movie_title, release_year, rating, watched_date, is_liked, interaction_type, tmdb_id, poster_path, letterboxd_uri) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                    INSERT INTO user_ratings (user_id, movie_title, release_year, rating, watched_date, is_liked, interaction_type, tmdb_id, poster_path, media_type, letterboxd_uri) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                     ON CONFLICT (user_id, tmdb_id, interaction_type) 
-                    DO UPDATE SET rating = EXCLUDED.rating, watched_date = EXCLUDED.watched_date, is_liked = EXCLUDED.is_liked, poster_path = EXCLUDED.poster_path, letterboxd_uri = EXCLUDED.letterboxd_uri
-                """, (user_id, movie['movie_title'], movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), interaction, tmdb_id, poster_path, movie['letterboxd_uri']))
+                    DO UPDATE SET rating = EXCLUDED.rating, watched_date = EXCLUDED.watched_date, is_liked = EXCLUDED.is_liked, poster_path = EXCLUDED.poster_path, media_type = EXCLUDED.media_type, letterboxd_uri = EXCLUDED.letterboxd_uri
+                """, (user_id, movie['movie_title'], movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), interaction, tmdb_id, poster_path, media_type, movie['letterboxd_uri']))
             conn.commit()
             print(f"[SYNC][BATCH] Successfully committed {len(results)} movies.")
     finally: conn.close()
@@ -190,8 +190,8 @@ async def process_single_movie(movie: dict, user_id: str, client: httpx.AsyncCli
     async with semaphore:
         title = movie.get('movie_title', 'Unknown')
         try:
-            # 1. Threaded DB Check (Still important to avoid redundant fetches)
-            tmdb_id, poster_path, exists = await asyncio.to_thread(_process_movie_db_sync, movie, user_id, movie.get('tmdb_id'), movie.get('poster_path'))
+            # 1. Threaded DB Check
+            tmdb_id, poster_path, media_type, exists = await asyncio.to_thread(_process_movie_db_sync, movie, user_id, movie.get('tmdb_id'), movie.get('poster_path'))
             if exists: 
                 return None # Already exists, skip
             
@@ -199,14 +199,14 @@ async def process_single_movie(movie: dict, user_id: str, client: httpx.AsyncCli
             if not tmdb_id and movie.get('letterboxd_uri'):
                 print(f"[SYNC][TMDB] Resolving: {title}")
                 res = await get_tmdb_id_from_letterboxd(movie['letterboxd_uri'], client)
-                if res: tmdb_id, poster_path = res
+                if res: tmdb_id, poster_path = res # returns default 'movie' media_type if not specified
             
             if tmdb_id and not poster_path:
-                poster_path = await get_poster_path_from_tmdb(tmdb_id, client)
+                poster_path, media_type = await get_poster_path_from_tmdb(tmdb_id, client)
             
             # 3. RETURN DATA (for batching)
             if tmdb_id:
-                return (movie, tmdb_id, poster_path)
+                return (movie, tmdb_id, poster_path, media_type)
             else:
                 print(f"[SYNC] Failed to resolve: {title}")
                 return None

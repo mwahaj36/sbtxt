@@ -205,18 +205,26 @@ export default function Home() {
                                 <Library size={24} />
                             </div>
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Personalized Radar</h2>
+                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white leading-none">Your Cinematic <br/>Signature</h2>
                         <p className="text-gray-300 text-lg leading-relaxed mb-8">
-                            Sync your Letterboxd diary to create a unique taste profile. SBTXT will automatically filter out movies you've already logged and craft suggestions based on your recent fixations.
+                            Connect your Letterboxd diary to unlock <strong>Neural Search</strong>. SBTXT analyzes your 5-star ratings to map your unique Taste DNA, allowing you to search with personalized affinity or scan specifically within your Watchlist.
                         </p>
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 rounded-none bg-white/5 border border-white/5">
-                                <h4 className="text-blue-200 font-bold mb-1 italic">Avoid Repeats</h4>
-                                <p className="text-xs text-blue-400/60">Filtered results from your 'Seen' list.</p>
+                                <h4 className="text-blue-200 font-bold mb-1 italic text-xs uppercase tracking-widest">Taste DNA</h4>
+                                <p className="text-[10px] text-blue-400/60 leading-tight">Search using your personalized neural signature.</p>
                             </div>
                             <div className="p-4 rounded-none bg-white/5 border border-white/5">
-                                <h4 className="text-blue-200 font-bold mb-1 italic">Taste Match</h4>
-                                <p className="text-xs text-blue-400/60">Suggestions based on your 5-star ratings.</p>
+                                <h4 className="text-blue-200 font-bold mb-1 italic text-xs uppercase tracking-widest">Watchlist Scan</h4>
+                                <p className="text-[10px] text-blue-400/60 leading-tight">Find exactly what to watch next in your own list.</p>
+                            </div>
+                            <div className="p-4 rounded-none bg-white/5 border border-white/5">
+                                <h4 className="text-blue-200 font-bold mb-1 italic text-xs uppercase tracking-widest">Auto-Filter</h4>
+                                <p className="text-[10px] text-blue-400/60 leading-tight">Automatically hide every movie you've already seen.</p>
+                            </div>
+                            <div className="p-4 rounded-none bg-white/5 border border-white/5">
+                                <h4 className="text-blue-200 font-bold mb-1 italic text-xs uppercase tracking-widest">Affinity Bonus</h4>
+                                <p className="text-[10px] text-blue-400/60 leading-tight">Your highest ratings carry the most weight.</p>
                             </div>
                         </div>
                     </motion.div>

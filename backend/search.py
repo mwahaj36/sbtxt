@@ -79,6 +79,13 @@ except Exception as e:
 # CONFIG
 # =============================================================================
 
+CORE_GENRES = {
+    "action", "adventure", "animation", "comedy", "crime", "documentary", 
+    "drama", "family", "fantasy", "history", "horror", "music", "mystery", 
+    "romance", "science fiction", "thriller", "war", "western", "sci-fi", 
+    "superhero", "k-drama", "anime", "noir", "neo-noir"
+}
+
 VIBE_RULES = {
     "emotional": {
         "keywords": ["cry", "sad", "bawl", "tearjerker", "devastating", "heartbreaking", "emotional", "beautiful", "romance", "romantic", "love story", "romcom", "rom-com", "rom com", "feels", "tragic", "downward spiral"],
@@ -143,7 +150,6 @@ VIBE_RULES = {
         "boost_genres": ["Drama", "Thriller"],
         "kill_genres": ["Family", "Animation", "Comedy", "Romance"]
     },
-    # NEW: sensory — sun-scorched landscapes
     "sun_scorched": {
         "keywords": ["dusty", "sun-bleached", "middle of nowhere", "middle-of-nowhere", "heat you can", "scorching", "desert", "barren", "arid", "sun baked", "sun-baked"],
         "boost_genres": ["Western", "Drama", "Thriller", "Crime"],
@@ -957,7 +963,11 @@ def search(
                 mode = "SIBLING_DISCOVERY"
                 break
 
-    if not reference_title:
+    # Genre Shield: Skip anchoring if query is a broad genre (e.g. "Mystery" or "Action movies")
+    is_broad_genre = any(genre == q_low.replace("movies", "").replace("films", "").replace("movie", "").replace("film", "").strip() 
+                         for genre in CORE_GENRES)
+
+    if not reference_title and not is_broad_genre:
         auto_ref = find_movie_by_title(query)
         if auto_ref:
             reference_title = auto_ref["title"]

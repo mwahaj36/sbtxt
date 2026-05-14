@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart, Dna, Sparkles, BookMarked } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart, Dna, Sparkles, BookMarked, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '@/config';
 
@@ -125,8 +125,10 @@ export default function SearchPage() {
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isSearched, setIsSearched] = useState(false);
+    const [isDNASearch, setIsDNASearch] = useState(false);
     const [sortBy, setSortBy] = useState("match"); // match, year, rating
     const [tmdbLanguages, setTmdbLanguages] = useState([{ name: "All Languages", value: "" }]);
+    const abortControllerRef = useRef(null);
     
     // Advanced Filters
     const [showFilters, setShowFilters] = useState(false);
@@ -220,6 +222,17 @@ export default function SearchPage() {
         setResultCount(25);
     };
 
+    const handleBack = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        setIsSearched(false);
+        setIsDNASearch(false);
+        setMovies([]);
+        setLoading(false);
+        SetQuery("");
+    };
+
     const handleGenreClick = (genre) => {
         SetQuery(genre);
         // Trigger search immediately after state update (using a small timeout or just calling handleSearch with the new value)
@@ -234,12 +247,20 @@ export default function SearchPage() {
         SetQuery("");
         setLoading(true);
         setIsSearched(true);
+        setIsDNASearch(true);
         handleSearch("", true);
     };
 
     const handleSearch = async (overrideQuery = null, forYou = false) => {
         const searchQuery = overrideQuery !== null ? overrideQuery : query;
         if (!searchQuery.trim() && !forYou) return;
+
+        // Abort previous request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
         setLoading(true);
         setIsSearched(true);
         try {
@@ -276,7 +297,10 @@ export default function SearchPage() {
                 headers['x-user-token'] = token;
             }
 
-            const response = await fetch(url, { headers });
+            const response = await fetch(url, { 
+                headers,
+                signal: abortControllerRef.current.signal 
+            });
             console.log("📡 [Search] Status:", response.status, response.statusText);
 
             if (!response.ok) {
@@ -316,6 +340,10 @@ export default function SearchPage() {
             
             setMovies(data);
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log("🛑 [Search] Request aborted by user.");
+                return;
+            }
             console.error("🚨 [Search] Critical Connection Failure:", error);
             setMovies([]);
         } finally {
@@ -337,75 +365,188 @@ export default function SearchPage() {
     }, [movies, sortBy]);
 
     return (
-        <main className="min-h-screen w-full bg-black text-white flex flex-col items-center px-4 pt-32 relative overflow-y-auto overflow-x-hidden">
+        <main className={`min-h-screen w-full bg-black text-white flex flex-col items-center px-4 relative overflow-y-auto overflow-x-hidden transition-all duration-700 ${isSearched ? 'pt-10' : 'pt-32'}`}>
             <div className="mesh-gradient opacity-30 fixed inset-0 pointer-events-none" />
             
             <motion.div
+                layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1, ease: "easeOut" }}
-                className="relative w-full max-w-4xl group z-50 mb-12"
+                className={`relative w-full transition-all duration-700 z-50 ${isSearched ? 'max-w-7xl mb-8 flex flex-col md:flex-row items-center gap-4' : 'max-w-4xl mb-12'}`}
             >
-                <h1 className="font-['Arkhip'] text-5xl md:text-7xl text-center mb-8 text-white uppercase tracking-tighter leading-none"> 
-                    CINEMA, <span className="text-[var(--primary)]">BEYOND THE TAGS</span>
-                </h1>
-                
-                <div className='relative flex flex-col md:flex-row gap-4 items-stretch'>
-                    <div className="relative flex-1">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors z-10">
-                            <Search size={20} />
+                {!isSearched && (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="mb-12 text-center"
+                    >
+                        <h1 className="font-['Arkhip'] text-5xl md:text-7xl mb-8 text-white uppercase tracking-tighter leading-none"> 
+                            CINEMA, <span className="text-[var(--primary)]">BEYOND THE TAGS</span>
+                        </h1>
+                    </motion.div>
+                )}
+
+                {isDNASearch && isSearched && (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex-1 flex flex-col md:flex-row items-center justify-between gap-6 p-5 bg-[#d946ef]/5 border border-[#d946ef]/20 backdrop-blur-2xl"
+                    >
+                        <div className="flex items-center gap-6">
+                            <div className="p-3 bg-[#d946ef]/20 text-[#d946ef] rounded-none animate-pulse">
+                                <Dna size={20} />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <h2 className="text-xs font-black uppercase tracking-[0.4em] text-[#d946ef]">Searching from your DNA</h2>
+                                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">
+                                    Personalized results based on your 1,880 ratings
+                                </p>
+                            </div>
                         </div>
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            placeholder={placeholders[placeholderIndex]}
-                            autoComplete="off"
-                            value={query}
-                            onChange={(e) => SetQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            className="w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 py-5 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all text-lg placeholder:text-gray-400/30 shadow-2xl"
-                        />
-                    </div>
+                        <button 
+                            onClick={handleBack}
+                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all group"
+                        >
+                            <X size={14} className="group-hover:rotate-90 transition-transform" />
+                            <span>Exit DNA Mode</span>
+                        </button>
+                    </motion.div>
+                )}
+
+                {isSearched && !isDNASearch && (
+                    <motion.button
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        onClick={handleBack}
+                        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all mr-4 group"
+                    >
+                        <X size={14} className="group-hover:rotate-90 transition-transform" />
+                        <span>Back</span>
+                    </motion.button>
+                )}
+                
+                {(!isSearched || (isSearched && !isDNASearch)) && (
+                    <div className={`relative flex flex-col md:flex-row gap-4 items-stretch transition-all duration-700 ${isSearched ? 'flex-1' : 'w-full'}`}>
+                        <div className="relative flex-1">
+                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors z-10">
+                                <Search size={20} />
+                            </div>
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder={placeholders[placeholderIndex]}
+                                autoComplete="off"
+                                value={query}
+                                onChange={(e) => SetQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                className={`w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all placeholder:text-gray-400/30 shadow-2xl ${isSearched ? 'py-3 text-base' : 'py-5 text-lg'}`}
+                            />
+                        </div>
                         <button 
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`p-5 rounded-none border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'}`}
+                            className={`p-5 rounded-none border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'} ${isSearched ? 'py-3' : ''}`}
                         >
                             <Filter size={20} />
                         </button>
                         <button 
-                            className={`bg-[var(--primary)] px-10 rounded-none font-black text-black uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'}`}
+                            className={`bg-[var(--primary)] px-10 rounded-none font-black text-black uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'} ${isSearched ? 'py-3' : ''}`}
                             onClick={() => handleSearch()}
                             disabled={loading}
                         >
                             {loading ? "..." : "Search"}
                         </button>
                     </div>
+                )}
 
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-4 px-6 flex flex-col md:flex-row items-center justify-between gap-4"
-                >
-                    <div className="flex items-center gap-4">
-                        {hasTasteVector && (
-                            <button 
-                                onClick={handleForYou}
-                                className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#d946ef] hover:text-white transition-all"
+                {/* Search Tips & Protocol - Compact Footer */}
+                {!isSearched && (
+                    <>
+                        <div className="px-10 mt-3 flex flex-col gap-1 opacity-60">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[11px] text-gray-300 font-medium tracking-wide flex items-center gap-3">
+                                    <span className="text-gray-100 font-black uppercase tracking-widest text-[9px]">Pro Tip</span>
+                                    Use full movie titles (e.g. "The Matrix") for the most accurate thematic siblings.
+                                </p>
+                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">v2.4</span>
+                            </div>
+                            <p className="text-[10px] text-gray-300 font-medium tracking-wide opacity-80">
+                                Movies you've already seen are hidden by default.
+                                {hasTasteVector && " Personalized nudging is active."}
+                            </p>
+                        </div>
+
+                        {/* Moving Vibe Chips - Now integrated below search bar */}
+                        <div
+                            className="w-full max-w-4xl mx-auto overflow-hidden mt-8 relative"
+                            style={{
+                                maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+                                WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
+                            }}
+                        >
+                            <motion.div
+                                className="flex gap-4 whitespace-nowrap px-10"
+                                animate={{ x: ["0%", "-50%"] }}
+                                transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
                             >
-                                <Sparkles size={14} className="group-hover:animate-pulse" />
-                                <span>Search with your DNA</span>
-                                <span className="ml-2 px-2 py-0.5 bg-[#d946ef]/10 border border-[#d946ef]/20 text-[8px] lowercase tracking-normal text-[#d946ef]/60 group-hover:text-white transition-colors">
-                                    uses your personal taste profile
-                                </span>
-                            </button>
-                        )}
-                    </div>
+                                {[
+                                    "Dystopian synthwave city", "Heartfelt rural coming-of-age",
+                                    "Jazz-fueled heist banter", "Cosmic horror isolation",
+                                    "Lush atmospheric nostalgia", "Hyper-violent neon revenge",
+                                    "Quiet contemplative noir", "Post-apocalyptic hope",
+                                    "Dystopian synthwave city", "Heartfelt rural coming-of-age",
+                                    "Jazz-fueled heist banter", "Cosmic horror isolation"
+                                ].map((vibe, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => SetQuery(vibe)}
+                                        className="px-6 py-2 rounded-none border border-white/10 bg-white/5 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/10 transition-all"
+                                    >
+                                        {vibe}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        </div>
 
-                    <p className="text-[10px] text-gray-500 font-medium tracking-tight text-right flex-1">
-                        <span className="text-gray-400 font-bold uppercase mr-1">Pro Tip:</span>
-                        Use full movie titles for the most accurate thematic siblings.
-                    </p>
-                </motion.div>
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="mt-8 px-6 flex flex-col gap-6"
+                        >
+                            {/* OR Separator */}
+                            <div className="flex items-center gap-4 opacity-10">
+                                <div className="flex-1 h-px bg-white" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em]">OR</span>
+                                <div className="flex-1 h-px bg-white" />
+                            </div>
+
+                            {hasTasteVector && (
+                                <motion.div 
+                                    whileHover={{ scale: 1.005, borderColor: 'rgba(217, 70, 239, 0.4)' }}
+                                    onClick={handleForYou}
+                                    className="w-full p-5 bg-white/[0.03] border border-[#d946ef]/20 rounded-none flex items-center justify-between group cursor-pointer transition-all hover:bg-[#d946ef]/5 shadow-[0_0_40px_rgba(217,70,239,0.08)]"
+                                >
+                                    <div className="flex items-center gap-6">
+                                        <div className="p-4 bg-[#d946ef]/10 text-[#d946ef] rounded-none group-hover:bg-[#d946ef]/20 transition-all">
+                                            <Sparkles size={24} className="group-hover:rotate-12 transition-transform" />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs font-black uppercase tracking-[0.3em] text-[#d946ef]">Search with your DNA</span>
+                                            <span className="text-[10px] text-gray-500 font-medium lowercase tracking-widest">
+                                                Personalized results based on your 1,880 ratings
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-[#d946ef]/40 group-hover:text-[#d946ef] transition-colors">Go</span>
+                                        <ChevronRight size={20} className="text-[#d946ef]/40 group-hover:text-[#d946ef] group-hover:translate-x-1 transition-all" />
+                                    </div>
+                                </motion.div>
+                            )}
+                        </motion.div>
+                    </>
+                )}
 
                 <AnimatePresence>
                     {showFilters && (
@@ -552,23 +693,7 @@ export default function SearchPage() {
                     )}
                 </AnimatePresence>
 
-                {/* Discovery Protocol Disclaimer */}
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-8 p-4 bg-white/[0.02] border border-white/5 rounded-none flex flex-col md:flex-row items-center gap-4 text-[9px] uppercase tracking-[0.1em] text-gray-500 font-medium"
-                >
-                    <div className="flex items-center gap-2 text-[var(--primary)] font-black">
-                        <Sparkles size={12} />
-                        <span>Discovery Protocol Active</span>
-                    </div>
-                    <div className="hidden md:block w-px h-3 bg-white/10" />
-                    <p className="text-center md:text-left leading-relaxed">
-                        By default, Subtext filters out movies you've already seen to prioritize <span className="text-white">New Experiences</span>. 
-                        {hasTasteVector && " Results are intelligently nudged by your Taste DNA for maximum resonance."}
-                    </p>
                 </motion.div>
-            </motion.div>
 
             {isSearched && !loading && (
                 <motion.div 
@@ -615,36 +740,7 @@ export default function SearchPage() {
                 </div>
             )}
 
-            {!isSearched && !loading &&(
-                <div
-                    className="w-full max-w-4xl mx-auto overflow-hidden mt-8 relative"
-                    style={{
-                        maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
-                        WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
-                    }}
-                >
-                    <motion.div
-                        className="flex gap-4 whitespace-nowrap px-10"
-                        animate={{ x: ["0%", "-50%"] }}
-                        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-                    >
-                        {[
-                            "Dystopian synthwave city", "Heartfelt rural coming-of-age",
-                            "Jazz-fueled heist banter", "Cosmic horror isolation",
-                            "Lush atmospheric nostalgia", "Hyper-violent neon revenge",
-                            "Quiet contemplative noir", "Post-apocalyptic hope"
-                        ].map((vibe, index) => (
-                            <button
-                                key={index}
-                                onClick={() => SetQuery(vibe)}
-                                className="px-6 py-2 rounded-none border border-white/10 bg-white/5 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/10 transition-all"
-                            >
-                                {vibe}
-                            </button>
-                        ))}
-                    </motion.div>
-                </div>
-            )}
+            {/* Vibe Chips removed from here as they are now integrated above */}
 
             {isSearched && !loading &&(
                 <motion.div

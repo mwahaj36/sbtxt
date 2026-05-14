@@ -378,9 +378,6 @@ export default function SearchPage() {
                             >
                                 <Sparkles size={14} className="group-hover:animate-pulse" />
                                 <span>Search with your DNA</span>
-                                <div className="hidden group-hover:block absolute top-full mt-2 p-3 bg-black/90 border border-white/10 text-[9px] lowercase font-medium tracking-normal text-gray-400 w-48 text-left backdrop-blur-xl z-[100]">
-                                    uses your personal taste dna (calculated from your 1,880 films) to discover hidden gems without needing a query.
-                                </div>
                             </button>
                         )}
                     </div>

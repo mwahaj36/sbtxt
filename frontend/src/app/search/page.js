@@ -339,6 +339,7 @@ export default function SearchPage() {
                             ref={inputRef}
                             type="text"
                             placeholder='What kind of story are you looking for?'
+                            autoComplete="off"
                             value={query}
                             onChange={(e) => SetQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}

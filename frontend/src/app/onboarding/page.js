@@ -65,7 +65,7 @@ export default function Onboard() {
         setIsFinding(true);
         const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`${API_URL}/sbtxt-sync/profile?username=${lbUsername}`, {
+            const res = await fetch(`${API_URL}/api/v1/sbtxt-sync/profile?username=${lbUsername}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await res.json();

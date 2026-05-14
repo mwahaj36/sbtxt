@@ -173,7 +173,7 @@ export default function SearchPage() {
         // Check taste vector status
         const token = localStorage.getItem("token");
         if (token) {
-            fetch(`${API_URL}/sbtxt-auth/taste`, {
+            fetch(`${API_URL}/api/v1/sbtxt-auth/taste`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             .then(res => res.json())
@@ -272,7 +272,7 @@ export default function SearchPage() {
             if (token && data && data.length > 0) {
                 try {
                     const tmdbIds = data.map(m => m.id);
-                    const likedRes = await fetch(`${API_URL}/sbtxt-sync/check_liked`, {
+                    const likedRes = await fetch(`${API_URL}/api/v1/sbtxt-sync/check_liked`, {
                         method: "POST",
                         headers: { 
                             "Content-Type": "application/json",

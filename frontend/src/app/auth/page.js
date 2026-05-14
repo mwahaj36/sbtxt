@@ -47,7 +47,7 @@ export default function AuthPage() {
                 }
             }
 
-            const endpoint = isLogin ? "/sbtxt-auth/login" : "/sbtxt-auth/signup";
+            const endpoint = isLogin ? "/api/v1/sbtxt-auth/login" : "/api/v1/sbtxt-auth/signup";
             const payload = isLogin 
                 ? { identifier: cleanIdentifier, password } 
                 : { email: cleanEmail, username: cleanUsername, password, letterboxd_username: cleanUsername };

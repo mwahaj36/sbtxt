@@ -35,7 +35,7 @@ export default function ProfilePage() {
             setIsLoading(true);
             try {
                 // Profile Turbo: Fetch Bundle (Profile + DNA + Recent 4) in one go
-                const bundleRes = await fetch(`${API_URL}/sbtxt-auth/bundle`, {
+                const bundleRes = await fetch(`${API_URL}/api/v1/sbtxt-auth/bundle`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const bundle = await bundleRes.json();
@@ -66,10 +66,10 @@ export default function ProfilePage() {
             const token = localStorage.getItem("token");
             try {
                 const [resWatched, resWatchlist] = await Promise.all([
-                    fetch(`${API_URL}/sbtxt-sync/library?type=watched&page=${watchedPage}&query=${watchedSearch}`, {
+                    fetch(`${API_URL}/api/v1/sbtxt-sync/library?type=watched&page=${watchedPage}&query=${watchedSearch}`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     }),
-                    fetch(`${API_URL}/sbtxt-sync/library?type=watchlist&page=${watchlistPage}&query=${watchlistSearch}`, {
+                    fetch(`${API_URL}/api/v1/sbtxt-sync/library?type=watchlist&page=${watchlistPage}&query=${watchlistSearch}`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     })
                 ]);
@@ -100,7 +100,7 @@ export default function ProfilePage() {
         setIsSyncing(true);
         const token = localStorage.getItem("token");
         try {
-            await fetch(`${API_URL}/sbtxt-sync/live`, {
+            await fetch(`${API_URL}/api/v1/sbtxt-sync/live`, {
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${token}` }
             });

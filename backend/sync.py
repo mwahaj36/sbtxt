@@ -250,14 +250,15 @@ async def resolve_tmdb_ids(movies: List[Dict], user_id: str, client: Optional[ht
         await asyncio.to_thread(_save_movies_batch, resolved_batch, user_id)
         print(f"[SYNC] Final batch of {len(resolved_batch)} movies committed.")
     
-    # Mark as completed so the UI hides the progress bar
-    SYNC_PROGRESS[user_id] = {"status": "completed", "processed": len(movies), "total": len(movies), "message": "Sync complete!"}
-    
     if skip_refresh:
+        SYNC_PROGRESS[user_id] = {"status": "completed", "processed": len(movies), "total": len(movies), "message": "Sync complete!"}
         return
 
     # Refresh taste vector in the background (takes longer)
     await refresh_taste_vector_bg(user_id)
+    
+    # Mark as completed only AFTER taste DNA is ready
+    SYNC_PROGRESS[user_id] = {"status": "completed", "processed": len(movies), "total": len(movies), "message": "DNA Mapped & Sync Complete!"}
 
 @router.get("/status")
 async def get_sync_status(user_id: str = Depends(get_current_user)):

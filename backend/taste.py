@@ -571,13 +571,15 @@ async def refresh_taste_vector_bg(user_id: str):
     await enrich_missing_movies(all_ids)
 
     # 3. Compute taste vector
-    SYNC_PROGRESS[user_id]["message"] = "Calculating cinematic DNA..."
+    SYNC_PROGRESS[user_id]["message"] = "🧬 mapping cinematic genome..."
     taste_data = await compute_taste_vector(user_id)
     if taste_data is None:
         print(f"⚠️ [DNA] Could not compute taste vector for user {user_id}")
+        SYNC_PROGRESS[user_id]["message"] = "sync complete (need 10+ ratings for DNA)"
         return
 
     # 4. Save
-    SYNC_PROGRESS[user_id]["message"] = "Saving profile..."
+    SYNC_PROGRESS[user_id]["message"] = "⚡ activating neural engine..."
     await save_taste_vector(user_id, taste_data)
     print(f"🧬 [DNA][END] Taste DNA successfully mapped for user {user_id}")
+    SYNC_PROGRESS[user_id]["message"] = "DNA mapped successfully!"

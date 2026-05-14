@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart, Dna, Sparkles, BookMarked, ChevronRight } from 'lucide-react';
+import { Search, Filter, Calendar, Star, Globe, ListOrdered, AlertCircle, Loader2, X, Share2, Check, Heart, BookMarked, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSync } from '@/components/SyncProvider';
+import { useRouter } from 'next/navigation';
 import { API_URL } from '@/config';
 
 // --- MovieCard Component with Living Poster Effect ---
@@ -83,7 +85,7 @@ const MovieCard = ({ movie, index, onGenreClick }) => {
                     {movie.is_liked && <Heart size={14} className="fill-[#ff8000] text-[#ff8000] mb-2" />}
                     {movie.taste_match && movie.taste_match > 70 && (
                         <div className="text-[9px] font-black text-[#d946ef] uppercase tracking-tighter mb-1 bg-[#d946ef]/10 px-2 py-0.5 rounded-none border border-[#d946ef]/20 flex items-center gap-1">
-                            <Dna size={8} /> {movie.taste_match}% YOUR TASTE
+                            <span className="text-[6px] font-black uppercase">Taste Match</span> {movie.taste_match}%
                         </div>
                     )}
                     <div className="text-[9px] font-black text-[var(--primary)] uppercase tracking-tighter mb-2 bg-[var(--primary)]/10 px-2 py-0.5 rounded-none border border-[var(--primary)]/20">
@@ -121,6 +123,8 @@ const MovieCard = ({ movie, index, onGenreClick }) => {
 
 export default function SearchPage() {
     const inputRef = React.useRef(null);
+    const { syncStatus } = useSync();
+    const router = useRouter();
     const [query, SetQuery] = useState("");
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -164,19 +168,18 @@ export default function SearchPage() {
     }, []);
 
     useEffect(() => {
-        async function fetchLanguages() {
+        const fetchLanguages = async () => {
             try {
-                const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-                const response = await fetch(`https://api.themoviedb.org/3/configuration/languages?api_key=${apiKey}`);
-                const data = await response.json();
-                if (Array.isArray(data)) {
-                    const formatted = data.map(l => ({
-                        name: l.english_name,
-                        value: l.iso_639_1
-                    })).sort((a, b) => a.name.localeCompare(b.name));
-                    setTmdbLanguages([{ name: "All Languages", value: "" }, ...formatted]);
+                const res = await fetch(`${API_URL}/api/v1/sbtxt-sync/languages`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    setTmdbLanguages([
+                        { name: "All Languages", value: "" },
+                        ...data
+                    ]);
                 }
-            } catch (error) {
+            } catch (e) {
+                console.error("Failed to fetch languages", e);
                 setTmdbLanguages([
                     { name: "All Languages", value: "" },
                     { name: "English", value: "en" },
@@ -186,7 +189,7 @@ export default function SearchPage() {
                     { name: "Spanish", value: "es" }
                 ]);
             }
-        }
+        };
         fetchLanguages();
 
         // Check taste vector status
@@ -212,7 +215,7 @@ export default function SearchPage() {
         };
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, []);
+    }, [syncStatus.status]);
 
     const clearFilters = () => {
         setMinYear("");
@@ -364,6 +367,8 @@ export default function SearchPage() {
         return sorted;
     }, [movies, sortBy]);
 
+
+
     return (
         <main className={`min-h-screen w-full bg-black text-white flex flex-col items-center px-4 relative overflow-y-auto overflow-x-hidden transition-all duration-700 ${isSearched ? 'pt-10' : 'pt-32'}`}>
             <div className="mesh-gradient opacity-30 fixed inset-0 pointer-events-none" />
@@ -395,13 +400,10 @@ export default function SearchPage() {
                         className="flex-1 flex flex-col md:flex-row items-center justify-between gap-6 p-5 bg-[#d946ef]/5 border border-[#d946ef]/20 backdrop-blur-2xl"
                     >
                         <div className="flex items-center gap-6">
-                            <div className="p-3 bg-[#d946ef]/20 text-[#d946ef] rounded-none animate-pulse">
-                                <Dna size={20} />
-                            </div>
                             <div className="flex flex-col gap-1">
-                                <h2 className="text-xs font-black uppercase tracking-[0.4em] text-[#d946ef]">Searching from your DNA</h2>
+                                <h2 className="text-xs font-black uppercase tracking-[0.4em] text-[#d946ef]">Neural Discovery Active</h2>
                                 <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">
-                                    Personalized results based on your 1,880 ratings
+                                    Personalized results based on your ratings
                                 </p>
                             </div>
                         </div>
@@ -409,8 +411,7 @@ export default function SearchPage() {
                             onClick={handleBack}
                             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all group"
                         >
-                            <X size={14} className="group-hover:rotate-90 transition-transform" />
-                            <span>Exit DNA Mode</span>
+                            <span>Exit Discovery</span>
                         </button>
                     </motion.div>
                 )}
@@ -422,7 +423,6 @@ export default function SearchPage() {
                         onClick={handleBack}
                         className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all mr-4 group"
                     >
-                        <X size={14} className="group-hover:rotate-90 transition-transform" />
                         <span>Back</span>
                     </motion.button>
                 )}
@@ -430,9 +430,6 @@ export default function SearchPage() {
                 {(!isSearched || (isSearched && !isDNASearch)) && (
                     <div className={`relative flex flex-col md:flex-row gap-4 items-stretch transition-all duration-700 ${isSearched ? 'flex-1' : 'w-full'}`}>
                         <div className="relative flex-1">
-                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--primary)] transition-colors z-10">
-                                <Search size={20} />
-                            </div>
                             <input
                                 ref={inputRef}
                                 type="text"
@@ -460,24 +457,17 @@ export default function SearchPage() {
                     </div>
                 )}
 
-                {/* Search Tips & Protocol - Compact Footer */}
                 {!isSearched && (
                     <>
                         <div className="px-10 mt-3 flex flex-col gap-1 opacity-60">
                             <div className="flex items-center justify-between">
                                 <p className="text-[11px] text-gray-300 font-medium tracking-wide flex items-center gap-3">
                                     <span className="text-gray-100 font-black uppercase tracking-widest text-[9px]">Pro Tip</span>
-                                    Use full movie titles (e.g. "The Matrix") for the most accurate thematic siblings.
+                                    Use full movie titles for accurate thematic siblings.
                                 </p>
-                                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">v2.4</span>
                             </div>
-                            <p className="text-[10px] text-gray-300 font-medium tracking-wide opacity-80">
-                                Movies you've already seen are hidden by default.
-                                {hasTasteVector && " Personalized nudging is active."}
-                            </p>
                         </div>
 
-                        {/* Moving Vibe Chips - Now integrated below search bar */}
                         <div
                             className="w-full max-w-4xl mx-auto overflow-hidden mt-8 relative"
                             style={{
@@ -509,42 +499,31 @@ export default function SearchPage() {
                             </motion.div>
                         </div>
 
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="mt-8 px-6 flex flex-col gap-6"
-                        >
-                            {/* OR Separator */}
-                            <div className="flex items-center gap-4 opacity-10">
-                                <div className="flex-1 h-px bg-white" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em]">OR</span>
-                                <div className="flex-1 h-px bg-white" />
-                            </div>
-
-                            {hasTasteVector && (
-                                <motion.div 
-                                    whileHover={{ scale: 1.005, borderColor: 'rgba(217, 70, 239, 0.4)' }}
+                        {hasTasteVector && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-8 px-10"
+                            >
+                                <div 
                                     onClick={handleForYou}
-                                    className="w-full p-5 bg-white/[0.03] border border-[#d946ef]/20 rounded-none flex items-center justify-between group cursor-pointer transition-all hover:bg-[#d946ef]/5 shadow-[0_0_40px_rgba(217,70,239,0.08)]"
+                                    className="group w-full p-6 bg-[#d946ef]/5 border border-[#d946ef]/20 rounded-none flex items-center justify-between cursor-pointer hover:bg-[#d946ef]/10 hover:border-[#d946ef]/40 transition-all shadow-[0_0_50px_rgba(217,70,239,0.05)]"
                                 >
                                     <div className="flex items-center gap-6">
-                                        <div className="p-4 bg-[#d946ef]/10 text-[#d946ef] rounded-none group-hover:bg-[#d946ef]/20 transition-all">
-                                            <Sparkles size={24} className="group-hover:rotate-12 transition-transform" />
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-xs font-black uppercase tracking-[0.3em] text-[#d946ef]">Search with your DNA</span>
-                                            <span className="text-[10px] text-gray-500 font-medium lowercase tracking-widest">
-                                                Personalized results based on your 1,880 ratings
+                                        <div className="flex flex-col gap-1 text-left">
+                                            <span className="text-xs font-black uppercase tracking-[0.3em] text-[#d946ef]">Neural Discovery Active</span>
+                                            <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest leading-none">
+                                                Personalized via your history
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-[#d946ef]/40 group-hover:text-[#d946ef] transition-colors">Go</span>
-                                        <ChevronRight size={20} className="text-[#d946ef]/40 group-hover:text-[#d946ef] group-hover:translate-x-1 transition-all" />
+                                    <div className="flex items-center gap-4 text-[#d946ef]">
+                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-100 transition-opacity">Launch</span>
+                                        <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                     </div>
-                                </motion.div>
-                            )}
-                        </motion.div>
+                                </div>
+                            </motion.div>
+                        )}
                     </>
                 )}
 
@@ -628,9 +607,9 @@ export default function SearchPage() {
                                     
                                     <div className="flex flex-col gap-3 md:col-span-3 justify-end pb-1">
                                         <div className="flex items-center justify-between mb-1">
-                                            <label className="text-[10px] text-[#d946ef] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                                <Dna size={12} /> Taste Influence
-                                            </label>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-[#d946ef] flex items-center gap-2">
+                                                Taste Influence
+                                            </div>
                                             <div className="flex items-center gap-2">
                                                 <button 
                                                     onClick={() => setTasteEnabled(!tasteEnabled)}

@@ -134,11 +134,47 @@ export default function ProfilePage() {
         }
     };
 
+    const [isDevEmpty, setIsDevEmpty] = useState(false);
+
+    useEffect(() => {
+        const handleDevForce = (e) => setIsDevEmpty(e.detail);
+        document.addEventListener('dev:forceEmpty', handleDevForce);
+        return () => document.removeEventListener('dev:forceEmpty', handleDevForce);
+    }, []);
+
+    // Logic updated to respect dev mode
+    const isActuallyEmpty = (watched.movies.length === 0 && !watchLoading) || isDevEmpty;
+
     if (isLoading) return (
         <div className="h-screen w-full flex items-center justify-center bg-black">
             <Loader2 className="animate-spin text-[var(--primary)]" size={48} />
         </div>
     );
+
+    // Profile Lock: If currently syncing, show full-page status instead of profile
+    if (syncStatus.status === 'syncing') {
+        return (
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-[#050505] p-8 text-center">
+                <div className="w-64 h-[1px] bg-white/10 relative overflow-hidden mb-12">
+                    <motion.div 
+                        initial={{ x: "-100%" }}
+                        animate={{ x: "100%" }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 bg-[var(--primary)]"
+                    />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-6" style={{ fontFamily: 'Arkhip' }}>
+                    Vault <span className="text-[#d946ef]">Syncing</span>
+                </h2>
+                <p className="text-[10px] text-white/30 font-bold uppercase tracking-[0.4em] leading-relaxed max-w-sm">
+                    {syncStatus.message || "Calibrating neural discovery engine..."}
+                </p>
+                <div className="mt-12 text-[9px] font-black uppercase tracking-widest text-[var(--primary)] opacity-40">
+                    {syncStatus.processed} / {syncStatus.total || 0} Films Resolved
+                </div>
+            </div>
+        );
+    }
 
     return (
         <main className="w-full bg-black text-white">
@@ -371,9 +407,25 @@ export default function ProfilePage() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-10 gap-x-3 gap-y-5 content-start">
-                                {watched.movies.length === 0 ? (
-                                    <div className="col-span-10 py-20 text-center">
-                                        <p className="text-white/20 font-black uppercase tracking-[0.3em] text-[10px]">No matching films found</p>
+                                {isActuallyEmpty ? (
+                                    <div className="h-full w-full flex flex-col items-center justify-center min-h-[500px] gap-8 col-span-10">
+                                        <div className="p-16 bg-white/[0.01] border border-white/5 rounded-none flex flex-col items-center text-center max-w-sm">
+                                            <h3 className="text-2xl font-black uppercase tracking-tighter text-white/40 mb-6" style={{ fontFamily: 'Arkhip' }}>
+                                                Vault <span className="text-white/10">Offline</span>
+                                            </h3>
+                                            <p className="text-[9px] text-white/20 font-bold uppercase tracking-[0.3em] leading-loose mb-12 max-w-[220px]">
+                                                Synchronize your history to calibrate the neural discovery engine.
+                                            </p>
+                                            <button 
+                                                onClick={() => {
+                                                    const syncInput = document.getElementById('letterboxd-sync-input');
+                                                    if (syncInput) syncInput.click();
+                                                }}
+                                                className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.5em] text-[9px] hover:bg-[#d946ef] hover:text-white transition-all"
+                                            >
+                                                Activate Sync
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     watched.movies.slice(0, 30).map((movie, i) => (

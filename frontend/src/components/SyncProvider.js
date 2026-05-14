@@ -1,13 +1,22 @@
 "use client"
 import { useState, useEffect, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Zap, Sparkles, Search, Dna, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { API_URL } from '@/config';
 
 const SyncContext = createContext();
 
 export function SyncProvider({ children }) {
     const [syncStatus, setSyncStatus] = useState({ status: 'idle', processed: 0, total: 0, message: '' });
+    const [showWelcome, setShowWelcome] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        const handleDevSuccess = () => setShowWelcome(true);
+        document.addEventListener('dev:showSuccess', handleDevSuccess);
+        return () => document.removeEventListener('dev:showSuccess', handleDevSuccess);
+    }, []);
 
     useEffect(() => {
         let interval;
@@ -25,8 +34,9 @@ export function SyncProvider({ children }) {
                     if (data.status === 'completed') {
                         clearInterval(interval);
                         setSyncStatus(prev => ({ ...prev, ...data, status: 'completed_recently' }));
-                        // Reset to idle after 5 seconds
-                        setTimeout(() => setSyncStatus(prev => ({ status: 'idle', processed: 0, total: 0 })), 5000);
+                        setShowWelcome(true);
+                        // Reset to idle after 8 seconds
+                        setTimeout(() => setSyncStatus(prev => ({ status: 'idle', processed: 0, total: 0 })), 8000);
                     } else if (data.status === 'error') {
                         clearInterval(interval);
                         setSyncStatus(prev => ({ ...prev, ...data }));
@@ -103,7 +113,7 @@ export function SyncProvider({ children }) {
                             <p className={`text-[10px] font-black uppercase tracking-widest
                                 ${syncStatus.status === 'error' ? 'text-red-400' : 'text-white'}`}>
                                 {syncStatus.status === 'syncing' ? (syncStatus.message || 'Syncing Vault') : 
-                                 syncStatus.status === 'completed_recently' ? 'DNA Mapped' : 'Sync Failed'}
+                                 syncStatus.status === 'completed_recently' ? 'Vault Mapped' : 'Sync Failed'}
                             </p>
                             <p className="text-[9px] text-white/40 font-bold leading-tight mt-1 max-w-[180px]">
                                 {syncStatus.status === 'error' ? (syncStatus.message || "Unknown Error") :
@@ -122,6 +132,47 @@ export function SyncProvider({ children }) {
                             </button>
                         )}
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Immersive Genome Ready Modal */}
+            <AnimatePresence>
+                {showWelcome && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center px-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/95 backdrop-blur-2xl"
+                            onClick={() => setShowWelcome(false)}
+                        />
+                        
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="relative w-full max-w-lg bg-black border border-white/5 p-16 shadow-2xl flex flex-col items-center text-center"
+                        >
+                            <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-6" style={{ fontFamily: 'Arkhip' }}>
+                                Discovery Engine <span className="text-[#d946ef]">Online</span>
+                            </h2>
+                            
+                            <p className="text-[10px] text-white/30 uppercase font-bold tracking-[0.2em] leading-relaxed mb-12 max-w-xs">
+                                Your history is mapped. Neural search and personalized discovery are now online.
+                            </p>
+
+                            <button 
+                                onClick={() => {
+                                    setShowWelcome(false);
+                                    router.push('/search');
+                                }}
+                                className="w-full py-4 bg-white text-black font-black uppercase tracking-[0.4em] text-[9px] hover:bg-[#d946ef] hover:text-white transition-all flex items-center justify-center gap-3 group"
+                            >
+                                <span>Enter Discovery</span>
+                                <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </SyncContext.Provider>

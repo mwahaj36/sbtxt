@@ -4,10 +4,11 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     
     // Get secrets from environment
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+    const backendUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN;
 
-    if (!backendUrl || !hfToken) {
+    if (!backendUrl) {
         return NextResponse.json({ error: 'Backend configuration missing' }, { status: 500 });
     }
 

@@ -1,3 +1,12 @@
+---
+title: Subtext
+emoji: 🌌
+colorFrom: purple
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # 🌌 SUBTEXT: Cinematic Discovery Redefined
 
 [![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces/mwahaj36/Subtext)

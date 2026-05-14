@@ -851,6 +851,7 @@ def search(
     watchlist_ids: list = None,
     exclude_ids: list = None,
     user_top_genres: list = None,
+    user_id: str = None,
 ):
     # Handle "For You" mode — empty query with taste vector
     is_for_you = False

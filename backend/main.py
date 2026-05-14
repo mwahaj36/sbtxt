@@ -149,7 +149,8 @@ async def get_movies(
         taste_blend=1.0 if not q.strip() and taste_vector is not None else taste_blend,
         watchlist_ids=watchlist_ids,
         exclude_ids=exclude_ids,
-        user_top_genres=user_top_genres
+        user_top_genres=user_top_genres,
+        user_id=user_id
     )
     return results
 

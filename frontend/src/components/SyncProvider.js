@@ -34,7 +34,12 @@ export function SyncProvider({ children }) {
                     if (data.status === 'completed') {
                         clearInterval(interval);
                         setSyncStatus(prev => ({ ...prev, ...data, status: 'completed_recently' }));
-                        setShowWelcome(true);
+                        
+                        // Only show the big welcome modal for non-silent (ZIP) syncs
+                        if (!syncStatus.isSilent) {
+                            setShowWelcome(true);
+                        }
+                        
                         // Reset to idle after 8 seconds
                         setTimeout(() => setSyncStatus(prev => ({ status: 'idle', processed: 0, total: 0 })), 8000);
                     } else if (data.status === 'error') {
@@ -51,13 +56,20 @@ export function SyncProvider({ children }) {
         return () => clearInterval(interval);
     }, [syncStatus.status]);
 
-    const triggerSync = (total) => {
-        setSyncStatus({ status: 'syncing', processed: 0, total: total || 1, message: '' });
+    const triggerSync = (total, options = {}) => {
+        setSyncStatus({ 
+            status: 'syncing', 
+            processed: 0, 
+            total: total || 1, 
+            message: '',
+            isSilent: options.silent || false
+        });
     };
 
-    const isVisible = syncStatus.status === 'syncing' || 
+    const isVisible = !syncStatus.isSilent && (
+                      syncStatus.status === 'syncing' || 
                       syncStatus.status === 'completed_recently' || 
-                      syncStatus.status === 'error';
+                      syncStatus.status === 'error');
 
     return (
         <SyncContext.Provider value={{ syncStatus, triggerSync }}>

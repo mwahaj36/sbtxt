@@ -116,6 +116,20 @@ export default function SettingsPage() {
         executeSync(false);
     };
 
+    const triggerQuickSync = async () => {
+        const token = localStorage.getItem("token");
+        triggerSync(1, { silent: true });
+        setToast("Quick sync started in background!");
+        try {
+            await fetch(`${API_URL}/api/v1/sbtxt-sync/live`, {
+                method: 'POST',
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+        } catch (e) {
+            setToast("Quick sync failed.");
+        }
+    };
+
     const executeSync = async (wipe) => {
         const token = localStorage.getItem("token");
         triggerSync(1);
@@ -346,9 +360,17 @@ export default function SettingsPage() {
                             <div className="flex flex-col items-center gap-2">
                                 <h4 className="font-bold uppercase tracking-widest text-[10px] text-[var(--primary)]">Sync Intelligence</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center md:text-left mt-2">
-                                    <div className="flex flex-col gap-1">
-                                        <p className="text-[11px] font-black text-white uppercase tracking-widest">Live Sync (Daily)</p>
-                                        <p className="text-[10px] text-white/40 leading-relaxed">The "Fast Lane." Instantly pulls new ratings and reviews. Use this for daily updates. <span className="text-white/20 italic">(Note: Cannot detect deletions)</span></p>
+                                    <div className="flex flex-col gap-3 items-center md:items-start">
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-[11px] font-black text-white uppercase tracking-widest">Live Sync (Daily)</p>
+                                            <p className="text-[10px] text-white/40 leading-relaxed">The "Fast Lane." Instantly pulls new ratings and reviews. <span className="text-white/20 italic">(Note: Cannot detect deletions)</span></p>
+                                        </div>
+                                        <button 
+                                            onClick={triggerQuickSync}
+                                            className="px-6 py-2.5 bg-white/5 hover:bg-[var(--primary)] hover:text-black border border-white/10 text-white/60 font-black uppercase tracking-widest text-[9px] transition-all"
+                                        >
+                                            Sync Activity
+                                        </button>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <p className="text-[11px] font-black text-white uppercase tracking-widest">ZIP Sync (Additive)</p>

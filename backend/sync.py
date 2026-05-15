@@ -584,12 +584,20 @@ async def trigger_live_sync(background_tasks: BackgroundTasks, user_id: str = De
 async def get_profile(username: str, user_id: str = Depends(get_current_user)):
     conn = get_db_connection()
     with conn.cursor() as cur:
+        # Always update letterboxd_username and username to match the Letterboxd handle
+        cur.execute(
+            "UPDATE users SET letterboxd_username = %s, username = %s WHERE id = %s AND (letterboxd_username IS NULL OR letterboxd_username = '' OR letterboxd_username != %s)",
+            (username, username, user_id, username)
+        )
+        conn.commit()
+        
         # Check if we already have any profile data in the DB
         cur.execute("SELECT bio, avatar_url, favorites, letterboxd_films_count FROM users WHERE id = %s", (user_id,))
         row = cur.fetchone()
         if row and (row[3] is not None): # If films_count is set, we have a profile
             favs = row[2]
             if isinstance(favs, str): favs = json.loads(favs)
+            conn.close()
             return {
                 "username": username,
                 "avatar": row[1],
@@ -608,11 +616,15 @@ async def get_profile(username: str, user_id: str = Depends(get_current_user)):
         # Save this initial scrape so it's instant next time
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute("UPDATE users SET bio = %s, avatar_url = %s, favorites = %s, letterboxd_films_count = %s WHERE id = %s", (data['bio'], data['avatar'], json.dumps(data['favorites']), data['films_count'], user_id))
+            cur.execute(
+                "UPDATE users SET bio = %s, avatar_url = %s, favorites = %s, letterboxd_films_count = %s, letterboxd_username = %s, username = %s WHERE id = %s",
+                (data['bio'], data['avatar'], json.dumps(data['favorites']), data['films_count'], username, username, user_id)
+            )
             conn.commit()
         conn.close()
         
         return {"username": username, "avatar": data['avatar'], "name": data['name'], "bio": data['bio'], "films_count": data['films_count'], "favorites": data['favorites']}
+
 
 async def scrape_films_page_quick(username: str, client: httpx.AsyncClient, page_type: str = "films") -> List[Dict]:
     """

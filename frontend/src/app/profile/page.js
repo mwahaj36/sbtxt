@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSync } from '@/components/SyncProvider';
-import { Loader2, Film, Star, ChevronLeft, ChevronRight, Heart, Search, ChevronDown, RefreshCw, ExternalLink, Settings, Dna, Map as MapIcon } from 'lucide-react';
+import { Loader2, Film, Star, ChevronLeft, ChevronRight, Heart, Search, ChevronDown, RefreshCw, ExternalLink, Settings, Dna } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/config';
 
@@ -226,12 +226,6 @@ export default function ProfilePage() {
                                 </button>
                                 <button onClick={() => router.push('/settings')} className="px-6 py-3 bg-white/5 border border-white/10 text-white/60 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all flex items-center gap-2">
                                     <Settings size={10} /> Settings
-                                </button>
-                                <button 
-                                    onClick={() => router.push('/galaxy')} 
-                                    className="px-6 py-3 bg-[#ff0055]/10 border border-[#ff0055]/30 text-[#ff0055] text-[9px] font-black uppercase tracking-widest hover:bg-[#ff0055]/20 hover:border-[#ff0055]/50 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,0,85,0.1)]"
-                                >
-                                    <MapIcon size={10} /> View Galaxy
                                 </button>
                             </div>
                         </div>

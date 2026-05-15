@@ -132,6 +132,9 @@ export default function AuthPage() {
                     <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
                         {isLoading && !isLogin ? <Loader2 className="animate-spin text-black" size={16} /> : "Create Account"}
                     </button>
+                    <p className="mt-4 text-[10px] text-gray-400 text-center leading-relaxed">
+                        Requires a <a href="https://letterboxd.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-black transition-colors">Letterboxd</a> account to function.
+                    </p>
 
                     {/* Mobile Only Toggle */}
                     <button 

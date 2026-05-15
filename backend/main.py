@@ -73,8 +73,15 @@ app.add_middleware(
 )
 
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print(f"📥 Incoming: {request.method} {request.url.path}")
+async def fix_and_log_requests(request: Request, call_next):
+    # Normalize double slashes in path (e.g., //api/v1 -> /api/v1)
+    # This happens because of how some proxies or base_urls are configured
+    if request.scope['path'].startswith("//"):
+        original_path = request.scope['path']
+        request.scope['path'] = original_path.replace("//", "/", 1)
+        print(f"⚠️  Normalized path: {original_path} -> {request.scope['path']}")
+    
+    print(f"📥 Incoming: {request.method} {request.scope['path']}")
     response = await call_next(request)
     print(f"📤 Outgoing Status: {response.status_code}")
     return response

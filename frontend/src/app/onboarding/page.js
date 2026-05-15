@@ -48,7 +48,7 @@ export default function Onboard() {
         formData.append('file', file);
         
         try {
-            const res = await fetch(`${API_URL}/sbtxt-sync/letterboxd`, {
+            const res = await fetch(`${API_URL}/api/v1/sbtxt-sync/letterboxd`, {
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData,
@@ -87,7 +87,7 @@ export default function Onboard() {
     const savePreferences = async () => {
         const token = localStorage.getItem("token");
         try {
-            await fetch(`${API_URL}/sbtxt-auth/preferences`, {
+            await fetch(`${API_URL}/api/v1/sbtxt-auth/preferences`, {
                 method: 'POST',
                 headers: { 
                     "Content-Type": "application/json",

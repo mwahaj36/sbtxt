@@ -341,8 +341,18 @@ async def sync_live_history(username: str, user_id: str):
                                 date_tag = item.find('letterboxd:watchedDate', ns)
                                 watched_date = date_tag.text if date_tag is not None else None
                                 
-                                cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = 'watched' AND watched_date = %s", (user_id, lb_uri, watched_date))
-                                if cur.fetchone(): continue # Already synced this specific watch
+                                # Use pubDate as a fallback for sorting if watchedDate is missing (non-diary entries)
+                                if not watched_date:
+                                    pub_date_tag = item.find('pubDate')
+                                    if pub_date_tag is not None:
+                                        try:
+                                            # Convert RSS pubDate to YYYY-MM-DD
+                                            dt = datetime.strptime(pub_date_tag.text, "%a, %d %b %Y %H:%M:%S %z")
+                                            watched_date = dt.strftime("%Y-%m-%d")
+                                        except: pass
+
+                                cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = 'watched' AND (watched_date = %s OR (watched_date IS NULL AND %s IS NULL))", (user_id, lb_uri, watched_date, watched_date))
+                                if cur.fetchone(): continue 
                                 
                                 year_tag = item.find('letterboxd:filmYear', ns)
                                 rating_tag = item.find('letterboxd:memberRating', ns)
@@ -357,25 +367,35 @@ async def sync_live_history(username: str, user_id: str):
                                     'tmdb_id': int(tmdb_id_tag.text) if tmdb_id_tag is not None else None,
                                     'watched_date': watched_date
                                 })
-                    finally: conn.close()
+                        conn.close()
+                    except Exception as e:
+                        print(f"[SYNC][RSS] Error: {e}")
+                        if conn: conn.close()
 
-            # 2. Fetch Watchlist via Scraper
-            print(f"[SYNC][SCRAPE] Starting watchlist scraper for {username}...")
-            SYNC_PROGRESS[user_id]["message"] = "Checking watchlist additions..."
-            watchlist_movies = await scrape_watchlist_quick(username, client)
-            if watchlist_movies:
-                print(f"[SYNC][SCRAPE] Found {len(watchlist_movies)} items in public watchlist.")
+            # 2. Fetch Watchlist & Recent Films via Scraper
+            print(f"[SYNC][SCRAPE] Starting quick scraper for {username}...")
+            SYNC_PROGRESS[user_id]["message"] = "Checking library additions..."
+            
+            # Scrape Watchlist
+            watchlist_movies = await scrape_films_page_quick(username, client, "watchlist")
+            
+            # Scrape Recent Films (to catch non-diary watches)
+            recent_movies = await scrape_films_page_quick(username, client, "films")
+            
+            scraper_movies = watchlist_movies + recent_movies
+            if scraper_movies:
+                print(f"[SYNC][SCRAPE] Found {len(scraper_movies)} potential items via scraping.")
                 conn = get_db_connection()
                 if conn:
                     try:
                         with conn.cursor() as cur:
-                            # Process scraper items in reverse (Oldest to Newest) 
-                            # so Newest gets processed last and gets the HIGHEST ID
-                            for m in reversed(watchlist_movies):
-                                cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = 'watchlist'", (user_id, m['letterboxd_uri']))
+                            for m in scraper_movies:
+                                # Check if already exists with same interaction type
+                                cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = %s", (user_id, m['letterboxd_uri'], m['interaction_type']))
                                 if not cur.fetchone(): 
-                                    # Set watched_date to current time for watchlist items to maintain sort order
-                                    m['watched_date'] = datetime.now().isoformat()
+                                    # If it's a watchlist item, set current date as placeholder for sort
+                                    if m['interaction_type'] == 'watchlist':
+                                        m['watched_date'] = datetime.now().strftime("%Y-%m-%d")
                                     all_new_movies.append(m)
                     finally: conn.close()
 
@@ -576,42 +596,65 @@ async def get_profile(username: str, user_id: str = Depends(get_current_user)):
         
         return {"username": username, "avatar": data['avatar'], "name": data['name'], "bio": data['bio'], "films_count": data['films_count'], "favorites": data['favorites']}
 
-async def scrape_watchlist_quick(username: str, client: httpx.AsyncClient) -> List[Dict]:
+async def scrape_films_page_quick(username: str, client: httpx.AsyncClient, page_type: str = "films") -> List[Dict]:
     """
-    Directly scrapes the first page of a user's watchlist.
-    Returns list of movies with interaction_type='watchlist'.
+    Directly scrapes the first page of a user's films or watchlist.
+    Returns list of movies with appropriate interaction_type.
     """
-    url = f"https://letterboxd.com/{username}/watchlist/"
+    path = "watchlist" if page_type == "watchlist" else "films"
+    url = f"https://letterboxd.com/{username}/{path}/"
+    interaction_type = "watchlist" if page_type == "watchlist" else "watched"
+    
     try:
         resp = await client.get(url, headers=get_ghost_headers(username), follow_redirects=True)
-        if resp.status_code != 200: return []
+        if resp.status_code != 200: 
+            print(f"[SCRAPE] Failed to access {path} for {username} (Status: {resp.status_code})")
+            return []
         
         html = resp.text
-        # First try the data attribute
-        items = re.findall(r'data-film-slug=["\'](.*?/?)["\']', html)
+        if "This profile is private" in html or "Sign in to Letterboxd" in html:
+            print(f"[SCRAPE] Profile {username} is private or requires login. Skipping scrape.")
+            return []
+
+        # Find all posters
+        # Pattern 1: data-film-slug (Most reliable)
+        # Pattern 2: film link in poster
+        found_movies = []
+        found_uris = set()
         
-        # Fallback: if no data-film-slug found, just find all /film/ links
-        if not items:
-            items = re.findall(r'/film/[a-z0-9\-]+?/', html)
+        # This regex looks for the div that typically contains the film slug and rating
+        # <div class="really-lazy-load poster film-poster..." data-film-slug="the-substance" data-member-rating="9">
+        poster_matches = re.findall(r'data-film-slug=["\'](.*?/?)["\'].*?(?:data-member-rating=["\'](\d+)["\'])?', html)
         
-        movies = []
-        found_slugs = set()
+        for slug, rating in poster_matches:
+            slug = slug.strip('/')
+            uri = f"https://letterboxd.com/film/{slug}/"
+            if uri not in found_uris:
+                found_movies.append({
+                    'movie_title': slug.replace('-', ' ').title(),
+                    'letterboxd_uri': uri,
+                    'interaction_type': interaction_type,
+                    'rating': float(rating)/2 if rating else None # Letterboxd stores 0-10, we use 0-5
+                })
+                found_uris.add(uri)
         
-        for slug in items:
-            if slug.startswith('/film/'):
-                clean_slug = slug if slug.endswith('/') else slug + '/'
-                if clean_slug not in found_slugs:
-                    movies.append({
-                        'movie_title': re.sub(r'\s\d{4}(\s\d+)?$', '', clean_slug.split('/')[-2].replace('-', ' ').title()),
-                        'letterboxd_uri': f"https://letterboxd.com{clean_slug}",
-                        'interaction_type': 'watchlist'
+        # Fallback for watchlist links
+        if not found_movies:
+            link_matches = re.findall(r'/film/([a-z0-9\-]+?)/', html)
+            for slug in link_matches:
+                uri = f"https://letterboxd.com/film/{slug}/"
+                if uri not in found_uris:
+                    found_movies.append({
+                        'movie_title': slug.replace('-', ' ').title(),
+                        'letterboxd_uri': uri,
+                        'interaction_type': interaction_type
                     })
-                    found_slugs.add(clean_slug)
+                    found_uris.add(uri)
             
-        print(f"[WATCHLIST SCRAPE] Found {len(movies)} potential items on first page.")
-        return movies
+        print(f"[SCRAPE] Found {len(found_movies)} items in {page_type} for {username}.")
+        return found_movies
     except Exception as e:
-        print(f"[WATCHLIST SCRAPE ERROR] {e}")
+        print(f"[SCRAPE ERROR] {page_type} for {username}: {e}")
         return []
 
 @router.get("/library")

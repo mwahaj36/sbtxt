@@ -16,12 +16,6 @@ const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), {
 });
 
 const LOADING_TIPS = [
-    "WASD to navigate through the neural matrix.",
-    "SHIFT to activate Neural Sprint speed.",
-    "LEFT CLICK to lock onto a movie signal.",
-    "RIGHT CLICK anywhere to purge current selection.",
-    "HOVER on neighbor stars to scout similar titles.",
-    "QE to adjust your vertical elevation in space.",
     "The Galaxy represents pure vector similarity—distance is meaning.",
     "Fuchsia lines represent your Personal Favorites constellation.",
     "Red lines connect your Most Recently watched films."
@@ -270,15 +264,6 @@ export default function GalaxyPage() {
         setSearchResults([]);
         setSearchQuery('');
         
-        // Warp Camera
-        const distance = 150;
-        const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
-        fgRef.current.cameraPosition(
-            { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
-            node,
-            1000
-        );
-
         const others = data.nodes.filter(n => n.id !== node.id);
         const neighbors = others
             .map(n => ({ id: n.id, dist: Math.hypot(n.x - node.x, n.y - node.y, n.z - node.z) }))

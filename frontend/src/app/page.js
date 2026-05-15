@@ -135,9 +135,6 @@ export default function Home() {
             <section id="vibe" className="h-screen w-full flex items-center justify-center bg-[#0d041a] snap-start relative px-4">
                 <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
                     <motion.div {...fadeIn}>
-                        <div className="w-12 h-12 bg-[var(--secondary)]/10 rounded-none flex items-center justify-center text-[var(--secondary)] mb-6">
-                            <Search size={24} />
-                        </div>
                         <h2 className="text-3xl md:text-6xl font-black mb-6 tracking-tight text-white">Vibe-First Search</h2>
                         <p className="text-gray-400 text-base md:text-lg leading-relaxed mb-8">
                             Stop typing titles. Start typing feelings. Search for "Lush atmospheric nostalgia," "Neon-soaked revenge," or "Heartfelt rural coming-of-age." Our semantic engine understands the DNA of story.
@@ -200,11 +197,6 @@ export default function Home() {
                         </div>
                     </motion.div>
                     <motion.div {...fadeIn} className="order-1 md:order-2">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 bg-blue-500/10 rounded-none flex items-center justify-center text-blue-400">
-                                <Library size={24} />
-                            </div>
-                        </div>
                         <h2 className="text-3xl md:text-6xl font-black mb-6 tracking-tight text-white leading-tight md:leading-none">Your Cinematic <br/>Signature</h2>
                         <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8">
                             Connect your Letterboxd diary to unlock <strong>Neural Search</strong>. SBTXT analyzes your 5-star ratings to map your unique Taste DNA.
@@ -235,9 +227,6 @@ export default function Home() {
             <section id="tmdb" className="h-screen w-full flex items-center justify-center bg-[#0d253f] snap-start relative px-4">
                 <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
                     <motion.div {...fadeIn}>
-                        <div className="w-12 h-12 bg-[#90cea1]/10 rounded-none flex items-center justify-center text-[#90cea1] mb-6">
-                            <Database size={24} />
-                        </div>
                         <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white leading-none">Powered by the World's Movie Database</h2>
                         <p className="text-blue-100/60 text-lg leading-relaxed mb-8">
                             SBTXT is built upon the robust infrastructure of TMDB. We ingest millions of data points—from classic filmography to upcoming blockbusters—to ensure your discovery journey is always backed by the most comprehensive movie library on Earth.
@@ -291,8 +280,8 @@ export default function Home() {
             </section>
 
             {/* SECTION 6: GALAXY (MAGENTA) */}
-            <section id="galaxy" className="min-h-screen w-full flex items-center justify-center bg-black snap-start relative px-8 md:px-24 py-24 md:py-0 overflow-hidden">
-                <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-20 items-center">
+            <section id="galaxy" className="min-h-screen w-full flex items-center justify-center bg-black snap-start relative px-8 md:px-24 pt-32 md:pt-40 pb-24 overflow-hidden">
+                <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 md:gap-20 items-center">
                     
                     {/* LEFT: Galaxy Visualization Preview */}
                     <Link href="/galaxy" className="group relative order-2 md:order-1">
@@ -300,7 +289,7 @@ export default function Home() {
                             initial={{ opacity: 0, x: -30 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 1 }}
-                            className="relative h-[400px] md:h-[650px] w-full bg-white/[0.02] backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden group hover:border-[var(--primary)]/50 transition-all cursor-pointer shadow-[0_0_50px_rgba(var(--primary-rgb),0.05)]"
+                            className="relative h-[300px] md:h-[650px] w-full bg-white/[0.02] backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden group hover:border-[var(--primary)]/50 transition-all cursor-pointer shadow-[0_0_50px_rgba(var(--primary-rgb),0.05)]"
                         >
                              {stars.map((star) => (
                                 <motion.div 
@@ -326,15 +315,9 @@ export default function Home() {
 
                     {/* RIGHT: Detailed Intelligence */}
                     <motion.div {...fadeIn} className="flex flex-col items-start text-left order-1 md:order-2">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-none flex items-center justify-center text-[var(--primary)]">
-                                <Compass size={24} />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--primary)]">Neural Cartography</span>
-                        </div>
                         
-                        <h2 className="text-4xl md:text-8xl font-black mb-6 md:8 tracking-tighter text-white uppercase leading-none" style={{ fontFamily: 'Arkhip' }}>
-                            The <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-white/40">Galaxy</span>
+                        <h2 className="text-5xl md:text-8xl font-black mb-6 md:mb-8 tracking-tighter text-white uppercase leading-none" style={{ fontFamily: 'Arkhip' }}>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-white/40">Galaxy</span>
                         </h2>
                         
                         <p className="text-gray-400 text-base md:text-lg leading-relaxed mb-10 md:12 font-medium max-w-lg">

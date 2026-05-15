@@ -180,7 +180,7 @@ export default function ProfilePage() {
         <main className="w-full bg-black text-white">
             
             {/* DECK 1: IDENTITY */}
-            <section className="h-screen w-full snap-start flex flex-col items-center justify-center py-12 px-12 md:px-20 relative bg-[#050505] overflow-hidden">
+            <section className="min-h-screen w-full snap-start flex flex-col items-center justify-center pt-24 pb-12 px-8 md:px-20 relative bg-[#050505] overflow-hidden">
                 <div className="absolute inset-0 mesh-gradient opacity-10" />
                 
                 <div className="max-w-7xl mx-auto w-full h-full md:max-h-[80vh] flex flex-col md:flex-row gap-12 md:gap-20 z-10 items-center">
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 border-b border-white/5 pb-2 mb-4 flex items-center gap-2">
                                  Favorites
                             </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-4 gap-2 md:gap-4">
                                 {(profile?.favorites || []).slice(0, 4).map((fav, i) => (
                                     <motion.div key={i} whileHover={{ y: -4, scale: 1.05 }} className="group cursor-pointer relative" onClick={() => handleMovieClick(fav.tmdb_id)}>
                                         <div className="aspect-[2/3] overflow-hidden border border-white/10 bg-white/5 group-hover:border-white/40 transition-all shadow-2xl">
@@ -257,7 +257,7 @@ export default function ProfilePage() {
                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 border-b border-white/5 pb-2 mb-4 flex items-center gap-2">
                                  Recently Watched
                             </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-4 gap-2 md:gap-4">
                                 {recent.slice(0, 4).map((movie, i) => (
                                     <motion.div key={i} whileHover={{ y: -4, scale: 1.05 }} className="group cursor-pointer" onClick={() => handleMovieClick(movie.tmdb_id)}>
                                         <div className="relative aspect-[2/3] overflow-hidden border border-white/10 bg-white/5 group-hover:border-white/40 transition-all shadow-2xl">

@@ -51,6 +51,16 @@ export default function GalaxyPage() {
     const [neighborIds, setNeighborIds] = useState(new Set());
     const [isLocked, setIsLocked] = useState(false);
     const [exploration, setExploration] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const sectorAnchors = useMemo(() => [
         { name: 'HORROR', search: 'Scream' },
@@ -476,6 +486,36 @@ export default function GalaxyPage() {
 
     return (
         <main className="relative h-screen w-full overflow-hidden bg-black font-mono">
+            {/* MOBILE GATE OVERLAY */}
+            <AnimatePresence>
+                {isMobile && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[2000] flex flex-col items-center justify-center bg-black px-10 text-center"
+                    >
+                        <div className="flex flex-col items-center gap-8 max-w-sm">
+                            <div className="flex flex-col items-center gap-3">
+                                <h1 className="text-4xl font-black tracking-[0.2em] text-white uppercase leading-none" style={{ fontFamily: 'Arkhip' }}>
+                                    Desktop<br/><span className="text-[var(--primary)]">Only Matrix</span>
+                                </h1>
+                                <div className="h-1 w-12 bg-[var(--primary)] mt-2" />
+                            </div>
+                            
+                            <p className="text-[10px] tracking-[0.3em] text-white/40 uppercase font-bold leading-relaxed">
+                                The Neural Matrix requires high-bandwidth rendering and hardware-accelerated pilot controls. Please visit Subtext on a desktop to navigate the Galaxy.
+                            </p>
+
+                            <a 
+                                href="/search"
+                                className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase tracking-[0.4em] hover:bg-[var(--primary)] hover:text-black transition-all"
+                            >
+                                Use Mobile Search
+                            </a>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* MINIMAL LOADING OVERLAY */}
             <AnimatePresence>
                 {loading && (

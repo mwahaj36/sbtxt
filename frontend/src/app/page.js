@@ -63,11 +63,11 @@ export default function Home() {
                     transition={{ duration: 1, delay: 0.2 }}
                     className="relative z-10"
                 >
-                    <h1 className="font-['Arkhip'] text-6xl md:text-9xl tracking-tighter leading-none mb-6 uppercase">
+                    <h1 className="font-['Arkhip'] text-4xl md:text-9xl tracking-tighter leading-tight md:leading-none mb-6 uppercase px-4">
                         MOVIES,<br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[var(--primary)] to-white/40">SEMANTICALLY.</span>
                     </h1>
-                    <p className="max-w-2xl mx-auto text-gray-400 text-lg md:text-xl font-light tracking-wide mb-10 px-4">
+                    <p className="max-w-2xl mx-auto text-gray-400 text-sm md:text-xl font-light tracking-wide mb-10 px-6">
                         Escape the algorithm. Discover cinema through vibes, story, and soul—not just metadata.
                     </p>
                     <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
@@ -98,11 +98,11 @@ export default function Home() {
                         transition={{ duration: 0.8 }}
                         className="max-w-4xl"
                     >
-                        <h2 className="text-5xl md:text-8xl font-black tracking-tighter mb-12 leading-[0.9]">
+                        <h2 className="text-4xl md:text-8xl font-black tracking-tighter mb-8 md:12 leading-[1] md:leading-[0.9]">
                             KEYWORDS ARE <br />
-                            <span className="line-through decoration-[var(--primary)] decoration-8 text-black/20">A LIE.</span>
+                            <span className="line-through decoration-[var(--primary)] decoration-4 md:decoration-8 text-black/20">A LIE.</span>
                         </h2>
-                        <p className="text-xl md:text-4xl font-bold tracking-tight leading-tight mb-12">
+                        <p className="text-lg md:text-4xl font-bold tracking-tight leading-snug md:leading-tight mb-8 md:12">
                             Traditional search is a graveyard of metadata. It doesn't care about the <span className="italic">soul</span> of the story—it only cares if the title matches your typo.
                         </p>
                     </motion.div>
@@ -138,8 +138,8 @@ export default function Home() {
                         <div className="w-12 h-12 bg-[var(--secondary)]/10 rounded-none flex items-center justify-center text-[var(--secondary)] mb-6">
                             <Search size={24} />
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">Vibe-First Search</h2>
-                        <p className="text-gray-400 text-lg leading-relaxed mb-8">
+                        <h2 className="text-3xl md:text-6xl font-black mb-6 tracking-tight text-white">Vibe-First Search</h2>
+                        <p className="text-gray-400 text-base md:text-lg leading-relaxed mb-8">
                             Stop typing titles. Start typing feelings. Search for "Lush atmospheric nostalgia," "Neon-soaked revenge," or "Heartfelt rural coming-of-age." Our semantic engine understands the DNA of story.
                         </p>
                         <ul className="space-y-4">
@@ -205,9 +205,9 @@ export default function Home() {
                                 <Library size={24} />
                             </div>
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white leading-none">Your Cinematic <br/>Signature</h2>
-                        <p className="text-gray-300 text-lg leading-relaxed mb-8">
-                            Connect your Letterboxd diary to unlock <strong>Neural Search</strong>. SBTXT analyzes your 5-star ratings to map your unique Taste DNA, allowing you to search with personalized affinity or scan specifically within your Watchlist.
+                        <h2 className="text-3xl md:text-6xl font-black mb-6 tracking-tight text-white leading-tight md:leading-none">Your Cinematic <br/>Signature</h2>
+                        <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8">
+                            Connect your Letterboxd diary to unlock <strong>Neural Search</strong>. SBTXT analyzes your 5-star ratings to map your unique Taste DNA.
                         </p>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 rounded-none bg-white/5 border border-white/5">
@@ -333,12 +333,12 @@ export default function Home() {
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--primary)]">Neural Cartography</span>
                         </div>
                         
-                        <h2 className="text-5xl md:text-8xl font-black mb-8 tracking-tighter text-white uppercase leading-none" style={{ fontFamily: 'Arkhip' }}>
+                        <h2 className="text-4xl md:text-8xl font-black mb-6 md:8 tracking-tighter text-white uppercase leading-none" style={{ fontFamily: 'Arkhip' }}>
                             The <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-white/40">Galaxy</span>
                         </h2>
                         
-                        <p className="text-gray-400 text-lg leading-relaxed mb-12 font-medium max-w-lg">
-                            Escape the grid. We've mapped over 100,000 films into a high-dimensional neural matrix. By measuring <strong>Raw Vector Similarity</strong> between story beats and visual DNA, we've created a universe where proximity is meaning. 
+                        <p className="text-gray-400 text-base md:text-lg leading-relaxed mb-10 md:12 font-medium max-w-lg">
+                            Escape the grid. We've mapped over 100,000 films into a high-dimensional neural matrix. By measuring <strong>Raw Vector Similarity</strong>, we've created a universe where proximity is meaning. 
                         </p>
                         
                         <div className="grid gap-6 w-full">
@@ -371,10 +371,10 @@ export default function Home() {
             {/* SECTION 7: CTA & FOOTER (BLACK) */}
             <section id="cta" className="h-screen w-full flex flex-col justify-between bg-black snap-start relative">
                 <div className="flex-1 flex items-center justify-center px-4">
-                    <motion.div {...fadeIn} className="max-w-4xl w-full p-12 rounded-none bg-gradient-to-br from-white/5 to-transparent border border-white/10 text-center relative overflow-hidden">
-                        <h2 className="text-5xl md:text-7xl font-black mb-10 text-white leading-tight">Ready to find<br />something real?</h2>
-                        <Link href="/search" className="inline-flex items-center gap-4 px-12 py-6 bg-[var(--primary)] text-black font-black uppercase tracking-widest text-xs rounded-none hover:scale-110 transition-all shadow-[0_0_50px_rgba(217,70,239,0.3)]">
-                            Launch Search <ChevronRight size={20} />
+                    <motion.div {...fadeIn} className="max-w-4xl w-full p-8 md:12 rounded-none bg-gradient-to-br from-white/5 to-transparent border border-white/10 text-center relative overflow-hidden">
+                        <h2 className="text-3xl md:text-7xl font-black mb-8 md:10 text-white leading-tight">Ready to find<br />something real?</h2>
+                        <Link href="/search" className="inline-flex items-center gap-4 px-10 md:12 py-5 md:6 bg-[var(--primary)] text-black font-black uppercase tracking-widest text-[10px] md:text-xs rounded-none hover:scale-110 transition-all shadow-[0_0_50px_rgba(217,70,239,0.3)]">
+                            Launch Search <ChevronRight size={18} />
                         </Link>
                     </motion.div>
                 </div>

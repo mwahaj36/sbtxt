@@ -139,10 +139,10 @@ export default function Onboard() {
             className=" fixed top-0 left-0 h-screen w-full overflow-y-auto snap-y snap-mandatory bg-white text-black"
         >
             <div className="h-screen w-full bg-[#000000] text-white flex flex-col relative items-center justify-center relative snap-start">
-                <h1 className="font-['arkhip'] text-6xl text-center uppercase">
+                <h1 className="font-['arkhip'] text-4xl md:text-6xl text-center uppercase px-6">
                     Welcome to SBTXT
                 </h1>
-                <h3 className=" text-2xl text-center uppercase pt-8">
+                <h3 className="text-lg md:text-2xl text-center uppercase pt-8">
                     Lets Get You Started
                 </h3>
                 <h2 className='text-xl text-white/50 absolute bottom-10 animate-bounce  duration-500 uppercase  '>
@@ -150,13 +150,13 @@ export default function Onboard() {
                 </h2>
             </div>
 
-            <div className="h-screen w-full bg-[#0a0a0a] text-white flex flex-col relative items-center justify-center snap-start px-20">
+            <div className="h-screen w-full bg-[#0a0a0a] text-white flex flex-col relative items-center justify-center snap-start px-6 md:px-20">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     className="max-w-xl w-full text-center"
                 >
-                    <h1 className="font-['arkhip'] text-6xl mb-8">Who Are You?</h1>
+                    <h1 className="font-['arkhip'] text-4xl md:text-6xl mb-8">Who Are You?</h1>
                     <div className="relative group">
                         <input 
                             type="text" 
@@ -164,7 +164,7 @@ export default function Onboard() {
                             value={lbUsername}
                             onChange={(e) => setLbUsername(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && fetchProfile()}
-                            className="w-full bg-transparent border-b-2 border-white/10 py-4 text-3xl font-bold text-center outline-none focus:border-[var(--primary)] transition-all placeholder:text-white/10"
+                            className="w-full bg-transparent border-b-2 border-white/10 py-4 text-xl md:text-3xl font-bold text-center outline-none focus:border-[var(--primary)] transition-all placeholder:text-white/10"
                         />
                         {isFinding && <Loader2 className="absolute right-4 top-5 animate-spin text-[var(--primary)]" />}
                         <p className="mt-4 text-[10px] text-white/20 font-black uppercase tracking-[0.2em]">
@@ -196,9 +196,9 @@ export default function Onboard() {
                 </motion.div>
             </div>
 
-            <div className="h-screen w-full bg-[#14181c] text-white flex flex-row relative items-center justify-center snap-start px-20 gap-20">
+            <div className="min-h-screen md:h-screen w-full bg-[#14181c] text-white flex flex-col md:flex-row relative items-center justify-center snap-start px-6 md:px-20 py-20 md:py-0 gap-12 md:gap-20">
                 <div className="flex flex-col gap-8 max-w-2xl">
-                    <h1 className="font-['arkhip'] text-6xl text-left">
+                    <h1 className="font-['arkhip'] text-4xl md:text-6xl text-left">
                         Let's Load Your Letterboxd Data
                     </h1>
                     
@@ -229,7 +229,7 @@ export default function Onboard() {
                     onDrop={handleDrop}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`relative group cursor-pointer w-full max-w-xl p-16 rounded-none border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center gap-6
+                    className={`relative group cursor-pointer w-full max-w-xl p-10 md:p-16 rounded-none border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center gap-6
                         ${isDragging ? 'border-white bg-white/20' : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'}
                         backdrop-blur-md shadow-2xl`}
                     onClick={() => document.getElementById('fileInput').click()}
@@ -308,14 +308,14 @@ export default function Onboard() {
                 </AnimatePresence>
             </div>
 
-            <div className="h-screen w-full bg-[#0a0a0a] text-white flex flex-col relative items-center justify-center snap-start px-20">
+            <div className="min-h-screen md:h-screen w-full bg-[#0a0a0a] text-white flex flex-col relative items-center justify-center snap-start px-6 md:px-20 py-20 md:py-0">
                 <div className="max-w-4xl w-full flex flex-col items-center">
                     <motion.div 
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         className="text-center mb-16"
                     >
-                        <h1 className="font-['arkhip'] text-6xl mb-4">Refine Your Signal</h1>
+                        <h1 className="font-['arkhip'] text-4xl md:text-6xl mb-4">Refine Your Signal</h1>
                         <p className="text-white/40 text-lg uppercase tracking-[0.3em] font-bold">Pick the vibes that define you</p>
                     </motion.div>
 

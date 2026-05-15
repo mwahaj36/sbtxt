@@ -183,10 +183,10 @@ export default function ProfilePage() {
             <section className="h-screen w-full snap-start flex flex-col items-center justify-center py-12 px-12 md:px-20 relative bg-[#050505] overflow-hidden">
                 <div className="absolute inset-0 mesh-gradient opacity-10" />
                 
-                <div className="max-w-7xl mx-auto w-full h-full max-h-[80vh] flex flex-row gap-20 z-10 items-center">
+                <div className="max-w-7xl mx-auto w-full h-full md:max-h-[80vh] flex flex-col md:flex-row gap-12 md:gap-20 z-10 items-center">
                     
                     {/* LEFT COLUMN: Identity Info */}
-                    <div className="w-[400px] flex flex-col items-center justify-center gap-12 shrink-0">
+                    <div className="w-full md:w-[400px] flex flex-col items-center justify-center gap-8 md:gap-12 shrink-0">
                         <div className="flex flex-col items-center text-center">
                             <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative group shrink-0 mb-8">
                                 <div className="absolute -inset-2 bg-gradient-to-r from-[var(--primary)]/20 via-white/10 to-transparent rounded-none blur opacity-20 group-hover:opacity-40 transition-opacity" />
@@ -197,7 +197,7 @@ export default function ProfilePage() {
                                 />
                             </motion.div>
 
-                            <h1 className="text-5xl font-black uppercase tracking-tighter mb-2" style={{ fontFamily: 'Arkhip' }}>
+                            <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-2" style={{ fontFamily: 'Arkhip' }}>
                                 {profile?.name || profile?.username}
                             </h1>
                             <div className="flex items-center justify-center gap-4 mb-6">
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 border-b border-white/5 pb-2 mb-4 flex items-center gap-2">
                                  Favorites
                             </h3>
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {(profile?.favorites || []).slice(0, 4).map((fav, i) => (
                                     <motion.div key={i} whileHover={{ y: -4, scale: 1.05 }} className="group cursor-pointer relative" onClick={() => handleMovieClick(fav.tmdb_id)}>
                                         <div className="aspect-[2/3] overflow-hidden border border-white/10 bg-white/5 group-hover:border-white/40 transition-all shadow-2xl">
@@ -257,7 +257,7 @@ export default function ProfilePage() {
                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 border-b border-white/5 pb-2 mb-4 flex items-center gap-2">
                                  Recently Watched
                             </h3>
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {recent.slice(0, 4).map((movie, i) => (
                                     <motion.div key={i} whileHover={{ y: -4, scale: 1.05 }} className="group cursor-pointer" onClick={() => handleMovieClick(movie.tmdb_id)}>
                                         <div className="relative aspect-[2/3] overflow-hidden border border-white/10 bg-white/5 group-hover:border-white/40 transition-all shadow-2xl">
@@ -291,7 +291,7 @@ export default function ProfilePage() {
                             <div className="w-12 h-[1px] bg-[#d946ef]" />
                             <span className="text-[#d946ef] text-[10px] font-black uppercase tracking-[0.4em]">Cinematic Signature</span>
                         </div>
-                        <h2 className="text-6xl font-black uppercase tracking-tighter text-white mb-8 leading-none" style={{ fontFamily: 'Arkhip' }}>
+                        <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-8 leading-tight md:leading-none" style={{ fontFamily: 'Arkhip' }}>
                             Your<br/><span className="text-[#d946ef]">Taste DNA</span>
                         </h2>
                         <div className="space-y-6 text-sm text-white/50 leading-relaxed max-w-md font-medium mb-12">
@@ -371,11 +371,11 @@ export default function ProfilePage() {
                     {/* Header Pinned */}
                     <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-6 shrink-0">
                         <div className="flex items-center gap-4">
-                            <h2 className="font-['Arkhip'] text-3xl font-black uppercase tracking-tighter text-white">Films</h2>
+                            <h2 className="font-['Arkhip'] text-2xl md:text-3xl font-black uppercase tracking-tighter text-white">Films</h2>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <div className="relative group">
+                        <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto mt-4 md:mt-0">
+                            <div className="relative group w-full md:w-auto">
                                 <Search 
                                     className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white transition-colors cursor-pointer" 
                                     size={12} 
@@ -406,7 +406,7 @@ export default function ProfilePage() {
                                 <Loader2 className="animate-spin text-[var(--primary)]" size={32} />
                             </div>
                         ) : (
-                            <div className="grid grid-cols-10 gap-x-3 gap-y-5 content-start">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10 gap-x-3 gap-y-5 content-start">
                                 {isActuallyEmpty ? (
                                     <div className="h-full w-full flex flex-col items-center justify-center min-h-[500px] gap-8 col-span-10">
                                         <div className="p-16 bg-white/[0.01] border border-white/5 rounded-none flex flex-col items-center text-center max-w-sm">
@@ -530,7 +530,7 @@ export default function ProfilePage() {
                                 <Loader2 className="animate-spin text-[var(--primary)]" size={32} />
                             </div>
                         ) : (
-                            <div className="grid grid-cols-10 gap-x-3 gap-y-5 content-start">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10 gap-x-3 gap-y-5 content-start">
                                 {watchlist.movies.length === 0 ? (
                                     <div className="col-span-10 py-20 text-center">
                                         <p className="text-white/20 font-black uppercase tracking-[0.3em] text-xs">No matching films found</p>

@@ -387,7 +387,7 @@ export default function SearchPage() {
                         exit={{ opacity: 0, scale: 0.95 }}
                         className="mb-12 text-center"
                     >
-                        <h1 className="font-['Arkhip'] text-5xl md:text-7xl mb-8 text-white uppercase tracking-tighter leading-none"> 
+                        <h1 className="font-['Arkhip'] text-3xl md:text-7xl mb-8 text-white uppercase tracking-tighter leading-none px-4"> 
                             CINEMA, <span className="text-[var(--primary)]">BEYOND THE TAGS</span>
                         </h1>
                     </motion.div>
@@ -438,22 +438,24 @@ export default function SearchPage() {
                                 value={query}
                                 onChange={(e) => SetQuery(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                className={`w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-14 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all placeholder:text-gray-400/30 shadow-2xl ${isSearched ? 'py-3 text-base' : 'py-5 text-lg'}`}
+                                className={`w-full bg-white/5 border border-white/10 backdrop-blur-2xl px-10 md:px-14 rounded-none outline-none focus:border-[var(--primary)]/50 focus:ring-4 ring-[var(--primary)]/10 transition-all placeholder:text-gray-400/30 shadow-2xl ${isSearched ? 'py-3 text-sm md:text-base' : 'py-4 md:py-5 text-base md:text-lg'}`}
                             />
                         </div>
-                        <button 
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`p-5 rounded-none border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'} ${isSearched ? 'py-3' : ''}`}
-                        >
-                            <Filter size={20} />
-                        </button>
-                        <button 
-                            className={`bg-[var(--primary)] px-10 rounded-none font-black text-black uppercase tracking-widest text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'} ${isSearched ? 'py-3' : ''}`}
-                            onClick={() => handleSearch()}
-                            disabled={loading}
-                        >
-                            {loading ? "..." : "Search"}
-                        </button>
+                        <div className="flex gap-2 w-full md:w-auto">
+                            <button 
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`flex-1 md:flex-none p-4 md:p-5 rounded-none border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'} ${isSearched ? 'py-3' : ''}`}
+                            >
+                                <Filter size={18} className="mx-auto" />
+                            </button>
+                            <button 
+                                className={`flex-[2] md:flex-none bg-[var(--primary)] px-8 md:px-10 rounded-none font-black text-black uppercase tracking-widest text-[10px] md:text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'} ${isSearched ? 'py-3' : ''}`}
+                                onClick={() => handleSearch()}
+                                disabled={loading}
+                            >
+                                {loading ? "..." : "Search"}
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -678,19 +680,19 @@ export default function SearchPage() {
                 <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="w-full max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 mb-8 px-10"
+                    className="w-full max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 mb-8 px-6 md:px-10"
                 >
-                    <div className="flex items-center gap-3 text-gray-500">
-                        <AlertCircle size={14} className="text-[var(--primary)]" />
-                        <p className="text-[10px] font-medium tracking-tight">
-                            Showing top {sortedMovies.length} results. If the selection feels narrow, try broadening your filters or checking for typos.
+                    <div className="flex items-start md:items-center gap-3 text-gray-500">
+                        <AlertCircle size={14} className="text-[var(--primary)] shrink-0 mt-0.5 md:mt-0" />
+                        <p className="text-[9px] md:text-[10px] font-medium tracking-tight">
+                            Showing top {sortedMovies.length} results. If the selection feels narrow, try broadening your filters.
                         </p>
                     </div>
 
                     {sortedMovies.length > 0 && (
-                        <div className="flex items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-none">
-                            <ListOrdered size={16} className="text-[var(--primary)]" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sort By:</span>
+                        <div className="w-full md:w-auto flex items-center gap-3 bg-white/5 backdrop-blur-xl border border-white/10 px-4 md:px-6 py-2.5 md:py-3 rounded-none overflow-x-auto whitespace-nowrap">
+                            <ListOrdered size={14} className="text-[var(--primary)] shrink-0" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Sort:</span>
                             <div className="flex gap-2">
                                 {[
                                     { name: "Match", value: "match" },

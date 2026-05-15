@@ -5,6 +5,7 @@ import { Settings, User, Database, Shield, LogOut, Loader2, CheckCircle2, Refres
 import { useRouter } from 'next/navigation';
 import { useSync } from '@/components/SyncProvider';
 import { API_URL } from '@/config';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -15,6 +16,16 @@ export default function SettingsPage() {
     const [toast, setToast] = useState("");
     const [file, setFile] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+    
+    // Modal States
+    const [modalConfig, setModalConfig] = useState({ 
+        isOpen: false, 
+        title: "", 
+        message: "", 
+        confirmText: "", 
+        onConfirm: () => {}, 
+        type: "danger" 
+    });
 
     useEffect(() => {
         if (toast) {
@@ -91,10 +102,21 @@ export default function SettingsPage() {
         if (!file) return;
         
         if (wipe) {
-            const confirmed = window.confirm("⚠️ DANGER: This will PERMANENTLY WIPE your entire Subtext library before importing from the ZIP. Are you absolutely sure?");
-            if (!confirmed) return;
+            setModalConfig({
+                isOpen: true,
+                title: "DANGER: SYSTEM WIPE",
+                message: "This will PERMANENTLY WIPE your entire Subtext library before importing from the ZIP. Are you absolutely sure?",
+                confirmText: "WIPE & START FRESH",
+                type: "danger",
+                onConfirm: () => executeSync(true)
+            });
+            return;
         }
 
+        executeSync(false);
+    };
+
+    const executeSync = async (wipe) => {
         const token = localStorage.getItem("token");
         triggerSync(1);
         setToast(wipe ? "Wipe & Sync started!" : "Sync started in background!");
@@ -117,27 +139,30 @@ export default function SettingsPage() {
     };
 
     const handleDeleteAccount = async () => {
-        const confirmed = window.confirm("🚨 FINAL WARNING: This will PERMANENTLY DELETE your account and all your movie data. This cannot be undone. Are you absolutely sure?");
-        if (!confirmed) return;
-
-        const doubleConfirmed = window.confirm("Are you REALLY sure? All your Taste DNA, constellations, and library history will be gone forever.");
-        if (!doubleConfirmed) return;
-
-        const token = localStorage.getItem("token");
-        try {
-            const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/delete`, {
-                method: 'DELETE',
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (res.ok) {
-                localStorage.removeItem("token");
-                router.push("/");
-            } else {
-                setToast("Failed to delete account.");
+        setModalConfig({
+            isOpen: true,
+            title: "TERMINATE IDENTITY",
+            message: "FINAL WARNING: This will PERMANENTLY DELETE your account and all your movie data. This cannot be undone. All your Taste DNA, constellations, and library history will be gone forever.",
+            confirmText: "DELETE EVERYTHING",
+            type: "danger",
+            onConfirm: async () => {
+                const token = localStorage.getItem("token");
+                try {
+                    const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/delete`, {
+                        method: 'DELETE',
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        localStorage.removeItem("token");
+                        router.push("/");
+                    } else {
+                        setToast("Failed to delete account.");
+                    }
+                } catch (e) {
+                    setToast("An error occurred during deletion.");
+                }
             }
-        } catch (e) {
-            setToast("An error occurred during deletion.");
-        }
+        });
     };
 
     if (isLoading) return (
@@ -148,6 +173,16 @@ export default function SettingsPage() {
 
     return (
         <main className="w-full bg-black text-white snap-y snap-mandatory h-screen overflow-y-auto">
+            
+            <ConfirmationModal 
+                isOpen={modalConfig.isOpen}
+                onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={modalConfig.onConfirm}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                confirmText={modalConfig.confirmText}
+                type={modalConfig.type}
+            />
             
             {/* Custom Toast */}
             <AnimatePresence>

@@ -291,38 +291,79 @@ export default function Home() {
             </section>
 
             {/* SECTION 6: GALAXY (MAGENTA) */}
-            <section id="galaxy" className="h-screen w-full flex items-center justify-center bg-[#1a051d] snap-start relative px-4">
-                <div className="max-w-4xl mx-auto text-center">
-                    <motion.div {...fadeIn}>
-                        <div className="flex items-center justify-center gap-3 mb-6">
+            <section id="galaxy" className="h-screen w-full flex items-center justify-center bg-black snap-start relative px-8 md:px-24">
+                <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-20 items-center">
+                    
+                    {/* LEFT: Galaxy Visualization Preview */}
+                    <Link href="/galaxy" className="group relative order-2 md:order-1">
+                        <motion.div 
+                            initial={{ opacity: 0, x: -30 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 1 }}
+                            className="relative h-[400px] md:h-[650px] w-full bg-white/[0.02] backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden group hover:border-[var(--primary)]/50 transition-all cursor-pointer shadow-[0_0_50px_rgba(var(--primary-rgb),0.05)]"
+                        >
+                             {stars.map((star) => (
+                                <motion.div 
+                                    key={star.id}
+                                    animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.2, 1] }}
+                                    transition={{ duration: star.duration, repeat: Infinity }}
+                                    className="absolute w-1 h-1 bg-white rounded-none"
+                                    style={{ top: star.top, left: star.left }}
+                                />
+                             ))}
+                             <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 to-transparent" />
+                             <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="flex flex-col items-center gap-6">
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[16px] font-black uppercase tracking-[0.6em] text-white px-4 text-center mb-2" style={{ fontFamily: 'Arkhip' }}>Enter the Galaxy</span>
+                                        <div className="h-1 w-12 bg-[var(--primary)]" />
+                                    </div>
+                                    <div className="px-8 py-4 border border-[var(--primary)] text-[var(--primary)] text-[11px] font-black uppercase tracking-[0.4em] group-hover:bg-[var(--primary)] group-hover:text-black transition-all">Launch Engine</div>
+                                </div>
+                             </div>
+                        </motion.div>
+                    </Link>
+
+                    {/* RIGHT: Detailed Intelligence */}
+                    <motion.div {...fadeIn} className="flex flex-col items-start text-left order-1 md:order-2">
+                        <div className="flex items-center gap-3 mb-8">
                             <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-none flex items-center justify-center text-[var(--primary)]">
                                 <Compass size={24} />
                             </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--primary)]">Neural Cartography</span>
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white uppercase" style={{ fontFamily: 'Arkhip' }}>sbtxt galaxy</h2>
-                        <p className="text-gray-300 text-lg leading-relaxed mb-12">
-                            A new way to browse. See movies as stars in a connected neural matrix. Navigate through visual clusters of genres, moods, and directorial styles in full 3D.
+                        
+                        <h2 className="text-5xl md:text-8xl font-black mb-8 tracking-tighter text-white uppercase leading-none" style={{ fontFamily: 'Arkhip' }}>
+                            The <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-white/40">Galaxy</span>
+                        </h2>
+                        
+                        <p className="text-gray-400 text-lg leading-relaxed mb-12 font-medium max-w-lg">
+                            Escape the grid. We've mapped over 100,000 films into a high-dimensional neural matrix. By measuring <strong>Raw Vector Similarity</strong> between story beats and visual DNA, we've created a universe where proximity is meaning. 
                         </p>
-                        <Link href="/galaxy" className="group relative">
-                            <div className="relative h-[400px] md:h-[500px] w-full bg-white/[0.03] backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden group hover:border-[var(--primary)]/50 transition-all cursor-pointer">
-                                 {stars.map((star) => (
-                                    <motion.div 
-                                        key={star.id}
-                                        animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.2, 1] }}
-                                        transition={{ duration: star.duration, repeat: Infinity }}
-                                        className="absolute w-1 h-1 bg-white rounded-none"
-                                        style={{ top: star.top, left: star.left }}
-                                    />
-                                 ))}
-                                 <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 to-transparent" />
-                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="flex flex-col items-center gap-6">
-                                        <span className="text-[14px] font-black uppercase tracking-[0.5em] text-[var(--primary)] px-4 text-center">Enter the Matrix</span>
-                                        <div className="px-6 py-3 border border-[var(--primary)] text-[var(--primary)] text-[10px] font-bold uppercase tracking-[0.3em] group-hover:bg-[var(--primary)] group-hover:text-black transition-all">Launch Engine</div>
-                                    </div>
-                                 </div>
+                        
+                        <div className="grid gap-6 w-full">
+                            <div className="flex gap-8 items-start p-8 bg-white/[0.02] border border-white/5 hover:border-[var(--primary)]/30 transition-all group">
+                                <div className="text-[var(--primary)] font-black text-2xl italic shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">01</div>
+                                <div>
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-3">Neural Embeddings</h4>
+                                    <p className="text-[10px] text-white/30 uppercase leading-relaxed font-bold tracking-tight">Every film distilled into a 768-dimensional mathematical signature representing its cinematic soul.</p>
+                                </div>
                             </div>
-                        </Link>
+                            <div className="flex gap-8 items-start p-8 bg-white/[0.02] border border-white/5 hover:border-[var(--primary)]/30 transition-all group">
+                                <div className="text-[var(--primary)] font-black text-2xl italic shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">02</div>
+                                <div>
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-3">Spatial Projection</h4>
+                                    <p className="text-[10px] text-white/30 uppercase leading-relaxed font-bold tracking-tight">Advanced UMAP algorithms compress infinite variables into a navigable 3D star-field where math meets intuition.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-8 items-start p-8 bg-white/[0.02] border border-white/5 hover:border-[var(--primary)]/30 transition-all group">
+                                <div className="text-[var(--primary)] font-black text-2xl italic shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">03</div>
+                                <div>
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-3">Raw Similarity</h4>
+                                    <p className="text-[10px] text-white/30 uppercase leading-relaxed font-bold tracking-tight">Distance is data. If two stars are close, they share the same emotional, stylistic, and thematic DNA.</p>
+                                </div>
+                            </div>
+                        </div>
                     </motion.div>
                 </div>
             </section>

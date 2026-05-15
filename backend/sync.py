@@ -696,24 +696,37 @@ async def get_library(type: str = "watched", page: int = 1, limit: Optional[int]
     try:
         with conn.cursor() as cur:
             interaction = 'watchlist' if type == 'watchlist' else 'watched'
-            sql = "SELECT movie_title, release_year, tmdb_id, rating, watched_date, is_liked, poster_path FROM user_ratings WHERE user_id = %s AND interaction_type = %s"
+            
+            # Use DISTINCT ON to deduplicate by tmdb_id, keeping the most recent entry
+            base_filter = "WHERE user_id = %s AND interaction_type = %s AND tmdb_id IS NOT NULL"
             params = [user_id, interaction]
             if query: 
                 query = query.strip()
-                sql += " AND movie_title ILIKE %s"
+                base_filter += " AND movie_title ILIKE %s"
                 params.append(f"%{query}%")
-            cur.execute(f"SELECT COUNT(*) FROM ({sql}) AS c", params)
+            
+            # Count unique movies
+            cur.execute(f"SELECT COUNT(DISTINCT tmdb_id) FROM user_ratings {base_filter}", params)
             total = cur.fetchone()[0]
             
             # Allow dynamic limit for Galaxy/Large syncs
             current_limit = int(limit) if limit else 30
             print(f"DEBUG: Library Request - Type: {type}, Limit: {current_limit}, User: {user_id}")
             
-            sql += " ORDER BY watched_date DESC NULLS LAST, id DESC LIMIT %s OFFSET %s"
-            params.extend([current_limit, offset])
+            sql = f"""
+                SELECT DISTINCT ON (tmdb_id) movie_title, release_year, tmdb_id, rating, watched_date, is_liked, poster_path
+                FROM user_ratings
+                {base_filter}
+                ORDER BY tmdb_id, watched_date DESC NULLS LAST, id DESC
+            """
             cur.execute(sql, params)
-            rows = cur.fetchall()
-        return {"movies": [{"title": r[0], "year": r[1], "tmdb_id": r[2], "rating": float(r[3]) if r[3] else None, "date": r[4], "is_liked": r[5], "poster_path": r[6]} for r in rows], "total": total, "page": page, "pages": (total + current_limit - 1) // current_limit}
+            all_rows = cur.fetchall()
+            
+            # Sort by watched_date DESC after dedup, then paginate
+            all_rows.sort(key=lambda r: (r[4] is None, r[4] if r[4] else ''), reverse=True)
+            paginated = all_rows[offset:offset + current_limit]
+            
+        return {"movies": [{"title": r[0], "year": r[1], "tmdb_id": r[2], "rating": float(r[3]) if r[3] else None, "date": r[4], "is_liked": r[5], "poster_path": r[6]} for r in paginated], "total": total, "page": page, "pages": (total + current_limit - 1) // current_limit}
     finally: conn.close()
 
 @router.post("/mass")

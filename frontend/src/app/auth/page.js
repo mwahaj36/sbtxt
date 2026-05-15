@@ -10,7 +10,8 @@ import { API_URL } from '@/config';
 export default function AuthPage() {
     const router = useRouter();
     const [isLogin, setIsLogin] = useState(true);
-    const[isOnboarding,setIsOnboarding]=useState(false);
+    const [isOnboarding, setIsOnboarding] = useState(false);
+    const [isForgotPassword, setIsForgotPassword] = useState(false);
     
     // Form States
     const [email, setEmail] = useState("");
@@ -91,6 +92,33 @@ export default function AuthPage() {
         }
     };
 
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setError("");
+        setIsLoading(true);
+        try {
+            const cleanEmail = email.trim().toLowerCase();
+            if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+                throw new Error("Please enter a valid email address.");
+            }
+            const response = await fetch(`${API_URL}/api/v1/sbtxt-auth/forgot-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: cleanEmail })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || "Failed to send reset email");
+            }
+            setToast("Reset link sent! Check your email.");
+            setIsForgotPassword(false);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen w-screen overflow-x-hidden bg-white text-black flex flex-col md:flex-row relative">
             
@@ -149,29 +177,67 @@ export default function AuthPage() {
 
             {/* RIGHT SIDE: The Login Form (White Background) */}
             <div className={`w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 md:p-12 relative ${!isLogin ? 'hidden md:flex' : 'flex'}`}>
-                <h1 className="font-['Arkhip'] text-4xl md:text-6xl mb-12 uppercase tracking-tighter">Welcome Back</h1>
-                <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col">
-                    {isLogin && error && <p className="text-red-500 text-xs font-bold mb-4 uppercase text-center">{error}</p>}
+                <h1 className="font-['Arkhip'] text-4xl md:text-6xl mb-12 uppercase tracking-tighter">
+                    {isForgotPassword ? "Reset Password" : "Welcome Back"}
+                </h1>
+                
+                {isForgotPassword ? (
+                    <form onSubmit={handleForgotPassword} className="w-full max-w-sm flex flex-col">
+                        {error && <p className="text-red-500 text-xs font-bold mb-4 uppercase text-center">{error}</p>}
+                        
+                        <p className="text-[10px] text-gray-500 mb-6 text-center leading-relaxed">
+                            Enter your email address and we'll send you a link to reset your password.
+                        </p>
 
-                    <input type="text" placeholder="Email or Username" value={identifier} onChange={e => setIdentifier(e.target.value)} required={isLogin} 
-                        className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-6 outline-none transition-colors placeholder:text-gray-400" />
-                    
-                    <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required={isLogin} 
-                        className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-10 outline-none transition-colors placeholder:text-gray-400" />
-                    
-                    <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
-                        {isLoading && isLogin ? <Loader2 className="animate-spin text-black" size={16} /> : "Log In"}
-                    </button>
+                        <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required 
+                            className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-10 outline-none transition-colors placeholder:text-gray-400" />
+                        
+                        <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
+                            {isLoading ? <Loader2 className="animate-spin text-black" size={16} /> : "Send Reset Link"}
+                        </button>
 
-                    {/* Mobile Only Toggle */}
-                    <button 
-                        type="button"
-                        onClick={() => setIsLogin(!isLogin)}
-                        className="md:hidden mt-8 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
-                    >
-                        {isLogin ? "Need an account? Sign Up" : "Have an account? Log In"}
-                    </button>
-                </form>
+                        <button 
+                            type="button"
+                            onClick={() => setIsForgotPassword(false)}
+                            className="mt-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+                        >
+                            Back to Login
+                        </button>
+                    </form>
+                ) : (
+                    <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col">
+                        {error && <p className="text-red-500 text-xs font-bold mb-4 uppercase text-center">{error}</p>}
+
+                        <input type="text" placeholder="Email or Username" value={identifier} onChange={e => setIdentifier(e.target.value)} required={isLogin && !isForgotPassword} 
+                            className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-6 outline-none transition-colors placeholder:text-gray-400" />
+                        
+                        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required={isLogin && !isForgotPassword} 
+                            className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-4 outline-none transition-colors placeholder:text-gray-400" />
+                        
+                        <div className="w-full flex justify-end mb-6">
+                            <button 
+                                type="button"
+                                onClick={() => setIsForgotPassword(true)}
+                                className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+                            >
+                                Forgot Password?
+                            </button>
+                        </div>
+                        
+                        <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
+                            {isLoading ? <Loader2 className="animate-spin text-black" size={16} /> : "Log In"}
+                        </button>
+
+                        {/* Mobile Only Toggle */}
+                        <button 
+                            type="button"
+                            onClick={() => setIsLogin(!isLogin)}
+                            className="md:hidden mt-8 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+                        >
+                            {isLogin ? "Need an account? Sign Up" : "Have an account? Log In"}
+                        </button>
+                    </form>
+                )}
             </div>
 
             {/* THE FULL-SCREEN SLIDING COVER (Black Background) */}
@@ -194,6 +260,7 @@ export default function AuthPage() {
                         type="button"
                         onClick={() => {
                             setIsLogin(!isLogin);
+                            setIsForgotPassword(false);
                             setError(""); // Clear errors when switching sides
                         }}
                         className="px-10 py-4 bg-[var(--primary)] text-black hover:brightness-110 uppercase tracking-[0.2em] text-xs font-black rounded-none transition-colors"

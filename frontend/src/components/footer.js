@@ -7,6 +7,12 @@ export default function Footer() {
             <div className="flex flex-col items-center md:items-start gap-4">
                 <div className="w-28 h-8 bg-white group-hover:bg-[var(--primary)] transition-all duration-500 transform [mask-image:url(/file.svg)] [mask-size:contain] [mask-repeat:no-repeat] [mask-position:center]" />
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-700">© 2026 SBTXT. All Rights Reserved.</p>
+                <div className="flex flex-col items-center md:items-start gap-1 mt-2">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Bug Reporting & Support</p>
+                    <a href="mailto:mwahaj25@gmail.com" className="text-[10px] font-bold tracking-widest text-[var(--primary)] hover:text-white transition-colors">
+                        mwahaj25@gmail.com
+                    </a>
+                </div>
             </div>
             
             <div className="flex flex-col items-center md:items-end gap-6">

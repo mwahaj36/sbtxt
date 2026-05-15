@@ -75,6 +75,25 @@ export default function SettingsPage() {
         }
     };
 
+    const triggerForgotPassword = async () => {
+        if (!user?.email) return;
+        setToast("Sending reset link...");
+        try {
+            const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/forgot-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: user.email })
+            });
+            if (res.ok) {
+                setToast("Password reset link sent to your email!");
+            } else {
+                setToast("Failed to send reset link.");
+            }
+        } catch (e) {
+            setToast("Error sending reset link.");
+        }
+    };
+
     const handleDragOver = (e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -190,26 +209,24 @@ export default function SettingsPage() {
     );
 
     return (
-        <main className="w-full bg-black text-white snap-y snap-mandatory h-screen overflow-y-auto">
+        <main className="w-full bg-black text-white flex flex-col">
             
             <ConfirmationModal 
                 isOpen={modalConfig.isOpen}
-                onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                onClose={() => setModalConfig({...modalConfig, isOpen: false})}
                 onConfirm={modalConfig.onConfirm}
                 title={modalConfig.title}
                 message={modalConfig.message}
-                confirmText={modalConfig.confirmText}
-                type={modalConfig.type}
+                isDanger={modalConfig.type === "danger"}
             />
-            
-            {/* Custom Toast */}
+
             <AnimatePresence>
                 {toast && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 50 }}
-                        className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-black px-8 py-4 rounded-none font-black uppercase tracking-widest text-[10px] z-[1000] border border-black shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]"
+                        exit={{ opacity: 0, y: 20 }}
+                        className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-black px-8 py-4 rounded-none font-black uppercase tracking-widest text-xs z-[200] shadow-[0_0_40px_rgba(var(--primary-rgb),0.5)]"
                     >
                         {toast}
                     </motion.div>
@@ -217,84 +234,109 @@ export default function SettingsPage() {
             </AnimatePresence>
 
             {/* DECK 1: PROFILE & ACCOUNT */}
-            <section className="h-screen w-full snap-start flex flex-col pt-32 px-8 relative overflow-hidden bg-[#050505]">
-                <div className="max-w-5xl mx-auto w-full h-full flex flex-col items-center justify-center pb-20 text-center">
-                    <h2 className="font-['Arkhip'] text-4xl md:text-6xl uppercase tracking-tighter text-white mb-10">Account Details</h2>
+            <section className="h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] scroll-mt-16 md:scroll-mt-20 w-full snap-start flex flex-col pt-16 md:pt-32 px-8 relative overflow-hidden bg-[#050505]">
+                <div className="max-w-6xl mx-auto w-full h-full flex flex-col items-center justify-center pb-20 text-center">
+                    <h2 className="font-['Arkhip'] text-4xl md:text-6xl uppercase tracking-tighter text-white mb-12">Account Details</h2>
                     
-                    <div className="flex flex-col items-center gap-10 w-full max-w-lg">
-                        <div className="flex flex-col items-center gap-6">
-                            <div className="relative group">
-                                <img 
-                                    src={user.letterboxd_dp || "https://a.ltrbxd.com/resized/avatar/twitter/4/8/9/4/6/7/shard/2126200257/avatar-80.jpg"} 
-                                    className="w-32 h-32 rounded-none border-4 border-white/10 group-hover:border-white transition-all duration-500 object-cover"
-                                    alt="Avatar"
-                                />
-                                <button 
-                                    onClick={handleUsernameSync}
-                                    className="absolute -bottom-3 -right-3 bg-[var(--primary)] text-black p-3 rounded-none hover:brightness-110 transition-colors shadow-xl"
-                                >
-                                    <RefreshCw size={16} />
-                                </button>
+                    <div className="flex flex-col md:flex-row gap-8 md:gap-16 w-full max-w-5xl justify-center items-center md:items-stretch">
+                        
+                        {/* LEFT COLUMN: Avatar & Actions */}
+                        <div className="flex flex-col items-center justify-between w-full md:w-1/2 py-2">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="relative group">
+                                    <img 
+                                        src={user.letterboxd_dp || "https://a.ltrbxd.com/resized/avatar/twitter/4/8/9/4/6/7/shard/2126200257/avatar-80.jpg"} 
+                                        className="w-32 h-32 md:w-40 md:h-40 rounded-none border-4 border-white/10 group-hover:border-[var(--primary)] transition-all duration-500 object-cover"
+                                        alt="Avatar"
+                                    />
+                                    <button 
+                                        onClick={handleUsernameSync}
+                                        className="absolute -bottom-3 -right-3 bg-[var(--primary)] text-black p-3 rounded-none hover:brightness-110 transition-colors shadow-xl"
+                                    >
+                                        <RefreshCw size={16} />
+                                    </button>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{user.username}</h2>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-3xl font-black uppercase tracking-tight">{user.username}</h2>
+
+                            <div className="flex flex-col gap-3 w-full max-w-xs mt-8 md:mt-0">
+                                <button 
+                                    type="button"
+                                    onClick={triggerForgotPassword}
+                                    className="px-6 py-4 rounded-none text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-black uppercase tracking-widest text-[10px] w-full"
+                                >
+                                    Send Password Reset
+                                </button>
+                                <button 
+                                    onClick={() => { localStorage.removeItem("token"); router.push("/"); }}
+                                    className="flex items-center justify-center gap-3 px-6 py-4 rounded-none text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white transition-all font-black uppercase tracking-widest text-[10px] w-full"
+                                >
+                                    <LogOut size={16} />
+                                    Log Out
+                                </button>
+                                <button 
+                                    onClick={handleDeleteAccount}
+                                    className="px-6 py-4 rounded-none border border-red-500/20 text-red-500/60 hover:text-red-500 hover:border-red-500 transition-all font-black uppercase tracking-widest text-[10px] w-full mt-2"
+                                >
+                                    Delete Account
+                                </button>
                             </div>
                         </div>
 
-                        <form className="flex flex-col gap-6 w-full items-center" onSubmit={async (e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.target);
-                            const token = localStorage.getItem("token");
-                            setToast("Updating profile...");
-                            const lbUsername = formData.get('letterboxd_username');
-                            try {
-                                const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/update`, {
-                                    method: 'PUT',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${token}`
-                                    },
-                                    body: JSON.stringify({
-                                        username: lbUsername || undefined,
-                                        email: formData.get('email') || undefined,
-                                        letterboxd_username: lbUsername || undefined
-                                    })
-                                });
-                                if (res.ok) {
-                                    setToast("Profile updated successfully!");
-                                    const updatedRes = await fetch(`${API_URL}/api/v1/sbtxt-auth/me`, {
-                                        headers: { "Authorization": `Bearer ${token}` }
+                        {/* RIGHT COLUMN: Edit Form */}
+                        <div className="flex flex-col w-full md:w-1/2 border border-white/10 bg-white/5 p-8 relative h-full min-h-[400px]">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-8 absolute -top-3 left-8 bg-[#050505] px-2">Edit Profile</h3>
+                            <form className="flex flex-col h-full w-full flex-1" onSubmit={async (e) => {
+                                e.preventDefault();
+                                const formData = new FormData(e.target);
+                                const token = localStorage.getItem("token");
+                                setToast("Updating profile...");
+                                const lbUsername = formData.get('letterboxd_username');
+                                try {
+                                    const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/update`, {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`
+                                        },
+                                        body: JSON.stringify({
+                                            username: lbUsername || undefined,
+                                            email: formData.get('email') || undefined,
+                                            letterboxd_username: lbUsername || undefined
+                                        })
                                     });
-                                    setUser(await updatedRes.json());
-                                } else {
-                                    setToast("Failed to update profile.");
+                                    if (res.ok) {
+                                        setToast("Profile updated successfully!");
+                                        const updatedRes = await fetch(`${API_URL}/api/v1/sbtxt-auth/me`, {
+                                            headers: { "Authorization": `Bearer ${token}` }
+                                        });
+                                        setUser(await updatedRes.json());
+                                    } else {
+                                        setToast("Failed to update profile.");
+                                    }
+                                } catch(e) {
+                                    setToast("Error updating profile.");
                                 }
-                            } catch(e) {
-                                setToast("Error updating profile.");
-                            }
-                        }}>
-                            <div className="flex flex-col gap-2 w-full">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 text-center">Email Address</label>
-                                <input name="email" defaultValue={user?.email} type="email" className="bg-white/5 border border-white/10 p-4 rounded-none outline-none focus:border-white transition-all text-white text-center w-full" />
-                            </div>
-                            <div className="flex flex-col gap-2 w-full">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 text-center">Letterboxd Username</label>
-                                <input name="letterboxd_username" defaultValue={user?.letterboxd_username} type="text" className="bg-white/5 border border-white/10 p-4 rounded-none outline-none focus:border-white transition-all text-white text-center w-full" />
-                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Changing this updates your App Username. Only do this incase ur letterboxd username is changed else it will break ur account</p>
-                            </div>
-                            <button type="submit" className="mt-4 px-12 py-5 bg-[var(--primary)] text-black rounded-none font-black uppercase tracking-widest text-xs hover:brightness-110 transition-all shadow-lg">
-                                Save Changes
-                            </button>
-                        </form>
-
-                        <div className="pt-8 border-t border-white/10 w-full flex justify-center">
-                            <button 
-                                onClick={() => { localStorage.removeItem("token"); router.push("/"); }}
-                                className="flex items-center gap-4 px-8 py-5 rounded-none text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white transition-all font-black uppercase tracking-widest text-xs w-fit shadow-lg"
-                            >
-                                <LogOut size={20} />
-                                Log Out
-                            </button>
+                            }}>
+                                <div className="flex flex-col flex-1 justify-center gap-8 w-full pb-8">
+                                    <div className="flex flex-col gap-2 w-full text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--primary)] pl-1">Email Address</label>
+                                        <input name="email" defaultValue={user?.email} type="email" className="bg-black/40 border border-white/10 p-4 rounded-none outline-none focus:border-[var(--primary)] transition-all text-white w-full" />
+                                    </div>
+                                    <div className="flex flex-col gap-2 w-full text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--primary)] pl-1">Letterboxd Username</label>
+                                        <input name="letterboxd_username" defaultValue={user?.letterboxd_username} type="text" className="bg-black/40 border border-white/10 p-4 rounded-none outline-none focus:border-[var(--primary)] transition-all text-white w-full" />
+                                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest mt-1 leading-relaxed">Changing this updates your App Username. Only change this if your Letterboxd username changed.</p>
+                                    </div>
+                                </div>
+                                <div className="mt-auto pt-4">
+                                    <button type="submit" className="px-12 py-5 bg-[var(--primary)] text-black rounded-none font-black uppercase tracking-widest text-[10px] hover:brightness-110 transition-all shadow-lg w-full">
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -305,7 +347,7 @@ export default function SettingsPage() {
             </section>
 
             {/* DECK 2: DATA & SYNC */}
-            <section className="h-screen w-full snap-start flex flex-col pt-32 px-8 relative overflow-hidden bg-[#14181c]">
+            <section className="h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] scroll-mt-16 md:scroll-mt-20 w-full snap-start flex flex-col pt-16 md:pt-32 px-8 relative overflow-hidden bg-[#14181c]">
                 <div className="max-w-5xl mx-auto w-full h-full flex flex-col items-center justify-center pb-20 text-center">
                     <h2 className="font-['Arkhip'] text-4xl md:text-6xl uppercase tracking-tighter text-white mb-12">Data & Sync</h2>
                     
@@ -392,9 +434,9 @@ export default function SettingsPage() {
             </section>
 
             {/* DECK 3: DANGER ZONE */}
-            <section className="h-screen w-full snap-start flex flex-col pt-32 px-8 relative overflow-hidden bg-black">
-                <div className="max-w-4xl mx-auto w-full h-full flex flex-col items-center justify-center text-center">
-                    <div className="p-12 border-2 border-red-500/30 bg-red-500/5 flex flex-col items-center gap-8 max-w-2xl">
+            <section className="h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] scroll-mt-16 md:scroll-mt-20 w-full snap-start flex flex-col pt-16 md:pt-32 px-8 relative overflow-hidden bg-black">
+                <div className="max-w-4xl mx-auto w-full h-full flex flex-col items-center justify-center text-center pb-20">
+                    <div className="p-12 border-2 border-red-500/30 bg-red-500/5 flex flex-col items-center gap-8 max-w-2xl w-full">
                         <div className="p-4 bg-red-500/20 rounded-none text-red-500">
                             <Shield size={48} strokeWidth={3} />
                         </div>
@@ -412,7 +454,7 @@ export default function SettingsPage() {
                         {file ? (
                             <button 
                                 onClick={() => startSync(true)}
-                                className="px-12 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] text-xs hover:bg-red-500 transition-all shadow-[0_0_30px_rgba(220,38,38,0.3)]"
+                                className="px-12 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] text-xs hover:bg-red-500 transition-all shadow-[0_0_30px_rgba(220,38,38,0.3)] w-full md:w-auto"
                             >
                                 WIPE DATABASE & START FRESH
                             </button>
@@ -421,18 +463,6 @@ export default function SettingsPage() {
                                 Upload a ZIP file in the Sync section to enable this button
                             </p>
                         )}
-
-                        <div className="w-full h-[1px] bg-red-500/10 my-4" />
-
-                        <div className="space-y-4">
-                            <h3 className="text-red-500/60 font-black uppercase tracking-[0.3em] text-[10px]">Account Termination</h3>
-                            <button 
-                                onClick={handleDeleteAccount}
-                                className="px-12 py-4 border border-red-500/40 text-red-500/40 font-black uppercase tracking-[0.2em] text-[9px] hover:bg-red-500 hover:text-white transition-all"
-                            >
-                                Permanent Account Deletion
-                            </button>
-                        </div>
                     </div>
                 </div>
             </section>

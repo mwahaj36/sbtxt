@@ -9,6 +9,9 @@ import jwt
 from datetime import datetime,timedelta,timezone
 import os
 from dotenv import load_dotenv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
@@ -34,6 +37,13 @@ class ProfileUpdateRequest(BaseModel):
     username: str = None
     email: str = None
     letterboxd_username: str = None
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 def create_access_token(data:dict):
     to_encode=data.copy()
@@ -127,6 +137,93 @@ def login(user_credentials:userLogin):
         "token_type": "bearer",
         "user_id": db_user[0]
     }
+
+def send_reset_email_task(to_email: str, reset_link: str):
+    sender_email = os.getenv("SMTP_EMAIL")
+    sender_password = os.getenv("SMTP_PASSWORD")
+    
+    if not sender_email or not sender_password:
+        print("SMTP credentials not configured. Email not sent.")
+        return
+        
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = to_email
+    msg['Subject'] = "Password Reset - Subtext"
+    
+    body = f"""Hello,
+    
+We received a request to reset your password for your Subtext account.
+Please click the link below to set a new password:
+
+{reset_link}
+
+If you did not request this, please ignore this email.
+
+Best,
+The Subtext Team
+"""
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        print(f"Password reset email sent to {to_email}")
+    except Exception as e:
+        print(f"Failed to send email to {to_email}: {e}")
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotPasswordRequest, background_tasks: BackgroundTasks):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE email = %s", (req.email,))
+            user = cur.fetchone()
+            if not user:
+                return {"status": "success", "message": "If an account with that email exists, a reset link has been sent."}
+            
+            user_id = user[0]
+            expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+            to_encode = {"sub": str(user_id), "type": "reset_password", "exp": expire}
+            reset_token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+            
+            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+            reset_link = f"{frontend_url}/reset-password?token={reset_token}"
+            
+            background_tasks.add_task(send_reset_email_task, req.email, reset_link)
+            return {"status": "success", "message": "If an account with that email exists, a reset link has been sent."}
+    finally:
+        conn.close()
+
+@router.post("/reset-password")
+def reset_password(req: ResetPasswordRequest):
+    try:
+        payload = jwt.decode(req.token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "reset_password":
+            raise HTTPException(status_code=400, detail="Invalid token type")
+        
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=400, detail="Invalid token payload")
+            
+        hashed_pwd = pwd_context.hash(req.new_password)
+        
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE users SET hashed_password = %s WHERE id = %s", (hashed_pwd, user_id))
+                conn.commit()
+                return {"status": "success", "message": "Password updated successfully"}
+        finally:
+            conn.close()
+            
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Reset token has expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=400, detail="Invalid reset token")
 
 security = HTTPBearer()
 

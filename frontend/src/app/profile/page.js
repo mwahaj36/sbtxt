@@ -40,6 +40,12 @@ export default function ProfilePage() {
                 });
                 const bundle = await bundleRes.json();
                 
+                // Guard: Redirect incomplete accounts to onboarding
+                if (!bundle.profile?.letterboxd_username) {
+                    router.push("/onboarding");
+                    return;
+                }
+
                 if (bundle.profile) {
                     setProfile(bundle.profile);
                 }

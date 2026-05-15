@@ -46,6 +46,10 @@ export default function SettingsPage() {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await res.json();
+                if (!data.letterboxd_username) {
+                    router.push("/onboarding");
+                    return;
+                }
                 setUser(data);
             } catch (e) {
                 console.error("Failed to fetch user", e);

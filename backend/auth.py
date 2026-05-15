@@ -91,18 +91,33 @@ def login(user_credentials:userLogin):
 
     cursor.execute(
         """
-        SELECT id,hashed_password FROM users where email=%s OR username=%s
+        SELECT id, hashed_password, letterboxd_username FROM users where email=%s OR username=%s
         """,
         (user_credentials.identifier,user_credentials.identifier))
 
     db_user=cursor.fetchone()
-    cursor.close()
-    conn.close()
 
     if not db_user:
+        cursor.close()
+        conn.close()
         raise HTTPException(status_code=400,detail="Invalid Credentials")
+
+    user_id = db_user[0]
+    hashed_password = db_user[1]
+    lb_username = db_user[2]
+
+    if not lb_username or lb_username.strip() == "":
+        # Partial account detected - delete it
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=400, detail="Account setup was incomplete. Your partial account has been purged. Please sign up again.")
+
+    cursor.close()
+    conn.close()
     
-    if not pwd_context.verify(user_credentials.password,db_user[1]):
+    if not pwd_context.verify(user_credentials.password, hashed_password):
         raise HTTPException(status_code=400,detail="invalid password")
 
     access_token = create_access_token(data={"sub": str(db_user[0])})

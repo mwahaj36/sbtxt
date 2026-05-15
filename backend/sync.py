@@ -96,7 +96,8 @@ async def scrape_letterboxd_profile_data(username: str, client: httpx.AsyncClien
         fav_match = re.search(r'Favorites: (.*?)\. Bio:', desc)
         if not fav_match: fav_match = re.search(r'Favorites: (.*)', desc)
         if fav_match:
-            fav_titles = [f.strip() for f in fav_match.group(1).split(',')]
+            raw_favs = fav_match.group(1).rstrip('.').strip()
+            fav_titles = [f.strip() for f in raw_favs.split(',')]
             print(f"[IDENTITY] Found {len(fav_titles)} Favorites. Resolving posters...")
             conn = get_db_connection()
             if not conn: return {"avatar": avatar.group(1) if avatar else None, "name": name.group(1) if name else username, "bio": bio_text, "films_count": films_count, "favorites": []}

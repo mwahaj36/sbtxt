@@ -1,3 +1,13 @@
+---
+title: Subtext
+emoji: 🌌
+colorFrom: purple
+colorTo: black
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🌌 Subtext: Neural Discovery Engine
 
 **Discover cinema through vibes, story, and soul.**

@@ -189,6 +189,27 @@ def _save_movies_batch(results: List[tuple], user_id: str):
             print(f"[SYNC][BATCH] Successfully committed {len(results)} movies.")
     finally: conn.close()
 
+def _cleanup_watchlist_duplicates(user_id: str):
+    """Removes watchlist entries for movies that have a corresponding watched/rated entry."""
+    conn = get_db_connection()
+    if not conn: return
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                DELETE FROM user_ratings 
+                WHERE user_id = %s 
+                AND interaction_type = 'watchlist' 
+                AND tmdb_id IN (
+                    SELECT tmdb_id FROM user_ratings 
+                    WHERE user_id = %s AND interaction_type = 'watched'
+                )
+            """, (user_id, user_id))
+            count = cur.rowcount
+            conn.commit()
+            if count > 0:
+                print(f"[SYNC][CLEANUP] Purged {count} redundant watchlist items for user {user_id}.")
+    finally: conn.close()
+
 async def process_single_movie(movie: dict, user_id: str, client: httpx.AsyncClient, semaphore: asyncio.Semaphore) -> Optional[tuple]:
     """Resolves a single movie and returns the data for batch saving."""
     async with semaphore:
@@ -269,7 +290,10 @@ async def resolve_tmdb_ids(movies: List[Dict], user_id: str, client: Optional[ht
     # Refresh taste vector in the background (takes longer)
     await refresh_taste_vector_bg(user_id)
     
-    # Mark as completed only AFTER taste DNA is ready
+    # 2. Cleanup Duplicates
+    await asyncio.to_thread(_cleanup_watchlist_duplicates, user_id)
+
+    # 3. Mark as completed only AFTER taste DNA is ready
     SYNC_PROGRESS[user_id] = {"status": "completed", "processed": len(movies), "total": len(movies), "message": "DNA Mapped & Sync Complete!"}
 
 @router.get("/status")

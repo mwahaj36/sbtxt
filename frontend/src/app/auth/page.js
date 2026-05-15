@@ -110,7 +110,7 @@ export default function AuthPage() {
                 href="/" 
                 className="absolute top-6 left-6 md:top-10 md:left-10 z-50 flex items-center gap-3 text-white mix-blend-difference hover:opacity-60 transition-opacity"
             >
-                <ArrowLeft size={18} md:size={20} />
+                <ArrowLeft size={20} />
                 <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]">Return</span>
             </Link>
             

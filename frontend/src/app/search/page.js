@@ -428,7 +428,10 @@ export default function SearchPage() {
                 )}
                 
                 {(!isSearched || (isSearched && !isDNASearch)) && (
-                    <div className={`relative flex flex-col md:flex-row gap-4 items-stretch transition-all duration-700 ${isSearched ? 'flex-1' : 'w-full'}`}>
+                    <form 
+                        onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+                        className={`relative flex flex-col md:flex-row gap-4 items-stretch transition-all duration-700 ${isSearched ? 'flex-1' : 'w-full'}`}
+                    >
                         <div className="relative flex-1">
                             <input
                                 ref={inputRef}
@@ -443,20 +446,21 @@ export default function SearchPage() {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                             <button 
+                                type="button"
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`flex-1 md:flex-none p-4 md:p-5 rounded-none border border-white/10 transition-all ${showFilters ? 'bg-[var(--primary)]/20 border-[var(--primary)]/50 text-[var(--primary)]' : 'bg-white/5 hover:bg-white/10'} ${isSearched ? 'py-3' : ''}`}
                             >
                                 <Filter size={18} className="mx-auto" />
                             </button>
                             <button 
-                                className={`flex-[2] md:flex-none bg-[var(--primary)] px-8 md:px-10 rounded-none font-black text-black uppercase tracking-widest text-[10px] md:text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'} ${isSearched ? 'py-3' : ''}`}
-                                onClick={() => handleSearch()}
+                                type="submit"
+                                className={`flex-[3] md:flex-none bg-[var(--primary)] px-8 md:px-10 rounded-none font-black text-black uppercase tracking-widest text-[10px] md:text-xs transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ${loading ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:brightness-110 active:scale-95'} ${isSearched ? 'py-3' : ''}`}
                                 disabled={loading}
                             >
                                 {loading ? "..." : "Search"}
                             </button>
                         </div>
-                    </div>
+                    </form>
                 )}
 
                 {!isSearched && (
@@ -507,23 +511,23 @@ export default function SearchPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="mt-8 px-10"
                             >
-                                <div 
+                                <button 
                                     onClick={handleForYou}
                                     className="group w-full p-6 bg-[#d946ef]/5 border border-[#d946ef]/20 rounded-none flex items-center justify-between cursor-pointer hover:bg-[#d946ef]/10 hover:border-[#d946ef]/40 transition-all shadow-[0_0_50px_rgba(217,70,239,0.05)]"
                                 >
                                     <div className="flex items-center gap-6">
                                         <div className="flex flex-col gap-1 text-left">
                                             <span className="text-xs font-black uppercase tracking-[0.3em] text-[#d946ef]">Neural Discovery Active</span>
-                                            <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest leading-none">
-                                                Personalized via your history
-                                            </span>
+                                            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest leading-relaxed">
+                                                Discover films semantically matched to your taste profile.
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4 text-[#d946ef]">
                                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-100 transition-opacity">Launch</span>
                                         <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                     </div>
-                                </div>
+                                </button>
                             </motion.div>
                         )}
                     </>

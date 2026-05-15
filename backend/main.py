@@ -175,6 +175,14 @@ async def get_rec(movie_id:str):
 def read_root():
     return{"status":"Subtext is online", "version": "1.4"}
 
+from fastapi.responses import FileResponse
+@app.get("/api/v1/constellation/points")
+async def get_constellation_points():
+    file_path = "galaxy_points.json"
+    if not os.path.exists(file_path):
+        return {"error": "Galaxy map not generated yet. Please run local mapping script."}
+    return FileResponse(file_path)
+
 # V28.7 REFRESH
 if __name__=="__main__":
     import os

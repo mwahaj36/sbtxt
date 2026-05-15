@@ -1,72 +1,85 @@
----
-title: Subtext
-emoji: 🌌
-colorFrom: purple
-colorTo: indigo
-sdk: docker
-pinned: false
----
+# 🌌 Subtext: Neural Discovery Engine
 
-# 🌌 SUBTEXT: Cinematic Discovery Redefined
+**Discover cinema through vibes, story, and soul.**
 
-[![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces/mwahaj36/Subtext)
-[![Tech Stack](https://img.shields.io/badge/Stack-Next.js%20%7C%20FastAPI%20%7C%20Postgres-blue)](https://github.com/mwahaj36/Subtext)
-
-**Subtext** is a "vibe-first" cinematic discovery engine designed to escape the algorithmic echo chambers. By mapping your entire Letterboxd history into a latent "Taste DNA," Subtext helps you find movies that resonate with your soul, not just your genre preferences.
+Subtext is a high-fidelity media discovery platform that bypasses generic metadata in favor of neural similarity. By mapping 100,000+ films into a 768-dimensional vector space, Subtext allows users to navigate the cinematic universe through "vibe-first" search and interactive 3D visualizations.
 
 ---
 
-## ✨ Key Features
+## 🛠️ The Tech Stack
 
-### 🧬 Taste DNA Engine
-Unlike traditional recommenders that suggest "Action" because you watched "Action," Subtext analyzes the **tonal architecture** of your history. It looks for the "Vibe" (e.g., *Cerebral*, *Neon-Drenched*, *Existential*) to build a unique vector map of your cinematic identity.
+### Frontend (Electric Void UI)
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **3D Engine**: [Three.js](https://threejs.org/) via `react-force-graph-3d`
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Styling**: Tailwind CSS (Brutalist Architecture)
 
-### 🎬 Stealth Sync Pipeline
-A robust, "human-like" scraping engine that imports your entire Letterboxd history (Watched, Watchlist, Ratings, and Likes) with:
-- **Idempotent Logic**: Never syncs the same movie twice.
-- **Human Jitter**: Randomized delays to respect platform rate limits.
-- **Global Mapping Cache**: Uses a shared database to instantly resolve TMDB IDs for movies already mapped by the community.
+### Backend (The Professor Model)
+- **API**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12)
+- **Neural Embeddings**: [Jina AI](https://jina.ai/) (768D Embeddings)
+- **Dimensionality Reduction**: [UMAP](https://umap-learn.readthedocs.io/) for 3D spatial mapping
+- **Authentication**: JWT-based secure session management
 
-### 🏛️ Cinema Vault
-A high-density library interface to browse, search, and filter your imported history. Visualize your Taste DNA source data in real-time.
+### Infrastructure & Data
+- **Vector Database**: [DataStax AstraDB](https://www.datastax.com/products/astra)
+- **Relational Database**: PostgreSQL (via Aiven)
+- **Metadata Source**: [TMDB](https://www.themoviedb.org/) & [Letterboxd](https://letterboxd.com/)
 
 ---
 
-## 🛠️ Technology Stack
+## 🧬 Core Features
 
-- **Frontend**: Next.js 14, Framer Motion (Cinematic Animations), Tailwind CSS.
-- **Backend**: FastAPI (Python), `httpx` (Async Scraping), `psycopg2`.
-- **Database**: Neon Postgres (Serverless SQL).
-- **Inference**: Jina AI v2 Latent Embeddings (Planned).
+### 1. Neural Discovery (Dual-Signal)
+Bypass the algorithm. Subtext uses vector similarity to find movies that share the same "neural fingerprint" as your query. Search by mood, lighting, or abstract concept (e.g., *"Neon-drenched solitude"* or *"Industrial decay with a glimmer of hope"*).
+
+### 2. The Subtext Galaxy
+A real-time WebGL constellation of 100,000 films. Explore your cinematic history in 3D space, where proximity equals similarity.
+- **North Stars**: Your top-rated favorites.
+- **Watchlist Mist**: Unexplored potential glowing in electric cyan.
+- **Neural Clusters**: Visual clusters of thematic genres.
+
+### 3. Taste DNA Calibration
+Sync your Letterboxd library to generate a personalized **Taste Vector**. The engine then weights search results against your unique cinematic soul, surfacing "High Resonance" matches first.
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- A Neon.tech (or Postgres) Database URL.
+- Python 3.12+
+- Node.js 20+
+- AstraDB & TMDB API Keys
 
 ### Backend Setup
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # venv\Scripts\activate on Windows
-pip install -r requirements.txt
-# Create .env based on .env.example
-python main.py
-```
+1. Navigate to `/backend`
+2. Create a `.env` file with your credentials.
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run the API:
+   ```bash
+   python main.py
+   ```
 
 ### Frontend Setup
+1. Navigate to `/frontend`
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+### Mapping the Galaxy
+To generate the 3D coordinates for the constellation feature, run the local mapping script:
 ```bash
-cd frontend
-npm install
-# Create .env.local with NEXT_PUBLIC_API_URL=http://localhost:8000
-npm run dev
+python backend/map_galaxy.py
 ```
 
 ---
 
-## 🛡️ License
-MIT License. Built with 🖤 for the lovers of cinema.
+## 📜 License
+Subtext is a professional discovery framework designed for deep cinematic analysis. Built with passion for the "Electric Void."

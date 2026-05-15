@@ -23,6 +23,8 @@ assets/
 !jsconfig.json
 !people_index.json
 !genre_centroids.json
+!galaxy_points.json
+!frontend/public/galaxy_points.json
 
 # Research and Paper (Internal)
 # Removed ROADMAP.md and CHECKLIST.md from here so they can be pushed

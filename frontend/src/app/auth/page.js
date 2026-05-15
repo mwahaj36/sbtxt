@@ -90,7 +90,7 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="h-screen w-screen overflow-hidden bg-white text-black flex relative">
+        <div className="min-h-screen w-screen overflow-x-hidden bg-white text-black flex flex-col md:flex-row relative">
             
             {/* Custom Reusable Toast Popup */}
             <AnimatePresence>
@@ -108,15 +108,15 @@ export default function AuthPage() {
 
              <Link 
                 href="/" 
-                className="absolute top-10 left-10 z-50 flex items-center gap-3 text-white mix-blend-difference hover:opacity-60 transition-opacity"
+                className="absolute top-6 left-6 md:top-10 md:left-10 z-50 flex items-center gap-3 text-white mix-blend-difference hover:opacity-60 transition-opacity"
             >
-                <ArrowLeft size={20} />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Return</span>
+                <ArrowLeft size={18} md:size={20} />
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]">Return</span>
             </Link>
             
             {/* LEFT SIDE: The Signup Form (White Background) */}
-            <div className="w-1/2 h-full flex flex-col items-center justify-center p-12 relative">
-                <h1 className="font-['Arkhip'] text-6xl mb-12 uppercase tracking-tighter">Join Sbtxt</h1>
+            <div className={`w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 md:p-12 relative ${isLogin ? 'hidden md:flex' : 'flex'}`}>
+                <h1 className="font-['Arkhip'] text-4xl md:text-6xl mb-12 uppercase tracking-tighter">Join Sbtxt</h1>
                 <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col">
                     {!isLogin && error && <p className="text-red-500 text-xs font-bold mb-4 uppercase text-center">{error}</p>}
                     
@@ -139,8 +139,8 @@ export default function AuthPage() {
             </div>
 
             {/* RIGHT SIDE: The Login Form (White Background) */}
-            <div className="w-1/2 h-full flex flex-col items-center justify-center p-12 relative">
-                <h1 className="font-['Arkhip'] text-6xl mb-12 uppercase tracking-tighter">Welcome Back</h1>
+            <div className={`w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 md:p-12 relative ${!isLogin ? 'hidden md:flex' : 'flex'}`}>
+                <h1 className="font-['Arkhip'] text-4xl md:text-6xl mb-12 uppercase tracking-tighter">Welcome Back</h1>
                 <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col">
                     {isLogin && error && <p className="text-red-500 text-xs font-bold mb-4 uppercase text-center">{error}</p>}
 
@@ -153,6 +153,15 @@ export default function AuthPage() {
                     <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
                         {isLoading && isLogin ? <Loader2 className="animate-spin text-black" size={16} /> : "Log In"}
                     </button>
+
+                    {/* Mobile Only Toggle */}
+                    <button 
+                        type="button"
+                        onClick={() => setIsLogin(!isLogin)}
+                        className="md:hidden mt-8 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+                    >
+                        {isLogin ? "Need an account? Sign Up" : "Have an account? Log In"}
+                    </button>
                 </form>
             </div>
 
@@ -160,7 +169,7 @@ export default function AuthPage() {
             <motion.div 
                 animate={{ x: isLogin ? "0%" : "100%" }}
                 transition={{ type: "spring", stiffness: 50, damping: 15 }}
-                className="absolute top-0 left-0 w-1/2 h-full bg-[#050505] text-white flex flex-col items-center justify-center p-16 text-center z-20 shadow-[0_0_100px_rgba(0,0,0,0.5)]"
+                className="hidden md:flex absolute top-0 left-0 w-1/2 h-full bg-[#050505] text-white flex-col items-center justify-center p-16 text-center z-20 shadow-[0_0_100px_rgba(0,0,0,0.5)]"
             >
 
                 <div className="relative z-10 flex flex-col items-center">

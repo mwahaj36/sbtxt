@@ -385,6 +385,7 @@ export default function GalaxyPage() {
     };
 
     useEffect(() => {
+        if (isMobile) return;
         const cruiseSpeed = 5;
         const sprintSpeed = 80;
         const keys = {};
@@ -716,39 +717,41 @@ export default function GalaxyPage() {
                 </div>
             </div>
 
-            <ForceGraph3D
-                ref={fgRef}
-                graphData={data}
-                backgroundColor="#000000"
-                showNavInfo={false}
-                nodeLabel={node => node.name}
-                onNodeClick={highlightMovie}
-                onNodeHover={handleNodeHover}
-                enablePointerInteraction={!isLocked}
-                linkColor={l => {
-                    if (l.type === 'favorite') return THEME.primary;
-                    if (l.type === 'recent') return THEME.secondary;
-                    return 'transparent';
-                }}
-                linkWidth={2}
-                nodeRelSize={1}
-                nodeVal={n => {
-                    if (n.type === 'favorite') return 0.7;
-                    if (n.type === 'recent') return 0.6;
-                    if (n.type === 'watched') return 0.5;
-                    return 0.15;
-                }}
-                nodeOpacity={1}
-                nodeColor={n => {
-                    if (selectedNode && n.id === selectedNode.id) return THEME.active;
-                    if (neighborIds.has(n.id)) return THEME.accent;
-                    if (n.type === 'favorite') return THEME.primary;
-                    if (n.type === 'recent') return THEME.secondary;
-                    if (n.type === 'watched') return THEME.success;
-                    return THEME.neutral;
-                }}
-                forceEngine="none"
-            />
+            {!isMobile && (
+                <ForceGraph3D
+                    ref={fgRef}
+                    graphData={data}
+                    backgroundColor="#000000"
+                    showNavInfo={false}
+                    nodeLabel={node => node.name}
+                    onNodeClick={highlightMovie}
+                    onNodeHover={handleNodeHover}
+                    enablePointerInteraction={!isLocked}
+                    linkColor={l => {
+                        if (l.type === 'favorite') return THEME.primary;
+                        if (l.type === 'recent') return THEME.secondary;
+                        return 'transparent';
+                    }}
+                    linkWidth={2}
+                    nodeRelSize={1}
+                    nodeVal={n => {
+                        if (n.type === 'favorite') return 0.7;
+                        if (n.type === 'recent') return 0.6;
+                        if (n.type === 'watched') return 0.5;
+                        return 0.15;
+                    }}
+                    nodeOpacity={1}
+                    nodeColor={n => {
+                        if (selectedNode && n.id === selectedNode.id) return THEME.active;
+                        if (neighborIds.has(n.id)) return THEME.accent;
+                        if (n.type === 'favorite') return THEME.primary;
+                        if (n.type === 'recent') return THEME.secondary;
+                        if (n.type === 'watched') return THEME.success;
+                        return THEME.neutral;
+                    }}
+                    forceEngine="none"
+                />
+            )}
         </main>
     );
 }

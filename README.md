@@ -8,123 +8,90 @@ app_port: 7860
 pinned: false
 ---
 
-# Subtext: The Neural Cinema Discovery Engine
+# Subtext: Semantic Cinema Discovery
 
-**Discover cinema through vibes, story, and soul—not just metadata.**
+**A movie discovery engine that prioritizes thematic similarity over simple metadata.**
 
-Subtext is a high-performance media discovery platform built to dismantle the "popularity-trap" algorithms of modern streaming. By mapping over 100,000 films into a 768-dimensional neural vector space, Subtext transforms movie discovery from a keyword search into a spatial exploration of human emotion and thematic DNA.
-
----
-
-## 🛰️ The Architecture of Discovery
-
-Subtext isn't just a database; it's a **Latent Space Navigator**. Most platforms search for *words*; Subtext searches for *meaning*.
-
-### 1. The Neural Matrix (3D Galaxy)
-A massive WebGL-powered 3D visualization of the entire movie universe.
-- **High-Dimensional Mapping**: We use **UMAP (Uniform Manifold Approximation and Projection)** to project 768-dimensional embeddings from `sentence-transformers` into a navigable 3D star-field.
-- **Spatial Semantic Proximity**: In this galaxy, **Distance = Meaning**. Movies that share thematic, emotional, or stylistic DNA naturally cluster together. You don't "browse" categories; you navigate through sectors of feeling.
-- **Constellation Logic**: 
-  - **Fuchsia Signals**: Your Personal Favorites, linked into a persistent constellation.
-  - **Red Signals**: Your most recent watch history, creating a temporal trail through the void.
-  - **Lime Green Signals**: Your entire "Seen" library, mapped to show you which regions of the galaxy you've already conquered.
-- **Flight Controls**: Custom-built kinetic flight engine (WASD + Mouse) allowing pilots to fly through the matrix at "Neural Sprint" speeds.
-
-### 2. The Search Algorithm (94+ Iterations)
-The heart of Subtext is a hybrid search engine that combines vector similarity with deterministic metadata anchors.
-- **The "Blackhole" Engine**: A multi-stage retrieval pipeline:
-  1. **Stage 1 (Vector Retrieval)**: Pulls the top 200 candidates from AstraDB based on cosine similarity.
-  2. **Stage 2 (Taste DNA Re-ranking)**: If logged in, results are re-weighted based on your **Neural Signature** (the centroid of your 5-star movies).
-  3. **Stage 3 (Sibling Expansion)**: Injects "Thematic Siblings"—movies with similar keyword density but different vector positions—to prevent "echo chamber" results.
-- **Vibe-First Queries**: Handles complex natural language like *"Lush atmospheric nostalgia in a rainy metropolis"* or *"Existential dread masked by bright colors."*
-
-### 3. Taste DNA & Identity Sync
-Your cinematic identity is more than a list of titles; it's a coordinate in the matrix.
-- **Smart Sync Pipeline**: An additive, multi-threaded sync engine that processes Letterboxd ZIP exports. It reconciles your entire history without creating duplicates, using a "Resolved-First" strategy to handle missing TMDB IDs.
-- **Live Sync (The Fast Lane)**: A daily background task that scrapes your Letterboxd RSS feed to keep your constellations updated in real-time without requiring a fresh ZIP upload.
-- **Neural Signature Generation**: We calculate a weighted average of the vectors for every movie you've rated 4+ stars. This "Centroid" becomes your anchor in the galaxy, pulling similar films toward your search results.
+Subtext is a technical experiment in media discovery. It uses vector embeddings to map over 100,000 films into a 384-dimensional latent space, allowing for discovery based on mood, atmosphere, and narrative style rather than just genre tags or popularity.
 
 ---
 
-## 🛠️ Deep Feature Detail
+## 🛠️ Technical Core
 
-### 🌌 Kinetic 3D HUD
-- **Dynamic Sector Detection**: The HUD identifies which "thematic sector" you are currently piloting through (e.g., *Cyberpunk, Ghibli, Noir*).
-- **Target Locking**: Click any star to lock onto its signal, pulling up a deep-metadata card including TMDB posters, release years, and your personal interaction status.
-- **Warp Drive**: Smooth camera tweening (Warp) allows you to jump from one end of the universe to another instantly when selecting search results.
+The project focuses on two primary challenges: **Live Library Synchronization** and **Personalized Semantic Retrieval**.
 
-### 🧬 Neural Search Refinement
-- **Signal Filtering**: Toggle between "Exploration Mode" (see everything) and "Discovery Mode" (automatically hide everything you've already seen).
-- **Genre Centroids**: Behind the scenes, the engine maintains centroids for major genres, helping the vector search stay "principled" even when queries are vague.
+### 1. Personalized Search Pipeline
+Subtext uses a three-stage retrieval process to surface movies that align with both a search query and the user's specific taste:
 
-### 🔒 Identity & Safety
-- **Danger Zone**: A dedicated suite for data management.
-  - **Full Reset**: Wipe your entire Subtext library and re-sync from a fresh ZIP.
-  - **Account Termination**: A permanent, double-confirmed purge that removes your user record and all associated ratings from the database.
-- **Privacy-First**: No tracking. Your Taste DNA is used strictly to power your own discovery experience.
+1.  **Vector Retrieval**: Initial candidates are pulled from a DataStax AstraDB (Cassandra) vector store based on cosine similarity between the search query and movie embeddings (`all-MiniLM-L6-v2`).
+2.  **Taste DNA Re-ranking**: For authenticated users, the system calculates a "Taste Centroid"—a weighted average vector of every movie the user has rated 4 stars or higher. Search results are then re-ranked based on their proximity to this personal centroid.
+3.  **Thematic Sibling Expansion**: To ensure variety, the engine injects "thematic siblings"—movies that share similar metadata (keywords/genres) with the top results but occupy different positions in the vector space.
 
----
+### 2. Live Sync Engine
+Rather than relying solely on static ZIP exports, Subtext implements a multi-channel synchronization strategy:
+- **RSS-Based Live Sync**: A daily background task that monitors the user's Letterboxd RSS feed. It automatically scrapes new ratings and diary entries, keeping the 3D visualization updated without user intervention.
+- **Additive Reconciliation**: The sync logic uses a "Resolved-First" approach to handle data from various sources (CSV, RSS, API), ensuring that existing metadata (like TMDB IDs and poster paths) is preserved while new interactions are merged.
 
-## 📜 The Iteration Log: Evolution of a Search Engine
-
-The "Blackhole" engine wasn't built in a day. It is the result of a obsessive **94-iteration** cycle:
-
-- **V0: The Metadata Baseline** (Keyword lookup only. Fast, but brain-dead).
-- **V1-V12: The Vector Crisis** (Introduced embeddings. Great for "vibes" but terrible for precision. It once recommended *Toy Story* for *The Terminator* because they both had "action").
-- **V27: Latent Probes** (Implemented deep re-ranking. Results became "alien"—technically accurate but too obscure for humans).
-- **V45-V60: The Genre Anchor Phase** (Started weighting by genre. This "fixed" the vector drift but made results feel generic again).
-- **V80-V90: Score Compression** (Tried to normalize similarity scores. Caused "Dead-Band" where every movie had a 0.85 score).
-- **V94+: The Principles Approach** (The current version. Uses raw vector similarity for discovery, DNA weighting for personalization, and Sibling Expansion for variety).
+### 3. 3D Visualization
+The entire library is projected into a navigable 3D environment using `react-force-graph-3d` (Three.js).
+- **Dimensionality Reduction**: We use **UMAP** to project the 384-dimensional embeddings into 3D space, preserving thematic clusters.
+- **Dynamic Linkages**: The visualization draws "Constellation" lines between movies in the user's favorites and recent history, providing a visual map of their cinematic journey.
 
 ---
 
-## 🏗️ Technical Stack
+## 🔬 Search Algorithm Evolution (The Iteration Log)
 
-### **The Intelligence (Backend)**
-- **FastAPI**: Asynchronous Python backend for high-concurrency search.
-- **Psycopg2/PostgreSQL**: Relational storage for user identities and high-speed interaction logging.
-- **AstraDB (Cassandra)**: Distributed vector storage for 100k+ neural embeddings.
-- **Sentence-Transformers**: `all-MiniLM-L6-v2` for generating 768D semantic vectors.
+The current retrieval system is the result of a 94+ iteration cycle focused on balancing semantic "vibe" with metadata accuracy:
 
-### **The Interface (Frontend)**
-- **Next.js 15**: Leveraging the App Router for server-side performance and client-side interactivity.
-- **Three.js**: The core WebGL engine for the 3D Galaxy.
-- **React-Force-Graph-3D**: Specialized graph implementation for neural matrix navigation.
-- **Framer Motion**: Smooth, brutalist UI transitions and custom toast/modal systems.
-
-### **The Pipeline**
-- **Docker**: Containerized deployment for consistent environments.
-- **Hugging Face Spaces**: Hosting the production discovery engine.
-- **Vercel**: Powering the frontend edge delivery.
+- **V0–V10 (Keyword Baseline)**: Pure metadata indexing in AstraDB. Fast, but limited to exact word matches.
+- **V11–V30 (Early Vector Search)**: First implementation of semantic embeddings. Faced significant "drift" where thematic similarity was technically high but contextually irrelevant (e.g., matching a documentary about space with a sci-fi comedy).
+- **V31–V60 (Latent Probes)**: Introduced re-ranking based on genre centroids. This stabilized results but created "similarity plateaus" where results were too homogeneous.
+- **V61–V90 (Score Normalization)**: Focused on calibrating cosine similarity thresholds. Solved the "Dead-Band" problem where score compression made ranking impossible.
+- **V94+ (Current)**: The hybrid approach—combining vector similarity, Taste DNA weighting, and metadata-based sibling injection.
 
 ---
 
-## 🚀 Getting Started
+## 💻 Infrastructure & Stack
+
+### **Backend**
+- **FastAPI**: Asynchronous API layer for low-latency search and sync operations.
+- **PostgreSQL**: Relational storage for user accounts, library history, and sync logs.
+- **AstraDB**: Distributed vector database for high-dimensional semantic search.
+- **Sentence-Transformers**: `all-MiniLM-L6-v2` for generating 384-dimensional vectors.
+
+### **Frontend**
+- **Next.js 15**: App Router architecture for unified server/client performance.
+- **React-Force-Graph-3D**: WebGL-based visualization engine for the 3D environment.
+- **Framer Motion**: State-driven UI transitions and custom notification systems.
+
+---
+
+## 🚀 Installation & Setup
 
 ### Prerequisites
-- **Python 3.12+** and **Node.js 20+**
-- **AstraDB Bundle**: Secure Connect Bundle and application token.
-- **TMDB API Key**: For fetching posters and metadata.
+- Python 3.12+
+- Node.js 20+
+- AstraDB Secure Connect Bundle
+- TMDB API Key
 
-### Installation
+### Quick Start
 1. **Clone & Install**:
    ```bash
    git clone https://github.com/mwahaj36/Subtext
-   cd Subtext
    npm install
    pip install -r backend/requirements.txt
    ```
-2. **Environment**: Create a `.env` in `backend/` with your keys (see `.env.example`).
-3. **Initialize the Matrix**:
+2. **Configuration**: Set your API keys in `backend/.env`.
+3. **Map Library**:
    ```bash
-   python backend/map_galaxy.py  # Syncs embeddings to AstraDB
-   python backend/main.py        # Starts the API
+   python backend/map_galaxy.py  # Synchronizes movie embeddings
    ```
-4. **Launch Interface**:
+4. **Run**:
    ```bash
-   npm run dev
+   python backend/main.py  # Backend
+   npm run dev            # Frontend
    ```
 
 ---
 
-Built with obsession by [Wahaj](https://github.com/mwahaj36) 🌌
+Built by [Wahaj](https://github.com/mwahaj36) | [GitHub](https://github.com/mwahaj36)

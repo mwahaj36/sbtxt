@@ -228,7 +228,7 @@ export default function ProfilePage() {
                                     <Settings size={10} /> Settings
                                 </button>
                                 <button 
-                                    onClick={() => router.push('/constellation')} 
+                                    onClick={() => router.push('/galaxy')} 
                                     className="px-6 py-3 bg-[#ff0055]/10 border border-[#ff0055]/30 text-[#ff0055] text-[9px] font-black uppercase tracking-widest hover:bg-[#ff0055]/20 hover:border-[#ff0055]/50 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,0,85,0.1)]"
                                 >
                                     <MapIcon size={10} /> View Galaxy

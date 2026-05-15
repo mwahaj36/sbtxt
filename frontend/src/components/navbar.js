@@ -58,7 +58,7 @@ export default function Navbar() {
 
     const navItems = [
         { name: 'Search', href: '/search' },
-        { name: 'Galaxy', href: '/constellation' },
+        { name: 'Galaxy', href: '/galaxy' },
     ];
 
     // Hide the navbar entirely on the auth page

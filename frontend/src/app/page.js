@@ -290,7 +290,7 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* SECTION 6: CONSTELLATION (MAGENTA) */}
+            {/* SECTION 6: GALAXY (MAGENTA) */}
             <section id="galaxy" className="h-screen w-full flex items-center justify-center bg-[#1a051d] snap-start relative px-4">
                 <div className="max-w-4xl mx-auto text-center">
                     <motion.div {...fadeIn}>
@@ -298,27 +298,31 @@ export default function Home() {
                             <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-none flex items-center justify-center text-[var(--primary)]">
                                 <Compass size={24} />
                             </div>
-                            <span className="px-3 py-1 bg-[var(--primary)]/20 text-[var(--primary)] text-[10px] font-black uppercase tracking-widest rounded-none border border-[var(--primary)]/30">Coming Soon</span>
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white">The Cinematic Galaxy</h2>
+                        <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-white uppercase" style={{ fontFamily: 'Arkhip' }}>sbtxt galaxy</h2>
                         <p className="text-gray-300 text-lg leading-relaxed mb-12">
-                            A new way to browse. See movies as stars in a connected constellation. Navigate through visual clusters of genres, moods, and directorial styles.
+                            A new way to browse. See movies as stars in a connected neural matrix. Navigate through visual clusters of genres, moods, and directorial styles in full 3D.
                         </p>
-                        <div className="relative h-[400px] md:h-[500px] w-full bg-white/[0.03] backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden group">
-                             {stars.map((star) => (
-                                <motion.div 
-                                    key={star.id}
-                                    animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.2, 1] }}
-                                    transition={{ duration: star.duration, repeat: Infinity }}
-                                    className="absolute w-1 h-1 bg-white rounded-none"
-                                    style={{ top: star.top, left: star.left }}
-                                />
-                             ))}
-                             <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 to-transparent" />
-                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-[12px] font-black uppercase tracking-[0.5em] text-[var(--primary)] animate-pulse px-4 text-center">Coming Soon: Visual Discovery</span>
-                             </div>
-                        </div>
+                        <Link href="/galaxy" className="group relative">
+                            <div className="relative h-[400px] md:h-[500px] w-full bg-white/[0.03] backdrop-blur-3xl rounded-none border border-white/10 overflow-hidden group hover:border-[var(--primary)]/50 transition-all cursor-pointer">
+                                 {stars.map((star) => (
+                                    <motion.div 
+                                        key={star.id}
+                                        animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.2, 1] }}
+                                        transition={{ duration: star.duration, repeat: Infinity }}
+                                        className="absolute w-1 h-1 bg-white rounded-none"
+                                        style={{ top: star.top, left: star.left }}
+                                    />
+                                 ))}
+                                 <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 to-transparent" />
+                                 <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="flex flex-col items-center gap-6">
+                                        <span className="text-[14px] font-black uppercase tracking-[0.5em] text-[var(--primary)] px-4 text-center">Enter the Matrix</span>
+                                        <div className="px-6 py-3 border border-[var(--primary)] text-[var(--primary)] text-[10px] font-bold uppercase tracking-[0.3em] group-hover:bg-[var(--primary)] group-hover:text-black transition-all">Launch Engine</div>
+                                    </div>
+                                 </div>
+                            </div>
+                        </Link>
                     </motion.div>
                 </div>
             </section>

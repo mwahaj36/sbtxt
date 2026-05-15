@@ -422,8 +422,6 @@ export default function GalaxyPage() {
                     const clickTarget = getTargetFromCrosshair(false);
                     highlightMovie(clickTarget);
                 }
-            } else if (!searchQuery) {
-                document.body.requestPointerLock();
             }
         };
 
@@ -537,6 +535,25 @@ export default function GalaxyPage() {
                                 <p className="text-[8px] tracking-[0.4em] text-white/20 uppercase font-bold">Synchronizing Neural Matrix</p>
                             </div>
                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ENGAGE CONTROLS BUTTON */}
+            <AnimatePresence>
+                {!isLocked && !loading && !isMobile && !searchQuery && (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }} 
+                        animate={{ opacity: 1, scale: 1 }} 
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="absolute inset-0 z-[1000] flex items-center justify-center pointer-events-none"
+                    >
+                        <button 
+                            onClick={() => document.body.requestPointerLock()}
+                            className="pointer-events-auto px-8 py-4 bg-black/80 border border-[var(--primary)] text-[var(--primary)] text-[12px] font-black uppercase tracking-[0.4em] hover:bg-[var(--primary)] hover:text-black transition-all backdrop-blur-md shadow-[0_0_30px_rgba(217,70,239,0.3)]"
+                        >
+                            Resume Flight
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -9,7 +9,8 @@ import jwt
 from datetime import datetime,timedelta,timezone
 import os
 from dotenv import load_dotenv
-import smtplib
+import requests
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -139,20 +140,37 @@ def login(user_credentials:userLogin):
     }
 
 def send_reset_email_task(to_email: str, reset_link: str):
-    sender_email = os.getenv("SMTP_EMAIL")
-    sender_password = os.getenv("SMTP_PASSWORD")
+    email_user = os.getenv("EMAIL_USER")
+    client_id = os.getenv("EMAIL_CLIENT_ID")
+    client_secret = os.getenv("EMAIL_CLIENT_SECRET")
+    refresh_token = os.getenv("EMAIL_REFRESH_TOKEN")
     
-    if not sender_email or not sender_password:
-        print("SMTP credentials not configured. Email not sent.")
+    if not all([email_user, client_id, client_secret, refresh_token]):
+        print("Gmail OAuth credentials not fully configured. Email not sent.")
         return
         
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = to_email
-    msg['Subject'] = "Password Reset - Subtext"
-    
-    body = f"""Hello,
-    
+    try:
+        # 1. Get access token
+        token_response = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token"
+            }
+        )
+        token_response.raise_for_status()
+        access_token = token_response.json().get("access_token")
+        
+        # 2. Create the email message
+        msg = MIMEMultipart()
+        msg['From'] = f"Subtext <{email_user}>"
+        msg['To'] = to_email
+        msg['Subject'] = "Password Reset - Subtext"
+        
+        body = f"""Hello,
+        
 We received a request to reset your password for your Subtext account.
 Please click the link below to set a new password:
 
@@ -163,17 +181,28 @@ If you did not request this, please ignore this email.
 Best,
 The Subtext Team
 """
-    msg.attach(MIMEText(body, 'plain'))
-    
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
-        print(f"Password reset email sent to {to_email}")
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # 3. Encode the message in base64url format
+        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode('utf-8')
+        
+        # 4. Send via Gmail REST API
+        send_url = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "raw": raw_message
+        }
+        
+        send_response = requests.post(send_url, headers=headers, json=payload)
+        send_response.raise_for_status()
+        
+        print(f"Password reset email sent to {to_email} via Gmail API")
+        
     except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
+        print(f"Failed to send email to {to_email} via Gmail API: {e}")
 
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPasswordRequest, background_tasks: BackgroundTasks):

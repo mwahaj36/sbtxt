@@ -8,14 +8,12 @@ import { API_URL } from '@/config';
 const SyncContext = createContext();
 
 export function SyncProvider({ children }) {
-    const [syncStatus, setSyncStatus] = useState({ status: 'idle', processed: 0, total: 0, message: '' });
+    const [syncStatus, setSyncStatus] = useState({ status: 'idle', processed: 0, total: 0, message: '', isSilent: false, is_silent: false });
     const [showWelcome, setShowWelcome] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        const handleDevSuccess = () => setShowWelcome(true);
-        document.addEventListener('dev:showSuccess', handleDevSuccess);
-        return () => document.removeEventListener('dev:showSuccess', handleDevSuccess);
+        // Removed devSuccess listener to prevent accidental modal triggers
     }, []);
 
     const syncStatusRef = useRef(syncStatus);
@@ -39,12 +37,17 @@ export function SyncProvider({ children }) {
                     if (data.status === 'completed') {
                         clearInterval(interval);
                         
-                        // Use backend flag if available, otherwise fallback to ref
-                        const isSilent = data.is_silent !== undefined ? data.is_silent : syncStatusRef.current.isSilent;
+                        // Capture the silent state before updating
+                        const currentIsSilent = data.is_silent !== undefined ? data.is_silent : syncStatusRef.current.isSilent;
                         
-                        setSyncStatus(prev => ({ ...prev, ...data, status: 'completed_recently' }));
+                        setSyncStatus(prev => ({ 
+                            ...prev, 
+                            ...data, 
+                            status: 'completed_recently',
+                            isSilent: currentIsSilent 
+                        }));
                         
-                        if (!isSilent) {
+                        if (!currentIsSilent) {
                             setShowWelcome(true);
                         }
                         

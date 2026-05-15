@@ -323,61 +323,64 @@ async def sync_live_history(username: str, user_id: str):
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             # 1. Fetch History Feed (RSS)
-            print(f"[SYNC][RSS] Fetching history feed from Letterboxd...")
-            feeds = [(f"https://letterboxd.com/{username}/rss/", "watched")]
+            rss_url = f"https://letterboxd.com/{username}/rss/"
+            print(f"[SYNC][RSS] Fetching {rss_url}...")
+            SYNC_PROGRESS[user_id]["message"] = "Checking diary feed..."
             all_new_movies = []
-            ns = {'letterboxd': 'https://letterboxd.com', 'tmdb': 'https://themoviedb.org'}
             
-            for rss_url, interaction_type in feeds:
-                resp = await client.get(rss_url, headers=get_ghost_headers(username))
-                if resp.status_code == 200:
+            try:
+                resp = await client.get(rss_url, headers=get_ghost_headers(username), follow_redirects=True)
+                if resp.status_code != 200:
+                    print(f"[SYNC][RSS] Failed: {resp.status_code}")
+                else:
                     root = ET.fromstring(resp.text)
                     items = root.findall('.//item')
+                    print(f"[SYNC][RSS] Found {len(items)} items in feed.")
+                    
+                    ns = {'letterboxd': 'https://letterboxd.com', 'tmdb': 'https://themoviedb.org'}
                     conn = get_db_connection()
-                    if not conn: break
-                    try:
-                        with conn.cursor() as cur:
-                            for item in items:
-                                title_tag = item.find('letterboxd:filmTitle', ns)
-                                if title_tag is None: continue
-                                title = title_tag.text
-                                link_tag = item.find('link')
-                                lb_uri = link_tag.text if link_tag is not None else None
-                                
-                                # Extract watched date
-                                date_tag = item.find('letterboxd:watchedDate', ns)
-                                watched_date = date_tag.text if date_tag is not None else None
-                                
-                                # Use pubDate as a fallback for sorting if watchedDate is missing (non-diary entries)
-                                if not watched_date:
-                                    pub_date_tag = item.find('pubDate')
-                                    if pub_date_tag is not None:
-                                        try:
-                                            # Convert RSS pubDate to YYYY-MM-DD
-                                            dt = datetime.strptime(pub_date_tag.text, "%a, %d %b %Y %H:%M:%S %z")
-                                            watched_date = dt.strftime("%Y-%m-%d")
-                                        except: pass
+                    if conn:
+                        try:
+                            with conn.cursor() as cur:
+                                for item in items:
+                                    title_tag = item.find('letterboxd:filmTitle', ns)
+                                    if title_tag is None: continue
+                                    title = title_tag.text
+                                    link_tag = item.find('link')
+                                    lb_uri = link_tag.text if link_tag is not None else None
+                                    
+                                    # Extract watched date
+                                    date_tag = item.find('letterboxd:watchedDate', ns)
+                                    watched_date = date_tag.text if date_tag is not None else None
+                                    
+                                    # Fallback to pubDate
+                                    if not watched_date:
+                                        pub_date_tag = item.find('pubDate')
+                                        if pub_date_tag is not None:
+                                            try:
+                                                dt = datetime.strptime(pub_date_tag.text, "%a, %d %b %Y %H:%M:%S %z")
+                                                watched_date = dt.strftime("%Y-%m-%d")
+                                            except: pass
 
-                                cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = 'watched' AND (watched_date = %s OR (watched_date IS NULL AND %s IS NULL))", (user_id, lb_uri, watched_date, watched_date))
-                                if cur.fetchone(): continue 
-                                
-                                year_tag = item.find('letterboxd:filmYear', ns)
-                                rating_tag = item.find('letterboxd:memberRating', ns)
-                                tmdb_id_tag = item.find('tmdb:movieId', ns)
-                                
-                                all_new_movies.append({
-                                    'movie_title': title,
-                                    'release_year': int(year_tag.text) if year_tag is not None else None,
-                                    'rating': float(rating_tag.text) if rating_tag is not None else None,
-                                    'interaction_type': 'watched',
-                                    'letterboxd_uri': lb_uri,
-                                    'tmdb_id': int(tmdb_id_tag.text) if tmdb_id_tag is not None else None,
-                                    'watched_date': watched_date
-                                })
-                        conn.close()
-                    except Exception as e:
-                        print(f"[SYNC][RSS] Error: {e}")
-                        if conn: conn.close()
+                                    cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = 'watched' AND (watched_date = %s OR (watched_date IS NULL AND %s IS NULL))", (user_id, lb_uri, watched_date, watched_date))
+                                    if cur.fetchone(): continue 
+                                    
+                                    year_tag = item.find('letterboxd:filmYear', ns)
+                                    rating_tag = item.find('letterboxd:memberRating', ns)
+                                    tmdb_id_tag = item.find('tmdb:movieId', ns)
+                                    
+                                    all_new_movies.append({
+                                        'movie_title': title,
+                                        'release_year': int(year_tag.text) if year_tag is not None else None,
+                                        'rating': float(rating_tag.text) if rating_tag is not None else None,
+                                        'interaction_type': 'watched',
+                                        'letterboxd_uri': lb_uri,
+                                        'tmdb_id': int(tmdb_id_tag.text) if tmdb_id_tag is not None else None,
+                                        'watched_date': watched_date
+                                    })
+                        finally: conn.close()
+            except Exception as e:
+                print(f"[SYNC][RSS] Error: {e}")
 
             # 2. Fetch Watchlist & Recent Films via Scraper
             print(f"[SYNC][SCRAPE] Starting quick scraper for {username}...")
@@ -386,7 +389,7 @@ async def sync_live_history(username: str, user_id: str):
             # Scrape Watchlist
             watchlist_movies = await scrape_films_page_quick(username, client, "watchlist")
             
-            # Scrape Recent Films (to catch non-diary watches)
+            # Scrape Recent Films
             recent_movies = await scrape_films_page_quick(username, client, "films")
             
             scraper_movies = watchlist_movies + recent_movies
@@ -397,18 +400,19 @@ async def sync_live_history(username: str, user_id: str):
                     try:
                         with conn.cursor() as cur:
                             for m in scraper_movies:
-                                # Check if already exists with same interaction type
                                 cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = %s", (user_id, m['letterboxd_uri'], m['interaction_type']))
                                 if not cur.fetchone(): 
-                                    # If it's a watchlist item, set current date as placeholder for sort
                                     if m['interaction_type'] == 'watchlist':
                                         m['watched_date'] = datetime.now().strftime("%Y-%m-%d")
                                     all_new_movies.append(m)
                     finally: conn.close()
 
+            # 3. Process Resolve Batch
             if all_new_movies:
+                print(f"[SYNC] Saving {len(all_new_movies)} total new items...")
                 SYNC_PROGRESS[user_id]["total"] = len(all_new_movies)
-                # Split: Process watchlist items sequentially to preserve ID order/sort
+                
+                # Split into watched and watchlist for resolve_tmdb_ids
                 watched_items = [m for m in all_new_movies if m['interaction_type'] == 'watched']
                 watchlist_items = [m for m in all_new_movies if m['interaction_type'] == 'watchlist']
                 
@@ -416,10 +420,9 @@ async def sync_live_history(username: str, user_id: str):
                     await resolve_tmdb_ids(watched_items, user_id, client, skip_refresh=True)
                 
                 if watchlist_items:
-                    # Sequential is KEY for correct watchlist sorting (id-based)
                     await resolve_tmdb_ids(watchlist_items, user_id, client, sequential=True, skip_refresh=True)
-
-            # 3. Mirror Identity Data
+            
+            # 4. Mirror Identity Data
             SYNC_PROGRESS[user_id]["message"] = "Mirroring profile data..."
             profile_data = await scrape_letterboxd_profile_data(username, client)
             if profile_data:
@@ -431,11 +434,19 @@ async def sync_live_history(username: str, user_id: str):
                             conn.commit()
                     finally: conn.close()
             
-            # 4. Refresh Taste DNA
+            # 5. Refresh Taste DNA
             SYNC_PROGRESS[user_id]["message"] = "Finalizing Taste DNA..."
             await refresh_taste_vector_bg(user_id)
             
-            SYNC_PROGRESS[user_id] = {"status": "completed", "processed": 0, "total": 0, "message": "Sync complete!"}
+            # Final Status Update
+            msg = "Sync complete!" if all_new_movies else "No new items found."
+            SYNC_PROGRESS[user_id] = {
+                "status": "completed", 
+                "processed": len(all_new_movies), 
+                "total": len(all_new_movies), 
+                "message": msg,
+                "is_silent": True
+            }
             print(f"[SYNC][COMPLETE] Full library synchronization finished for user: {username}")
             
     except Exception as e:

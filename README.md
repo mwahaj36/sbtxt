@@ -2,7 +2,7 @@
 title: Subtext
 emoji: 🌌
 colorFrom: purple
-colorTo: black
+colorTo: indigo
 sdk: docker
 app_port: 7860
 pinned: false

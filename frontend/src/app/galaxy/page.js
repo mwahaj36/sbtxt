@@ -60,7 +60,7 @@ export default function GalaxyPage() {
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
-    }, [router]);
+    }, []);
 
     const sectorAnchors = useMemo(() => [
         { name: 'HORROR', search: 'Scream' },

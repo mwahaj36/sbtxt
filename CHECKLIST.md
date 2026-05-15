@@ -31,8 +31,8 @@ This is the absolute, granular list of every single task required to build **Sub
 
 ---
 
-## 🧠 Phase 3: AI Vectorization (The Professor Model)
-- [x] **High-Res Brain:** Switched to `all-mpnet-base-v2` (768 dimensions).
+## Phase 3: Vectorization (Embedding Model)
+- [x] **Model Setup:** Switched to `all-mpnet-base-v2` (768 dimensions).
 - [x] **Batch Processing:** Vectorizing 100k rows locally using RTX 4060 (~15%).
 - [x] **Hybrid Search Query:**
     - [x] Implement SQL for Vector Distance + Full Text Search (Keywords).

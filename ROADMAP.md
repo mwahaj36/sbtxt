@@ -8,7 +8,7 @@ This is the ultimate guide to building **Subtext**. It combines high-level produ
 1.  **Vector Embeddings & Latent Space**: Turning text into multidimensional coordinates.
 2.  **Transformer Architecture**: The "Attention" mechanism that powers BERT/DistilBERT.
 3.  **Contrastive Learning (Triplet Loss)**: Training a model using (Anchor, Positive, Negative) triplets.
-4.  **Local AI Acceleration (CUDA)**: Utilizing your RTX 4060 for parallel tensor math.
+4.  **Local Acceleration (CUDA)**: Utilizing your RTX 4060 for parallel tensor math.
 5.  **Vector Math & Centroids**: Calculating the "center point" of a group of vectors (User Taste).
 6.  **HNSW (Hierarchical Navigable Small World)**: High-speed approximate nearest neighbor search.
 
@@ -47,7 +47,7 @@ This is the ultimate guide to building **Subtext**. It combines high-level produ
 
 ### 3. The Onboarding / Import Page (`/import`)
 *   **The Upload:** Drag-and-drop for the Letterboxd `ratings.csv`.
-*   **Processing State:** Animated visual showing the AI "reading" your history and mapping it to the 100k database.
+*   **Processing State:** Animated visual showing the system processing your history and mapping it to the 100k database.
 
 ### 4. The Movie Deep-Dive (`/movie/[id]`)
 *   **Vibe Profile:** A breakdown of why the movie sits where it does in latent space.
@@ -80,7 +80,7 @@ This is the ultimate guide to building **Subtext**. It combines high-level produ
 *   **Data Ingestion:** High-speed bulk upload to Aiven/PostgreSQL.
 
 ### Phase 2: High-Quality Vectorization (In Progress)
-*   **The Brain:** `all-mpnet-base-v2` (768 dimensions) for superior semantic understanding.
+*   **The Model:** `all-mpnet-base-v2` (768 dimensions) for superior semantic understanding.
 *   **Local Processing:** Leveraging RTX 4060 for ~1 hour batch embedding run.
 *   **Storage Optimization:** Implementing IVFFlat indexing to stay within 1GB limit.
 

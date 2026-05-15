@@ -14,7 +14,7 @@ import requests
 
 from sentence_transformers import SentenceTransformer
 
-# Hugging Face Configuration
+# Model setup
 MODEL_ID = "jinaai/jina-embeddings-v2-base-en"
 
 _model = None
@@ -22,9 +22,9 @@ _model = None
 def get_model():
     global _model
     if _model is None:
-        print(f"📡 Loading Local ML Model: {MODEL_ID}...")
+        print(f"Loading model: {MODEL_ID}...")
         _model = SentenceTransformer(MODEL_ID, trust_remote_code=True)
-        print("✅ Model loaded successfully.")
+        print("Model loaded.")
     return _model
 
 
@@ -63,7 +63,7 @@ else:
 # MODELS + DATA
 # =============================================================================
 
-print("Loading Subtext Core Search Engine...")
+print("Starting search engine...")
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -130,7 +130,6 @@ VIBE_RULES = {
     "glamorous": {
         "keywords": ["glamorous", "glamour", "main character", "fashion", "fame", "rich", "extravagant", "chic", "aesthetic", "glitzy", "slaps", "era", "self-destructive", "downward spiral", "messy"],
         "boost_genres": ["Drama", "Music", "Comedy"],
-        # FIX: Animation and Family added — prevents KPop Demon Hunters / Cars type mismatches
         "kill_genres": ["Action", "Horror", "War", "Animation", "Family"]
     },
     "nostalgic": {
@@ -138,13 +137,13 @@ VIBE_RULES = {
         "boost_genres": ["History", "Family", "Drama"],
         "kill_genres": []
     },
-    # NEW: bittersweet endings / complicated emotions
+    # bittersweet endings / complicated emotions
     "bittersweet_ending": {
         "keywords": ["ended something", "quiet relief", "relief mixed", "ambivalent", "complicated feelings", "not sure how to feel", "mixed feelings", "letting go", "outgrown", "moving on"],
         "boost_genres": ["Drama", "Romance"],
         "kill_genres": ["Horror", "Action", "Comedy", "Family", "Animation", "Science Fiction"]
     },
-    # NEW: watching someone fall apart
+    # watching someone fall apart
     "unraveling": {
         "keywords": ["unravel", "fall apart", "spiral", "deteriorate", "losing it", "breaking down", "can't look away", "self-destruct", "coming undone"],
         "boost_genres": ["Drama", "Thriller"],
@@ -155,25 +154,25 @@ VIBE_RULES = {
         "boost_genres": ["Western", "Drama", "Thriller", "Crime"],
         "kill_genres": ["Family", "Animation", "Comedy", "Romance", "Science Fiction", "Horror"]
     },
-    # NEW: sensory — rainy neon city noir
+    # sensory — rainy neon city noir
     "gritty_urban": {
         "keywords": ["rainy city", "neon reflections", "wet pavement", "neon lights", "night city", "urban alienation", "nobody's where", "urban drift", "city at night"],
         "boost_genres": ["Drama", "Crime", "Thriller"],
         "kill_genres": ["Family", "Animation", "Romance", "Comedy", "Western"]
     },
-    # NEW: paranoid / everyone is lying
+    # paranoid / everyone is lying
     "paranoid": {
         "keywords": ["paranoid", "everyone might be lying", "conspiracy", "can't trust anyone", "surveillance", "deceived", "manipulation", "gaslit"],
         "boost_genres": ["Thriller", "Crime", "Mystery", "Drama"],
         "kill_genres": ["Family", "Animation", "Comedy", "Romance"]
     },
-    # NEW: mean wit / dark satire
+    # mean wit / dark satire
     "dark_wit": {
         "keywords": ["funny but mean", "wit that makes you wince", "mean funny", "dark satire", "sharp wit", "caustic", "biting comedy", "wince", "sardonic"],
         "boost_genres": ["Comedy", "Drama", "Thriller"],
         "kill_genres": ["Family", "Animation", "Horror", "War"]
     },
-    # NEW: analog / unhurried / no irony
+    # analog / unhurried / no irony
     "analog_unhurried": {
         "keywords": ["unhurried", "analog", "no irony", "different time", "made in a different", "slow cinema", "quiet film", "deliberate pace", "restrained"],
         "boost_genres": ["Drama"],
@@ -241,8 +240,8 @@ def expand_query_for_embedding(query: str) -> str:
 # =============================================================================
 
 ILLNESS_KEYWORDS = {
-    "cancer": [
-        "cancer", "tumor", "tumour", "chemotherapy", "chemo",
+    "cancer": [ 
+        "cancer", "tumor", "tumour", "chemotherapy", "chemo", #for wheoever is sick enough to want this genre specifically
         "oncology", "leukemia", "leukaemia", "lymphoma",
         "carcinoma", "malignant", "terminal diagnosis"
     ],

@@ -190,7 +190,7 @@ async def get_constellation_points():
         return {"error": "Galaxy map not generated yet. Please run local mapping script."}
     return FileResponse(file_path)
 
-# V28.7 REFRESH
+
 if __name__=="__main__":
     import os
     port = int(os.getenv("PORT", 8000))

@@ -18,6 +18,7 @@ const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), {
 const LOADING_TIPS = [
     "The Galaxy represents pure vector similarity—distance is meaning.",
     "Fuchsia lines represent your Personal Favorites constellation.",
+    "Vector boundaries are fluid—genres bleed together in high-dimensional space.",
     "Red lines connect your Most Recently watched films."
 ];
 
@@ -55,8 +56,19 @@ export default function GalaxyPage() {
         { name: 'HORROR', search: 'Scream' },
         { name: 'ROMANCE', search: 'Titanic' },
         { name: 'SCI-FI', search: 'Interstellar' },
-        { name: 'ACTION', search: 'Mad Max' },
-        { name: 'DRAMA', search: 'Godfather' }
+        { name: 'ACTION', search: 'Mad Max: Fury Road' },
+        { name: 'DRAMA', search: 'The Godfather' },
+        { name: 'CRIME', search: 'Pulp Fiction' },
+        { name: 'COMEDY', search: 'Superbad' },
+        { name: 'ANIMATION', search: 'Toy Story' },
+        { name: 'THRILLER', search: 'The Silence of the Lambs' },
+        { name: 'FANTASY', search: 'The Lord of the Rings' },
+        { name: 'WESTERN', search: 'Unforgiven' },
+        { name: 'SUPERHERO', search: 'The Avengers' },
+        { name: 'CYBERPUNK', search: 'Blade Runner' },
+        { name: 'GHIBLI', search: 'Spirited Away' },
+        { name: 'WAR', search: 'Saving Private Ryan' },
+        { name: 'NOIR', search: 'The Maltese Falcon' }
     ], []);
 
     const [anchorsWithCoords, setAnchorsWithCoords] = useState([]);
@@ -210,7 +222,7 @@ export default function GalaxyPage() {
                 const d = Math.hypot(camera.position.x - a.x, camera.position.y - a.y, camera.position.z - a.z);
                 if (d < minDist) { minDist = d; nearest = a; }
             });
-            if (nearest && minDist < 4000) setCurrentSector(nearest.name);
+            if (nearest && minDist < 2800) setCurrentSector(nearest.name);
             else setCurrentSector('DEEP SPACE');
         }, 1000);
         return () => clearInterval(interval);
@@ -591,6 +603,14 @@ export default function GalaxyPage() {
                 <p className="text-[7px] tracking-[0.3em] text-white/20 uppercase font-bold mt-1">
                     Universal Signals: 6,174,821 Entry Total
                 </p>
+                
+                {/* NEURAL INTEGRITY DISCLAIMER */}
+                <div className="group relative mt-4 flex items-center justify-end gap-2 cursor-help">
+                    <p className="text-[7px] tracking-[0.2em] text-white/10 uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity max-w-[150px] leading-relaxed">
+                        Vector boundaries are fluid. In high-dimensional space, clusters bleed together and outliers may appear in unexpected sectors.
+                    </p>
+                    <Info size={10} className="text-white/20 group-hover:text-[var(--primary)] transition-colors" />
+                </div>
             </div>
 
             <div className="absolute bottom-12 right-12 z-50 flex flex-col gap-2 p-6 bg-black/60 border border-white/10 backdrop-blur-3xl rounded-sm text-[9px] tracking-widest text-white/60 uppercase font-bold min-w-[200px]">

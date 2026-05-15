@@ -752,6 +752,12 @@ export default function GalaxyPage() {
                     forceEngine="none"
                 />
             )}
+            {/* NEURAL INTEGRITY DISCLAIMER */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-4xl px-10 pointer-events-none">
+                <p className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.4em] text-white/20 text-center whitespace-nowrap">
+                    Neural Integrity: Vector boundaries are fluid. High-dimensional mapping may produce occasional thematic outliers.
+                </p>
+            </div>
         </main>
     );
 }

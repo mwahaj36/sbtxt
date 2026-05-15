@@ -16,6 +16,25 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "SBTXT",
   description: "Discover cinema through vibes, story, and soul.",
+  openGraph: {
+    title: "SBTXT",
+    description: "Discover cinema through vibes, story, and soul.",
+    type: "website",
+    images: [
+      {
+        url: "/preview.png",
+        width: 1200,
+        height: 630,
+        alt: "SBTXT Preview",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SBTXT",
+    description: "Discover cinema through vibes, story, and soul.",
+    images: ["/preview.png"],
+  },
 };
 
 export default function RootLayout({ children }) {

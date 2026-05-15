@@ -300,3 +300,16 @@ async def get_profile_bundle(user_id: str = Depends(get_current_user)):
             }
     finally:
         conn.close()
+@router.delete("/delete")
+async def delete_user(user_id: str = Depends(get_current_user)):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            # Delete associated ratings
+            cur.execute("DELETE FROM user_ratings WHERE user_id = %s", (user_id,))
+            # Delete user account
+            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+            conn.commit()
+            return {"status": "success", "message": "User and all associated data purged successfully"}
+    finally:
+        conn.close()

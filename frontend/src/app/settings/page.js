@@ -116,6 +116,30 @@ export default function SettingsPage() {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        const confirmed = window.confirm("🚨 FINAL WARNING: This will PERMANENTLY DELETE your account and all your movie data. This cannot be undone. Are you absolutely sure?");
+        if (!confirmed) return;
+
+        const doubleConfirmed = window.confirm("Are you REALLY sure? All your Taste DNA, constellations, and library history will be gone forever.");
+        if (!doubleConfirmed) return;
+
+        const token = localStorage.getItem("token");
+        try {
+            const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/delete`, {
+                method: 'DELETE',
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                localStorage.removeItem("token");
+                router.push("/");
+            } else {
+                setToast("Failed to delete account.");
+            }
+        } catch (e) {
+            setToast("An error occurred during deletion.");
+        }
+    };
+
     if (isLoading) return (
         <div className="h-screen w-full flex items-center justify-center bg-black">
             <Loader2 className="animate-spin text-[var(--primary)]" size={48} />
@@ -336,6 +360,18 @@ export default function SettingsPage() {
                                 Upload a ZIP file in the Sync section to enable this button
                             </p>
                         )}
+
+                        <div className="w-full h-[1px] bg-red-500/10 my-4" />
+
+                        <div className="space-y-4">
+                            <h3 className="text-red-500/60 font-black uppercase tracking-[0.3em] text-[10px]">Account Termination</h3>
+                            <button 
+                                onClick={handleDeleteAccount}
+                                className="px-12 py-4 border border-red-500/40 text-red-500/40 font-black uppercase tracking-[0.2em] text-[9px] hover:bg-red-500 hover:text-white transition-all"
+                            >
+                                Permanent Account Deletion
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>

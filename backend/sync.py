@@ -178,8 +178,15 @@ def _save_movies_batch(results: List[tuple], user_id: str):
                 cur.execute("""
                     INSERT INTO user_ratings (user_id, movie_title, release_year, rating, watched_date, is_liked, interaction_type, tmdb_id, poster_path, media_type, letterboxd_uri) 
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
-                    ON CONFLICT (user_id, tmdb_id, interaction_type) 
-                    DO UPDATE SET rating = EXCLUDED.rating, watched_date = EXCLUDED.watched_date, is_liked = EXCLUDED.is_liked, poster_path = EXCLUDED.poster_path, media_type = EXCLUDED.media_type, letterboxd_uri = EXCLUDED.letterboxd_uri
+                    ON CONFLICT (user_id, letterboxd_uri) 
+                    DO UPDATE SET 
+                        rating = EXCLUDED.rating, 
+                        watched_date = EXCLUDED.watched_date, 
+                        is_liked = EXCLUDED.is_liked, 
+                        tmdb_id = COALESCE(EXCLUDED.tmdb_id, user_ratings.tmdb_id),
+                        poster_path = COALESCE(EXCLUDED.poster_path, user_ratings.poster_path),
+                        interaction_type = EXCLUDED.interaction_type,
+                        media_type = EXCLUDED.media_type
                 """, (user_id, movie['movie_title'], movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), interaction, tmdb_id, poster_path, media_type, movie['letterboxd_uri']))
 
                 # 3. CLEANUP: If this is a 'watched' entry, remove it from 'watchlist'

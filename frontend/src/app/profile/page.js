@@ -280,11 +280,11 @@ export default function ProfilePage() {
             </section>
 
             {/* DECK 2: TASTE DNA */}
-            <section className="h-screen w-full snap-start flex flex-col items-center justify-center py-20 px-12 md:px-20 relative bg-black overflow-hidden border-t border-white/5">
+            <section className="min-h-screen w-full snap-start flex flex-col items-center justify-center py-24 px-8 md:px-20 relative bg-black overflow-hidden border-t border-white/5">
                 <div className="absolute inset-0 bg-gradient-to-b from-[#d946ef]/5 to-transparent opacity-20" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#d946ef]/10 rounded-full blur-[120px] opacity-20 animate-pulse" />
                 
-                <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-24 z-10 items-center">
+                <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 z-10 items-center">
                     {/* LEFT: Explanation */}
                     <div className="flex flex-col items-start text-left">
                         <div className="flex items-center gap-3 mb-6">

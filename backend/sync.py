@@ -181,6 +181,10 @@ def _save_movies_batch(results: List[tuple], user_id: str):
                     ON CONFLICT (user_id, tmdb_id, interaction_type) 
                     DO UPDATE SET rating = EXCLUDED.rating, watched_date = EXCLUDED.watched_date, is_liked = EXCLUDED.is_liked, poster_path = EXCLUDED.poster_path, media_type = EXCLUDED.media_type, letterboxd_uri = EXCLUDED.letterboxd_uri
                 """, (user_id, movie['movie_title'], movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), interaction, tmdb_id, poster_path, media_type, movie['letterboxd_uri']))
+
+                # 3. CLEANUP: If this is a 'watched' entry, remove it from 'watchlist'
+                if interaction == 'watched' and tmdb_id:
+                    cur.execute("DELETE FROM user_ratings WHERE user_id = %s AND tmdb_id = %s AND interaction_type = 'watchlist'", (user_id, tmdb_id))
             conn.commit()
             print(f"[SYNC][BATCH] Successfully committed {len(results)} movies.")
     finally: conn.close()

@@ -32,7 +32,7 @@ const THEME = {
     primary: "#d946ef",    // Fuchsia
     secondary: "#ef4444",  // Red (Recently Seen)
     accent: "#2563eb",     // Electric Blue (Similar Signal)
-    success: "#22c55e",    // Emerald (Seen)
+    success: "#4ade80",    // Lime Green (Seen)
     active: "#ffaa00",     // Solar Gold (Active Signal)
     neutral: "#ffffff"     // Undiscovered White
 };
@@ -101,27 +101,50 @@ export default function GalaxyPage() {
                 } catch(e) { console.warn("AUTH_SYNC_FAILED: Proceeding as Guest."); }
 
                 try {
-                    const watchRes = await fetch(`${API_BASE}/api/v1/sbtxt-sync/library?type=watched`, { headers });
+                    const watchRes = await fetch(`${API_BASE}/api/v1/sbtxt-sync/library?type=watched&limit=5000`, { headers });
                     const watchData = await watchRes.json();
                     watchedHistory = watchData.movies || [];
                 } catch(e) {}
             }
 
-            const favIds = new Set(favorites.map(f => String(f.tmdb_id || f.id)));
-            const watchedIdsSet = new Set(watchedHistory.map(m => String(m.tmdb_id)));
-            const recentIds = new Set(watchedHistory.slice(0, 4).map(m => String(m.tmdb_id)));
+            const favIds = new Set(favorites.map(f => Number(f.tmdb_id || f.id)));
+            const watchedIdsSet = new Set(watchedHistory.map(m => Number(m.tmdb_id || m.id)));
+            const recentIds = new Set(watchedHistory.slice(0, 4).map(m => Number(m.tmdb_id || m.id)));
 
+            // DEEP TRACE: Pick one seen movie and follow it
+            const traceTarget = watchedHistory[0];
+            const traceId = traceTarget ? Number(traceTarget.tmdb_id || traceTarget.id) : null;
+
+            console.log("SIGNAL_TRACE: Deep Audit Started", {
+                librarySize: watchedHistory.length,
+                targetMovie: traceTarget?.title,
+                targetId: traceId,
+                isTargetInSet: traceId ? watchedIdsSet.has(traceId) : false,
+                galaxySampleSize: points.slice(0, 5).map(p => ({ id: p.i, title: p.t }))
+            });
+
+            let matchCount = 0;
             const nodes = points.map(p => {
-                const id = String(p.i);
+                const id = Number(p.i);
                 let type = 'neutral';
-                if (watchedIdsSet.has(id)) type = 'watched';
+                if (watchedIdsSet.has(id)) {
+                    type = 'watched';
+                    matchCount++;
+                }
                 if (recentIds.has(id)) type = 'recent';
                 if (favIds.has(id)) type = 'favorite';
+                
+                if (id === traceId) {
+                    console.log(`SIGNAL_TRACE: Target Found! [${id}] -> ${p.t} as ${type}`);
+                }
+
                 const x = p.x * 500; const y = p.y * 500; const z = p.z * 500;
                 return { id, name: p.t, x, y, z, fx: x, fy: y, fz: z, type };
             });
 
-            const explored = (watchedIdsSet.size / 6174821) * 100;
+            console.log(`SIGNAL_TRACE: Density Audit: ${matchCount} signals successfully locked.`);
+
+            const explored = (watchedIdsSet.size / (points.length || 1)) * 100;
             setExploration(explored);
 
             const links = [];
@@ -199,7 +222,36 @@ export default function GalaxyPage() {
         return () => clearInterval(interval);
     }, [anchorsWithCoords]);
 
-    const highlightMovie = useCallback(async (node) => {
+    const getHitboxThreshold = (n) => {
+        const val = n.type === 'favorite' ? 0.7 : n.type === 'recent' ? 0.6 : n.type === 'watched' ? 0.5 : 0.15;
+        return val * 13.33; // Maintaining the original surgical ratio
+    };
+
+    const highlightMovie = useCallback(async (node, event) => {
+        // If clicking background or small miss, check for proximity targeting
+        if (!node && event && fgRef.current) {
+            const mouse = new THREE.Vector2();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            const camera = fgRef.current.camera();
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Project all personal nodes to check ray-distance
+            const personalNodes = data.nodes.filter(n => n.type !== 'neutral');
+            const intersects = personalNodes
+                .map(n => {
+                    const nodePos = new THREE.Vector3(n.x, n.y, n.z);
+                    const dist = raycaster.ray.distanceToPoint(nodePos);
+                    return { node: n, dist };
+                })
+                .filter(i => i.dist < getHitboxThreshold(i.node))
+                .sort((a, b) => a.dist - b.dist);
+                
+            if (intersects.length > 0) node = intersects[0].node;
+        }
+
         if (node?.id === selectedNode?.id) return;
         if (hoverTimer.current) clearTimeout(hoverTimer.current);
         setHoverNode(null);
@@ -217,6 +269,16 @@ export default function GalaxyPage() {
         setSelectedNode(node);
         setSearchResults([]);
         setSearchQuery('');
+        
+        // Warp Camera
+        const distance = 150;
+        const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
+        fgRef.current.cameraPosition(
+            { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+            node,
+            1000
+        );
+
         const others = data.nodes.filter(n => n.id !== node.id);
         const neighbors = others
             .map(n => ({ id: n.id, dist: Math.hypot(n.x - node.x, n.y - node.y, n.z - node.z) }))
@@ -624,7 +686,14 @@ export default function GalaxyPage() {
                     return 'transparent';
                 }}
                 linkWidth={2}
-                nodeRelSize={0.15}
+                nodeRelSize={1}
+                nodeVal={n => {
+                    if (n.type === 'favorite') return 0.7;
+                    if (n.type === 'recent') return 0.6;
+                    if (n.type === 'watched') return 0.5;
+                    return 0.15;
+                }}
+                nodeOpacity={1}
                 nodeColor={n => {
                     if (selectedNode && n.id === selectedNode.id) return THEME.active;
                     if (neighborIds.has(n.id)) return THEME.accent;

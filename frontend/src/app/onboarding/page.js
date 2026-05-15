@@ -138,8 +138,8 @@ export default function Onboard() {
             transition={{ type: "spring", stiffness: 40, damping: 20 }}
             className=" fixed top-0 left-0 h-screen w-full overflow-y-auto snap-y snap-mandatory bg-white text-black"
         >
-            <div className="h-screen w-full bg-[#000000] text-white flex flex-col relative items-center justify-center relative snap-start">
-                <h1 className="font-['arkhip'] text-4xl md:text-6xl text-center uppercase px-6">
+            <div className="min-h-screen w-full bg-[#000000] text-white flex flex-col relative items-center justify-center snap-start px-6 py-20">
+                <h1 className="font-['arkhip'] text-3xl md:text-6xl text-center uppercase px-6">
                     Welcome to SBTXT
                 </h1>
                 <h3 className="text-lg md:text-2xl text-center uppercase pt-8">
@@ -150,13 +150,13 @@ export default function Onboard() {
                 </h2>
             </div>
 
-            <div className="h-screen w-full bg-[#0a0a0a] text-white flex flex-col relative items-center justify-center snap-start px-6 md:px-20">
+            <div className="min-h-screen w-full bg-[#0a0a0a] text-white flex flex-col relative items-center justify-center snap-start px-6 md:px-20 py-20 md:py-0">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     className="max-w-xl w-full text-center"
                 >
-                    <h1 className="font-['arkhip'] text-4xl md:text-6xl mb-8">Who Are You?</h1>
+                    <h1 className="font-['arkhip'] text-3xl md:text-6xl mb-8">Who Are You?</h1>
                     <div className="relative group">
                         <input 
                             type="text" 
@@ -198,7 +198,7 @@ export default function Onboard() {
 
             <div className="min-h-screen md:h-screen w-full bg-[#14181c] text-white flex flex-col md:flex-row relative items-center justify-center snap-start px-6 md:px-20 py-20 md:py-0 gap-12 md:gap-20">
                 <div className="flex flex-col gap-8 max-w-2xl">
-                    <h1 className="font-['arkhip'] text-4xl md:text-6xl text-left">
+                    <h1 className="font-['arkhip'] text-3xl md:text-6xl text-left">
                         Let's Load Your Letterboxd Data
                     </h1>
                     
@@ -315,8 +315,8 @@ export default function Onboard() {
                         whileInView={{ opacity: 1, y: 0 }}
                         className="text-center mb-16"
                     >
-                        <h1 className="font-['arkhip'] text-4xl md:text-6xl mb-4">Refine Your Signal</h1>
-                        <p className="text-white/40 text-lg uppercase tracking-[0.3em] font-bold">Pick the vibes that define you</p>
+                        <h1 className="font-['arkhip'] text-3xl md:text-6xl mb-4">Refine Your Signal</h1>
+                        <p className="text-white/40 text-[10px] md:text-lg uppercase tracking-[0.3em] font-bold">Pick the vibes that define you</p>
                     </motion.div>
 
                     <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
@@ -330,7 +330,7 @@ export default function Onboard() {
                                 onClick={() => toggleVibe(vibe)}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className={`px-8 py-4 rounded-none border-2 transition-all duration-500 font-bold uppercase tracking-widest text-xs
+                                className={`px-5 md:px-8 py-3 md:py-4 rounded-none border-2 transition-all duration-500 font-bold uppercase tracking-widest text-[9px] md:text-xs
                                     ${selectedVibes.includes(vibe) 
                                         ? "bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.3)]" 
                                         : "border-white/10 text-white/40 hover:border-white/40 hover:text-white hover:bg-white/5"}`}

@@ -52,12 +52,14 @@ export default function GalaxyPage() {
     const [isLocked, setIsLocked] = useState(false);
     const [exploration, setExploration] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 1024);
         };
         checkMobile();
+        setIsLoggedIn(!!localStorage.getItem('token'));
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
@@ -638,9 +640,13 @@ export default function GalaxyPage() {
                     <div className="h-[2px] w-8 bg-[var(--primary)] shadow-[0_0_10px_var(--primary-glow)]" />
                     <p className="text-xl font-light text-white uppercase" style={{ fontFamily: 'Arkhip' }}>{currentSector} SECTOR</p>
                 </div>
-                <p className="text-[9px] tracking-[0.4em] text-[var(--success)] uppercase font-bold tabular-nums">
-                    Matrix Explored: {exploration.toFixed(5)}%
-                </p>
+                {isLoggedIn && (
+                    <>
+                        <p className="text-[9px] tracking-[0.4em] text-[var(--success)] uppercase font-bold tabular-nums">
+                            Matrix Explored: {exploration.toFixed(5)}%
+                        </p>
+                    </>
+                )}
                 <p className="text-[7px] tracking-[0.3em] text-white/20 uppercase font-bold mt-1">
                     Universal Signals: 6,174,821 Entry Total
                 </p>
@@ -683,26 +689,30 @@ export default function GalaxyPage() {
             </div>
 
             <div className="absolute bottom-12 left-12 z-50 flex flex-col gap-3 p-4 bg-black/40 border border-white/10 backdrop-blur-3xl rounded-sm font-bold">
-                <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary-glow)]" />
-                    <span className="text-[8px] tracking-[0.2em] text-white/60 uppercase">◈ Favourite</span>
-                </div>
-                <div className="flex items-center gap-3 ml-4 border-l border-white/10 pl-3">
-                    <div className="h-[1px] w-4 bg-[var(--primary)] opacity-50" />
-                    <span className="text-[7px] tracking-[0.2em] text-white/40 uppercase italic">Favorite Constellation</span>
-                </div>
-                <div className="flex items-center gap-3 mt-1">
-                    <div className="h-2 w-2 rounded-full bg-[#ef4444] shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-                    <span className="text-[8px] tracking-[0.2em] text-white/60 uppercase">⚡ Recently Seen</span>
-                </div>
-                <div className="flex items-center gap-3 ml-4 border-l border-white/10 pl-3">
-                    <div className="h-[1px] w-4 bg-[#ef4444] opacity-50" />
-                    <span className="text-[7px] tracking-[0.2em] text-white/40 uppercase italic">Recent Constellation</span>
-                </div>
-                <div className="flex items-center gap-3 mt-1">
-                    <div className="h-2 w-2 rounded-full bg-[var(--success)]" />
-                    <span className="text-[8px] tracking-[0.2em] text-white/60 uppercase font-bold">● Seen</span>
-                </div>
+                {isLoggedIn && (
+                    <>
+                        <div className="flex items-center gap-3">
+                            <div className="h-2 w-2 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary-glow)]" />
+                            <span className="text-[8px] tracking-[0.2em] text-white/60 uppercase">◈ Favourite</span>
+                        </div>
+                        <div className="flex items-center gap-3 ml-4 border-l border-white/10 pl-3">
+                            <div className="h-[1px] w-4 bg-[var(--primary)] opacity-50" />
+                            <span className="text-[7px] tracking-[0.2em] text-white/40 uppercase italic">Favorite Constellation</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                            <div className="h-2 w-2 rounded-full bg-[#ef4444] shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                            <span className="text-[8px] tracking-[0.2em] text-white/60 uppercase">⚡ Recently Seen</span>
+                        </div>
+                        <div className="flex items-center gap-3 ml-4 border-l border-white/10 pl-3">
+                            <div className="h-[1px] w-4 bg-[#ef4444] opacity-50" />
+                            <span className="text-[7px] tracking-[0.2em] text-white/40 uppercase italic">Recent Constellation</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                            <div className="h-2 w-2 rounded-full bg-[var(--success)]" />
+                            <span className="text-[8px] tracking-[0.2em] text-white/60 uppercase font-bold">● Seen</span>
+                        </div>
+                    </>
+                )}
                 <div className="flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-[#2563eb] shadow-[0_0_10px_rgba(37,99,235,0.5)]" />
                     <span className="text-[8px] tracking-[0.2em] text-white/60 uppercase font-bold">⌬ Similar Signal (Neighbor)</span>

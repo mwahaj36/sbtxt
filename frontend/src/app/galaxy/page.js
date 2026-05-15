@@ -585,7 +585,7 @@ export default function GalaxyPage() {
                 <input 
                     type="text" placeholder="WARP TO MOVIE..." value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="w-48 bg-transparent border-b border-white/40 py-2 text-[10px] tracking-[0.4em] text-white outline-none placeholder:text-white/20 uppercase focus:border-[var(--primary)] transition-all focus:w-80 font-bold"
+                    className="w-48 bg-transparent border-b border-[var(--primary)] py-2 text-[10px] tracking-[0.4em] text-[var(--primary)] outline-none placeholder:text-[var(--primary)]/40 uppercase transition-all focus:w-80 font-bold"
                 />
                 
                 <AnimatePresence>

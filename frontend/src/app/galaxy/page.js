@@ -636,7 +636,7 @@ export default function GalaxyPage() {
                 <p className="text-[10px] tracking-[0.5em] text-white/30 uppercase font-black mb-1">Navigation System</p>
                 <div className="flex items-center justify-end gap-3 mb-2">
                     <div className="h-[2px] w-8 bg-[var(--primary)] shadow-[0_0_10px_var(--primary-glow)]" />
-                    <p className="text-xl font-light tracking-[0.3em] text-white uppercase italic" style={{ fontFamily: 'Arkhip' }}>{currentSector} SECTOR</p>
+                    <p className="text-xl font-light text-white uppercase" style={{ fontFamily: 'Arkhip' }}>{currentSector} SECTOR</p>
                 </div>
                 <p className="text-[9px] tracking-[0.4em] text-[var(--success)] uppercase font-bold tabular-nums">
                     Matrix Explored: {exploration.toFixed(5)}%

@@ -43,7 +43,7 @@ export default function Home() {
     }, []);
 
     return (
-        <main className="w-full bg-black text-white selection:bg-[var(--primary)]/30">
+        <main className="w-full bg-black text-white selection:bg-[var(--primary)]/30 pt-20 md:pt-24">
             <div className="mesh-gradient opacity-40" />
 
             {/* SECTION 1: HERO (BLACK) */}
@@ -291,7 +291,7 @@ export default function Home() {
             </section>
 
             {/* SECTION 6: GALAXY (MAGENTA) */}
-            <section id="galaxy" className="h-screen w-full flex items-center justify-center bg-black snap-start relative px-8 md:px-24">
+            <section id="galaxy" className="min-h-screen w-full flex items-center justify-center bg-black snap-start relative px-8 md:px-24 py-24 md:py-0 overflow-hidden">
                 <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-20 items-center">
                     
                     {/* LEFT: Galaxy Visualization Preview */}

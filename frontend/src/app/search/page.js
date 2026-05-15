@@ -370,7 +370,7 @@ export default function SearchPage() {
 
 
     return (
-        <main className={`min-h-screen w-full bg-black text-white flex flex-col items-center px-4 relative overflow-y-auto overflow-x-hidden transition-all duration-700 ${isSearched ? 'pt-10' : 'pt-32'}`}>
+        <main className={`min-h-screen w-full bg-black text-white flex flex-col items-center px-4 relative overflow-y-auto overflow-x-hidden transition-all duration-700 ${isSearched ? 'pt-20 md:pt-24' : 'pt-32'}`}>
             <div className="mesh-gradient opacity-30 fixed inset-0 pointer-events-none" />
             
             <motion.div

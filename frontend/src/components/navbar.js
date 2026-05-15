@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, Search, Dna, User, LogOut, Settings as SettingsIcon } from 'lucide-react';
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -10,6 +11,7 @@ export default function Navbar() {
     const [isLightMode, setIsLightMode] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -56,6 +58,10 @@ export default function Navbar() {
         return () => observer.disconnect();
     }, [pathname]);
 
+    useEffect(() => {
+        setIsMenuOpen(false); // Close menu on route change
+    }, [pathname]);
+
     const navItems = [
         { name: 'Search', href: '/search' },
         { name: 'Galaxy', href: '/galaxy' },
@@ -79,13 +85,13 @@ export default function Navbar() {
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--primary)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
             )}
             
-            <div className="w-full px-8 h-20 flex items-center justify-between relative z-10">
+            <div className="w-full px-6 md:px-8 h-16 md:h-20 flex items-center justify-between relative z-10">
                 
                 {/* Logo Section */}
                 <Link href="/" className="flex items-center gap-3 group/logo">
                     <motion.div 
                         animate={{ backgroundColor: isLightMode ? '#000000' : '#ffffff' }}
-                        className="w-28 h-8 group-hover/logo:bg-[var(--primary)] transition-all duration-500 transform group-hover/logo:scale-105 [mask-image:url(/file.svg)] [mask-size:contain] [mask-repeat:no-repeat] [mask-position:center]" 
+                        className="w-20 md:w-28 h-6 md:h-8 group-hover/logo:bg-[var(--primary)] transition-all duration-500 transform group-hover/logo:scale-105 [mask-image:url(/file.svg)] [mask-size:contain] [mask-repeat:no-repeat] [mask-position:center]" 
                     />
                 </Link>
 
@@ -181,7 +187,59 @@ export default function Navbar() {
                     )}
 
                 </div>
+
+                {/* Mobile Menu Toggle */}
+                <button 
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="flex md:hidden p-2 text-white/60 hover:text-[var(--primary)] transition-colors"
+                >
+                    {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
             </div>
+
+            {/* Mobile Drawer */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className={`md:hidden overflow-hidden border-t border-white/5 backdrop-blur-3xl ${
+                            isLightMode ? 'bg-white/95' : 'bg-black/95'
+                        }`}
+                    >
+                        <div className="flex flex-col p-6 gap-6">
+                            {navItems.map((item) => (
+                                <Link 
+                                    key={item.name} 
+                                    href={item.href}
+                                    className="text-xs font-black uppercase tracking-[0.4em] text-white/60 hover:text-[var(--primary)]"
+                                >
+                                    {item.name}
+                                </Link>
+                            ))}
+                            <div className="h-px w-full bg-white/5" />
+                            {isLoggedIn ? (
+                                <>
+                                    <Link href="/profile" className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.4em] text-white/60">
+                                        <User size={14} className="text-[var(--primary)]" /> Profile
+                                    </Link>
+                                    <Link href="/settings" className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.4em] text-white/60">
+                                        <SettingsIcon size={14} className="text-[var(--primary)]" /> Settings
+                                    </Link>
+                                    <button onClick={handleLogout} className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.4em] text-red-500">
+                                        <LogOut size={14} /> Log Out
+                                    </button>
+                                </>
+                            ) : (
+                                <Link href="/auth" className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.4em] text-[var(--primary)]">
+                                    Sign In
+                                </Link>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.nav>
     );
 }

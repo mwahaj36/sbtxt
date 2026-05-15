@@ -580,8 +580,7 @@ async def scrape_watchlist_quick(username: str, client: httpx.AsyncClient) -> Li
         return []
 
 @router.get("/library")
-async def get_library(type: str = "watched", page: int = 1, query: Optional[str] = None, user_id: str = Depends(get_current_user)):
-    limit = 30
+async def get_library(type: str = "watched", page: int = 1, limit: Optional[int] = 30, query: Optional[str] = None, user_id: str = Depends(get_current_user)):
     offset = (page - 1) * limit
     conn = get_db_connection()
     if not conn: return {"movies": [], "total": 0, "page": 1, "pages": 1}
@@ -596,11 +595,16 @@ async def get_library(type: str = "watched", page: int = 1, query: Optional[str]
                 params.append(f"%{query}%")
             cur.execute(f"SELECT COUNT(*) FROM ({sql}) AS c", params)
             total = cur.fetchone()[0]
+            
+            # Allow dynamic limit for Galaxy/Large syncs
+            current_limit = int(limit) if limit else 30
+            print(f"DEBUG: Library Request - Type: {type}, Limit: {current_limit}, User: {user_id}")
+            
             sql += " ORDER BY watched_date DESC NULLS LAST, id DESC LIMIT %s OFFSET %s"
-            params.extend([limit, offset])
+            params.extend([current_limit, offset])
             cur.execute(sql, params)
             rows = cur.fetchall()
-        return {"movies": [{"title": r[0], "year": r[1], "tmdb_id": r[2], "rating": float(r[3]) if r[3] else None, "date": r[4], "is_liked": r[5], "poster_path": r[6]} for r in rows], "total": total, "page": page, "pages": (total + limit - 1) // limit}
+        return {"movies": [{"title": r[0], "year": r[1], "tmdb_id": r[2], "rating": float(r[3]) if r[3] else None, "date": r[4], "is_liked": r[5], "poster_path": r[6]} for r in rows], "total": total, "page": page, "pages": (total + current_limit - 1) // current_limit}
     finally: conn.close()
 
 @router.post("/mass")

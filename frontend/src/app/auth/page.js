@@ -50,7 +50,12 @@ export default function AuthPage() {
             const endpoint = isLogin ? "/api/v1/sbtxt-auth/login" : "/api/v1/sbtxt-auth/signup";
             const payload = isLogin 
                 ? { identifier: cleanIdentifier, password } 
-                : { email: cleanEmail, username: cleanUsername, password, letterboxd_username: cleanUsername };
+                : { 
+                    email: cleanEmail, 
+                    username: cleanEmail.split('@')[0], 
+                    password, 
+                    letterboxd_username: "" // Will be set during onboarding
+                  };
 
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method: "POST",
@@ -123,17 +128,21 @@ export default function AuthPage() {
                     <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required={!isLogin} 
                         className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-6 outline-none transition-colors placeholder:text-gray-400" />
                     
-                    <div className="w-full mb-6">
-                        <input type="text" placeholder="Letterboxd Username" value={username} onChange={e => setUsername(e.target.value)} required={!isLogin} 
-                            className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 outline-none transition-colors placeholder:text-gray-400" />
-                        <p className="text-[9px] text-gray-400 font-bold uppercase mt-2 text-left tracking-widest w-full">This acts as your app username.</p>
-                    </div>
                     
                     <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required={!isLogin} 
                         className="w-full border-b-2 border-black/10 focus:border-black bg-transparent py-3 mb-6 outline-none transition-colors placeholder:text-gray-400" />
                     
                     <button type="submit" disabled={isLoading} className="w-full bg-[var(--primary)] text-black py-4 font-black uppercase tracking-widest text-xs hover:brightness-110 transition-colors flex justify-center items-center h-12">
                         {isLoading && !isLogin ? <Loader2 className="animate-spin text-black" size={16} /> : "Create Account"}
+                    </button>
+
+                    {/* Mobile Only Toggle */}
+                    <button 
+                        type="button"
+                        onClick={() => setIsLogin(!isLogin)}
+                        className="md:hidden mt-8 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+                    >
+                        {isLogin ? "Need an account? Sign Up" : "Have an account? Log In"}
                     </button>
                 </form>
             </div>

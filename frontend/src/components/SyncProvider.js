@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Zap, Sparkles, Search, Dna, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,11 @@ export function SyncProvider({ children }) {
         return () => document.removeEventListener('dev:showSuccess', handleDevSuccess);
     }, []);
 
+    const syncStatusRef = useRef(syncStatus);
+    useEffect(() => {
+        syncStatusRef.current = syncStatus;
+    }, [syncStatus]);
+
     useEffect(() => {
         let interval;
         if (syncStatus.status === 'syncing') {
@@ -33,20 +38,23 @@ export function SyncProvider({ children }) {
                     
                     if (data.status === 'completed') {
                         clearInterval(interval);
+                        
+                        // Use backend flag if available, otherwise fallback to ref
+                        const isSilent = data.is_silent !== undefined ? data.is_silent : syncStatusRef.current.isSilent;
+                        
                         setSyncStatus(prev => ({ ...prev, ...data, status: 'completed_recently' }));
                         
-                        // Only show the big welcome modal for non-silent (ZIP) syncs
-                        if (!syncStatus.isSilent) {
+                        if (!isSilent) {
                             setShowWelcome(true);
                         }
                         
-                        // Reset to idle after 8 seconds
                         setTimeout(() => setSyncStatus(prev => ({ status: 'idle', processed: 0, total: 0 })), 8000);
                     } else if (data.status === 'error') {
                         clearInterval(interval);
                         setSyncStatus(prev => ({ ...prev, ...data }));
                     } else {
-                        setSyncStatus(prev => ({ ...prev, ...data }));
+                        // Preserve local isSilent if not provided by backend
+                        setSyncStatus(prev => ({ ...prev, ...data, isSilent: data.is_silent !== undefined ? data.is_silent : prev.isSilent }));
                     }
                 } catch (e) {
                     console.error("Sync polling failed", e);
@@ -66,7 +74,7 @@ export function SyncProvider({ children }) {
         });
     };
 
-    const isVisible = !syncStatus.isSilent && (
+    const isVisible = !(syncStatus.isSilent || syncStatus.is_silent) && (
                       syncStatus.status === 'syncing' || 
                       syncStatus.status === 'completed_recently' || 
                       syncStatus.status === 'error');

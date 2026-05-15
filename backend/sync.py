@@ -290,15 +290,21 @@ async def resolve_tmdb_ids(movies: List[Dict], user_id: str, client: Optional[ht
         await asyncio.to_thread(_save_movies_batch, resolved_batch, user_id)
         print(f"[SYNC] Final batch of {len(resolved_batch)} movies committed.")
     
+    # Cleanup Watchlist items that are now Watched
+    await asyncio.to_thread(_cleanup_watchlist_duplicates, user_id)
+
     if skip_refresh:
-        SYNC_PROGRESS[user_id] = {"status": "completed", "processed": len(movies), "total": len(movies), "message": "Sync complete!"}
+        SYNC_PROGRESS[user_id] = {
+            "status": "completed", 
+            "processed": len(movies), 
+            "total": len(movies), 
+            "message": "Sync complete!",
+            "is_silent": SYNC_PROGRESS.get(user_id, {}).get("is_silent", False)
+        }
         return
 
     # Refresh taste vector in the background (takes longer)
     await refresh_taste_vector_bg(user_id)
-    
-    # 2. Cleanup Duplicates
-    await asyncio.to_thread(_cleanup_watchlist_duplicates, user_id)
 
     # 3. Mark as completed only AFTER taste DNA is ready
     SYNC_PROGRESS[user_id] = {"status": "completed", "processed": len(movies), "total": len(movies), "message": "DNA Mapped & Sync Complete!"}
@@ -312,7 +318,8 @@ async def sync_live_history(username: str, user_id: str):
     Quickly syncs recent activity (watched), watchlist, and profile metadata.
     """
     print(f"[SYNC][START] Starting live history sync for user: {username} (ID: {user_id})")
-    SYNC_PROGRESS[user_id] = {"status": "syncing", "processed": 0, "total": 1, "message": "Fetching RSS feeds..."}
+    # Track if this is a silent sync in the backend state
+    SYNC_PROGRESS[user_id] = {"status": "syncing", "processed": 0, "total": 1, "message": "Fetching RSS feeds...", "is_silent": True}
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             # 1. Fetch History Feed (RSS)

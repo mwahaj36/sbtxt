@@ -198,8 +198,17 @@ export default function SearchPage() {
             fetch(`${API_URL}/api/v1/sbtxt-auth/taste`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
-            .then(res => res.json())
-            .then(data => setHasTasteVector(data.has_taste_vector))
+            .then(res => {
+                if (res.status === 401) {
+                    localStorage.removeItem("token");
+                    window.location.reload();
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data) setHasTasteVector(data.has_taste_vector);
+            })
             .catch(() => {});
         }
 
@@ -304,7 +313,12 @@ export default function SearchPage() {
                 headers,
                 signal: abortControllerRef.current.signal 
             });
-            console.log("📡 [Search] Status:", response.status, response.statusText);
+
+            if (response.status === 401) {
+                localStorage.removeItem("token");
+                router.push("/auth");
+                return;
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();

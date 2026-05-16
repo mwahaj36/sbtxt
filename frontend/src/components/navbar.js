@@ -78,7 +78,7 @@ export default function Navbar() {
                 backgroundColor: isLightMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
                 borderColor: isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)'
             }}
-            className="sticky top-0 z-[100] w-full border-b backdrop-blur-2xl group transition-colors duration-500"
+            className="sticky top-0 z-[1500] w-full border-b backdrop-blur-2xl group transition-colors duration-500"
         >
             {/* Ambient Background Glow (Only in dark mode) */}
             {!isLightMode && (

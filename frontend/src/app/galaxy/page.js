@@ -114,12 +114,33 @@ export default function GalaxyPage() {
             if (token) {
                 try {
                     const authRes = await fetch(`${API_BASE}/api/v1/sbtxt-auth/bundle`, { headers });
+                    
+                    if (authRes.status === 401) {
+                        localStorage.removeItem("token");
+                        window.location.reload();
+                        return;
+                    }
+
                     const authData = await authRes.json();
+
+                    // Guard: Redirect incomplete accounts to onboarding
+                    if (authData.profile && !authData.profile.letterboxd_username) {
+                        window.location.href = "/onboarding";
+                        return;
+                    }
+
                     favorites = authData.profile?.favorites || [];
                 } catch(e) { console.warn("AUTH_SYNC_FAILED: Proceeding as Guest."); }
 
                 try {
                     const watchRes = await fetch(`${API_BASE}/api/v1/sbtxt-sync/library?type=watched&limit=5000`, { headers });
+                    
+                    if (watchRes.status === 401) {
+                        localStorage.removeItem("token");
+                        window.location.href = "/auth";
+                        return;
+                    }
+
                     const watchData = await watchRes.json();
                     watchedHistory = watchData.movies || [];
                 } catch(e) {}

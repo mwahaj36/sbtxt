@@ -38,6 +38,13 @@ export default function ProfilePage() {
                 const bundleRes = await fetch(`${API_URL}/api/v1/sbtxt-auth/bundle`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                if (bundleRes.status === 401) {
+                    localStorage.removeItem("token");
+                    router.push("/auth");
+                    return;
+                }
+
                 const bundle = await bundleRes.json();
                 
                 // Guard: Redirect incomplete accounts to onboarding

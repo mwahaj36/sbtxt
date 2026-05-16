@@ -109,7 +109,7 @@ async def scrape_letterboxd_profile_data(username: str, client: httpx.AsyncClien
                     tmdb_id, poster = (row[0], row[1]) if row else (None, None)
                     if not tmdb_id or not poster:
                         res = await search_tmdb_for_poster(clean_title, client)
-                        if res: tmdb_id, poster = res
+                        if res: tmdb_id, poster, _ = res
                     favorites.append({"title": clean_title, "tmdb_id": tmdb_id, "poster_path": poster})
             conn.close()
 

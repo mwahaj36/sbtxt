@@ -12,14 +12,80 @@ export function SyncProvider({ children }) {
     const [showWelcome, setShowWelcome] = useState(false);
     const router = useRouter();
 
+    // PERSISTENCE GUARD: Reconnect UI to background sync on mount
     useEffect(() => {
-        // Removed devSuccess listener to prevent accidental modal triggers
+        const reconnectSync = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_URL}/api/v1/sbtxt-sync/status`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const data = await res.json();
+                // If backend is still syncing, pick it up in the UI
+                if (data.status === 'syncing') {
+                    setSyncStatus(data);
+                }
+            } catch (e) {
+                console.error("Failed to reconnect sync", e);
+            }
+        };
+        reconnectSync();
     }, []);
 
     const syncStatusRef = useRef(syncStatus);
     useEffect(() => {
         syncStatusRef.current = syncStatus;
     }, [syncStatus]);
+
+    // GLOBAL AUTH WATCHER: Ensures deleted accounts are logged out immediately
+    useEffect(() => {
+        const checkAuth = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+
+            try {
+                const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/me`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                
+                if (res.status === 401) {
+                    console.warn("Session invalid or account deleted. Cleaning up.");
+                    localStorage.removeItem("token");
+                    
+                    // Only redirect to auth if on a protected page
+                    const protectedPaths = ['/profile', '/settings', '/onboarding'];
+                    if (protectedPaths.includes(window.location.pathname)) {
+                        router.push("/auth");
+                    } else {
+                        // For public pages (Search, Galaxy), just reload to update UI to guest state
+                        window.location.reload();
+                    }
+                } else if (res.ok) {
+                    const data = await res.json();
+                    // ONBOARDING GUARD: Redirect partial accounts to onboarding
+                    if (!data.letterboxd_username && window.location.pathname !== '/onboarding') {
+                        console.warn("Partial account detected. Redirecting to onboarding.");
+                        router.push("/onboarding");
+                    }
+                }
+            } catch (e) {
+                // Ignore network errors, only act on explicit 401s
+            }
+        };
+
+        // Check on mount and every 30 seconds
+        checkAuth();
+        const authInterval = setInterval(checkAuth, 30000);
+        
+        // Also check when the window regains focus (user "accesses" the app)
+        window.addEventListener('focus', checkAuth);
+        
+        return () => {
+            clearInterval(authInterval);
+            window.removeEventListener('focus', checkAuth);
+        };
+    }, [router]);
 
     useEffect(() => {
         let interval;
@@ -144,6 +210,17 @@ export function SyncProvider({ children }) {
                                  syncStatus.message ? `${syncStatus.processed} / ${syncStatus.total || 0} items — ${syncStatus.message}` :
                                  `${syncStatus.processed} / ${syncStatus.total || 0} items resolved`}
                             </p>
+                            
+                            {/* SEARCH REDIRECT BUTTON */}
+                            {(syncStatus.status === 'syncing' || syncStatus.status === 'completed_recently') && (
+                                <button 
+                                    onClick={() => router.push('/search')}
+                                    className="mt-3 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-[var(--primary)] hover:text-white transition-colors group/search"
+                                >
+                                    Take me to Search
+                                    <ArrowRight size={10} className="group-hover/search:translate-x-1 transition-transform" />
+                                </button>
+                            )}
                         </div>
                         
                         {syncStatus.status === 'error' && (

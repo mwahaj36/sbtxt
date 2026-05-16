@@ -45,6 +45,17 @@ export default function SettingsPage() {
                 const res = await fetch(`${API_URL}/api/v1/sbtxt-auth/me`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
+
+                if (res.status === 401) {
+                    localStorage.removeItem("token");
+                    router.push("/auth");
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error("Failed to fetch user data");
+                }
+
                 const data = await res.json();
                 if (!data.letterboxd_username) {
                     router.push("/onboarding");
@@ -53,6 +64,9 @@ export default function SettingsPage() {
                 setUser(data);
             } catch (e) {
                 console.error("Failed to fetch user", e);
+                // If it's a critical error, we might want to logout as well
+                // localStorage.removeItem("token");
+                // router.push("/auth");
             } finally {
                 setIsLoading(false);
             }
@@ -61,6 +75,7 @@ export default function SettingsPage() {
     }, []);
 
     const handleUsernameSync = async () => {
+        if (!user?.letterboxd_username) return;
         const token = localStorage.getItem("token");
         setToast("Starting live sync...");
         try {
@@ -245,7 +260,7 @@ export default function SettingsPage() {
                             <div className="flex flex-col items-center gap-4">
                                 <div className="relative group">
                                     <img 
-                                        src={user.letterboxd_dp || "https://a.ltrbxd.com/resized/avatar/twitter/4/8/9/4/6/7/shard/2126200257/avatar-80.jpg"} 
+                                        src={user?.letterboxd_dp || "https://a.ltrbxd.com/resized/avatar/twitter/4/8/9/4/6/7/shard/2126200257/avatar-80.jpg"} 
                                         className="w-32 h-32 md:w-40 md:h-40 rounded-none border-4 border-white/10 group-hover:border-[var(--primary)] transition-all duration-500 object-cover"
                                         alt="Avatar"
                                     />
@@ -257,7 +272,7 @@ export default function SettingsPage() {
                                     </button>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{user.username}</h2>
+                                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{user?.username}</h2>
                                 </div>
                             </div>
 

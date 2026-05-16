@@ -94,7 +94,21 @@ def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] = Depe
         return None
     try:
         payload = jwt.decode(credentials.credentials, os.getenv("JWT_SECRET_KEY"), algorithms=["HS256"])
-        return payload.get("sub")
+        user_id = payload.get("sub")
+        if not user_id: return None
+
+        # Verify existence in DB
+        conn = get_db_connection()
+        if not conn: return None
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM users WHERE id = %s", (user_id,))
+                if not cur.fetchone():
+                    return None # Account deleted
+        finally:
+            conn.close()
+
+        return user_id
     except:
         return None
 

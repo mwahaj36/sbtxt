@@ -263,6 +263,19 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # VERIFICATION: Ensure the user still exists in the DB
+        conn = get_db_connection()
+        if not conn:
+            raise HTTPException(status_code=500, detail="Identity verification failed (DB Down)")
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM users WHERE id = %s", (user_id,))
+                if not cur.fetchone():
+                    raise HTTPException(status_code=401, detail="User account no longer exists")
+        finally:
+            conn.close()
+            
         return user_id
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")

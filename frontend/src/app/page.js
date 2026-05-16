@@ -68,7 +68,8 @@ export default function Home() {
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[var(--primary)] to-white/40">SEMANTICALLY.</span>
                     </h1>
                     <p className="max-w-2xl mx-auto text-gray-400 text-sm md:text-xl font-light tracking-wide mb-10 px-6">
-                        Escape the algorithm. Discover cinema through vibes, story, and soul—not just metadata.
+Search by mood, not metadata. Your taste, your results.
+
                     </p>
                     <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
                         <Link href="/search" className="group relative px-8 py-4 bg-[var(--primary)] text-black font-black uppercase tracking-widest text-xs rounded-none overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]">

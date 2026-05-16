@@ -53,6 +53,8 @@ export default function GalaxyPage() {
     const [exploration, setExploration] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [performanceProfile, setPerformanceProfile] = useState('ultra'); // ultra, balanced, eco
+    const [isCullingEnabled, setIsCullingEnabled] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -98,6 +100,24 @@ export default function GalaxyPage() {
                 const res = await fetch(`${API_BASE}/api/v1/constellation/points`);
                 points = await res.json();
             }
+
+            // --- PERFORMANCE AUDIT & HARDWARE DETECTION ---
+            let profile = 'ultra';
+            const gl = document.createElement('canvas').getContext('webgl');
+            if (gl) {
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "";
+                
+                // Detect integrated or mobile GPUs (Intel, Iris, Mali, Adreno, Apple)
+                const isIntegrated = /Intel|Iris|Graphics|Mali|Adreno|Apple/.test(renderer);
+                
+                if (isIntegrated) {
+                    profile = points.length > 50000 ? 'eco' : 'balanced';
+                }
+                console.log(`GALAXY_HARDWARE: Detected ${renderer}. Assigned Profile: ${profile.toUpperCase()}`);
+            }
+            setPerformanceProfile(profile);
+            setIsCullingEnabled(profile !== 'ultra');
 
             if (!points || !Array.isArray(points)) {
                 console.error("CRITICAL: Signal data invalid.");
@@ -205,8 +225,11 @@ export default function GalaxyPage() {
             const sum = nodes.reduce((acc, n) => ({ x: acc.x + n.x, y: acc.y + n.y, z: acc.z + n.z }), { x: 0, y: 0, z: 0 });
             const centroid = { x: sum.x / (nodes.length || 1), y: sum.y / (nodes.length || 1), z: sum.z / (nodes.length || 1) };
 
-            setData({ nodes, links, centroid });
-            console.log(`GALAXY: Mapped ${nodes.length} signals. Personal: ${watchedIdsSet.size}. Favorites: ${favIds.size}.`);
+            // Optimization: Initial data trim for Eco mode if points are excessive
+            const finalNodes = profile === 'eco' ? nodes.filter((n, i) => n.type !== 'neutral' || i % 2 === 0) : nodes;
+
+            setData({ nodes: finalNodes, links, centroid });
+            console.log(`GALAXY: Mapped ${finalNodes.length} signals. Personal: ${watchedIdsSet.size}. Favorites: ${favIds.size}.`);
             
             // Artificial delay for loading experience (minimum 3 seconds for stability)
             setTimeout(() => {
@@ -478,6 +501,21 @@ export default function GalaxyPage() {
                     if (frameCount.current % 2 === 0) {
                         const target = getTargetFromCrosshair(true);
                         handleNodeHover(target);
+                    }
+
+                    // --- DYNAMIC CULLING ENGINE ---
+                    // Every 30 frames, hide distant neutral nodes on lower-end devices
+                    if (isCullingEnabled && frameCount.current % 30 === 0 && data.nodes) {
+                        const camPos = camera.position;
+                        const CULL_DIST = performanceProfile === 'eco' ? 3000 : 5000;
+                        
+                        // We use the ForceGraph3D's internal object visibility to save on data-binding costs
+                        fgRef.current.scene().traverse(obj => {
+                            if (obj.__data && obj.__data.type === 'neutral') {
+                                const d = Math.hypot(obj.position.x - camPos.x, obj.position.y - camPos.y, obj.position.z - camPos.z);
+                                obj.visible = d < CULL_DIST;
+                            }
+                        });
                     }
                 }
             }
@@ -780,15 +818,15 @@ export default function GalaxyPage() {
                         if (l.type === 'recent') return THEME.secondary;
                         return 'transparent';
                     }}
-                    linkWidth={2}
-                    nodeRelSize={1}
+                    linkWidth={performanceProfile === 'eco' ? 1 : 2}
+                    nodeRelSize={performanceProfile === 'eco' ? 2 : (performanceProfile === 'balanced' ? 1.5 : 1)}
                     nodeVal={n => {
                         if (n.type === 'favorite') return 0.7;
                         if (n.type === 'recent') return 0.6;
                         if (n.type === 'watched') return 0.5;
-                        return 0.15;
+                        return performanceProfile === 'eco' ? 0.3 : 0.15;
                     }}
-                    nodeOpacity={1}
+                    nodeOpacity={performanceProfile === 'eco' ? 0.8 : 1}
                     nodeColor={n => {
                         if (selectedNode && n.id === selectedNode.id) return THEME.active;
                         if (neighborIds.has(n.id)) return THEME.accent;

@@ -71,7 +71,7 @@ def signup(user: userCreate):
             INSERT INTO users (email,username,hashed_password,letterboxd_username)
             VALUES(%s,%s,%s,%s) RETURNING id
             """,
-            (user.email,user.username,hashed_pwd,user.letterboxd_username)
+            (user.email, user.username or user.email, hashed_pwd, user.letterboxd_username)
         )
         new_user_id=cursor.fetchone()[0]
         conn.commit()

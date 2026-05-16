@@ -50,7 +50,7 @@ export default function AuthPage() {
                 ? { identifier: cleanIdentifier, password } 
                 : { 
                     email: cleanEmail, 
-                    username: cleanEmail.split('@')[0], 
+                    username: "", 
                     password, 
                     letterboxd_username: "" // Will be set during onboarding
                   };

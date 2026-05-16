@@ -644,6 +644,10 @@ export default function GalaxyPage() {
                                     >
                                         Enter the Galaxy
                                     </button>
+
+                                    <p className="mt-4 text-[7px] text-white uppercase tracking-[0.2em] text-center max-w-xs leading-relaxed italic font-bold">
+                                        * Note: Lower quality modes reduce signal density to preserve hardware integrity. Your personal constellations (Seen/Favorites) are always synchronized at 100% capacity regardless of mode.
+                                    </p>
                                 </motion.div>
                             )}
                         </div>

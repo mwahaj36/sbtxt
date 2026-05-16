@@ -53,8 +53,10 @@ export default function GalaxyPage() {
     const [exploration, setExploration] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isReady, setIsReady] = useState(false);
     const [performanceProfile, setPerformanceProfile] = useState('ultra'); // ultra, balanced, eco
     const [isCullingEnabled, setIsCullingEnabled] = useState(false);
+    const hasManualOverride = useRef(false);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -64,6 +66,13 @@ export default function GalaxyPage() {
         setIsLoggedIn(!!localStorage.getItem('token'));
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    const updateProfile = useCallback((p) => {
+        setPerformanceProfile(p);
+        setIsCullingEnabled(p !== 'ultra');
+        hasManualOverride.current = true;
+        console.log(`GALAXY_MODE: Manually switched to ${p.toUpperCase()}`);
     }, []);
 
     const sectorAnchors = useMemo(() => [
@@ -116,8 +125,12 @@ export default function GalaxyPage() {
                 }
                 console.log(`GALAXY_HARDWARE: Detected ${renderer}. Assigned Profile: ${profile.toUpperCase()}`);
             }
-            setPerformanceProfile(profile);
-            setIsCullingEnabled(profile !== 'ultra');
+            
+            // Only apply automatic profile if user hasn't manually overridden yet
+            if (!hasManualOverride.current) {
+                setPerformanceProfile(profile);
+                setIsCullingEnabled(profile !== 'ultra');
+            }
 
             if (!points || !Array.isArray(points)) {
                 console.error("CRITICAL: Signal data invalid.");
@@ -226,10 +239,12 @@ export default function GalaxyPage() {
             const centroid = { x: sum.x / (nodes.length || 1), y: sum.y / (nodes.length || 1), z: sum.z / (nodes.length || 1) };
 
             // Optimization: Initial data trim for Eco mode if points are excessive
-            const finalNodes = profile === 'eco' ? nodes.filter((n, i) => n.type !== 'neutral' || i % 2 === 0) : nodes;
+            // We use performanceProfile here to ensure manual overrides are respected
+            const currentMode = hasManualOverride.current ? performanceProfile : profile;
+            const finalNodes = currentMode === 'eco' ? nodes.filter((n, i) => n.type !== 'neutral' || i % 2 === 0) : nodes;
 
             setData({ nodes: finalNodes, links, centroid });
-            console.log(`GALAXY: Mapped ${finalNodes.length} signals. Personal: ${watchedIdsSet.size}. Favorites: ${favIds.size}.`);
+            console.log(`GALAXY: Mapped ${finalNodes.length} signals. [Mode: ${currentMode.toUpperCase()}]`);
             
             // Artificial delay for loading experience (minimum 3 seconds for stability)
             setTimeout(() => {
@@ -246,11 +261,11 @@ export default function GalaxyPage() {
 
                     // Wait for the warp (1s) + stabilization (1s) before revealing
                     setTimeout(() => {
-                        console.log("GALAXY: Insertion Complete. Opening Pilot HUD.");
-                        setLoading(false);
+                        console.log("GALAXY: Insertion Complete. Awaiting Pilot Entry.");
+                        setIsReady(true);
                     }, 2000);
                 } else {
-                    setLoading(false); // Fallback
+                    setIsReady(true); // Fallback
                 }
             }, 3000);
         } catch (error) {
@@ -542,7 +557,7 @@ export default function GalaxyPage() {
             window.removeEventListener('contextmenu', handleContextMenu);
             document.removeEventListener('pointerlockchange', handleLockChange);
         };
-    }, [searchQuery, data, highlightMovie, getTargetFromCrosshair, handleNodeHover]);
+    }, [searchQuery, data, highlightMovie, getTargetFromCrosshair, handleNodeHover, performanceProfile, isCullingEnabled]);
 
     return (
         <main className="relative h-screen w-full overflow-hidden bg-black font-mono">
@@ -589,10 +604,48 @@ export default function GalaxyPage() {
                                 <p className="text-[10px] tracking-[0.5em] text-[var(--primary)] font-bold uppercase opacity-80 text-center">Modern Way to Search</p>
                             </div>
                             
-                            <div className="flex flex-col items-center gap-4 mt-4">
-                                <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
-                                <p className="text-[8px] tracking-[0.4em] text-white/20 uppercase font-bold">Synchronizing Neural Matrix</p>
-                            </div>
+                            {!isReady ? (
+                                <div className="flex flex-col items-center gap-4 mt-4">
+                                    <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
+                                    <p className="text-[8px] tracking-[0.4em] text-white/20 uppercase font-bold">Synchronizing Neural Matrix</p>
+                                </div>
+                            ) : (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex flex-col items-center gap-10 mt-8"
+                                >
+                                    <div className="flex flex-col items-center gap-6">
+                                        <div className="text-center">
+                                            <p className="text-[10px] tracking-[0.5em] text-[var(--primary)] uppercase font-black mb-2">Neural Link Quality</p>
+                                            <p className="text-[9px] tracking-[0.1em] text-white/40 uppercase font-bold max-w-sm h-8 leading-relaxed">
+                                                {performanceProfile === 'eco' && "Best for Integrated Graphics / Battery. Samples 50% density with aggressive culling."}
+                                                {performanceProfile === 'balanced' && "Best for Standard Laptops / Mid-range hardware. Full density with dynamic culling."}
+                                                {performanceProfile === 'ultra' && "Best for Dedicated GPUs (RTX/Radeon). Max signal power and real-time smoothing."}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            {['eco', 'balanced', 'ultra'].map(p => (
+                                                <button 
+                                                    key={p}
+                                                    onClick={() => updateProfile(p)}
+                                                    className={`px-6 py-3 text-[9px] tracking-[0.3em] uppercase font-black border transition-all ${performanceProfile === p ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/10 shadow-[0_0_20px_rgba(217,70,239,0.1)]' : 'border-white/20 text-white hover:text-[var(--primary)] hover:border-[var(--primary)]/50'}`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => setLoading(false)}
+                                        className="px-16 py-5 bg-white text-black font-black uppercase tracking-[0.8em] text-[10px] hover:bg-[var(--primary)] hover:text-white transition-all shadow-[0_0_50px_rgba(255,255,255,0.05)]"
+                                    >
+                                        Enter the Galaxy
+                                    </button>
+                                </motion.div>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -602,17 +655,32 @@ export default function GalaxyPage() {
             <AnimatePresence>
                 {!isLocked && !loading && !isMobile && !searchQuery && (
                     <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }} 
-                        animate={{ opacity: 1, scale: 1 }} 
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute inset-0 z-[1000] flex items-center justify-center pointer-events-none"
+                        initial={{ opacity: 0, y: 20 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        exit={{ opacity: 0, y: 20 }}
+                        className="absolute inset-0 z-[1000] flex flex-col items-center justify-center pointer-events-none gap-8"
                     >
                         <button 
                             onClick={() => document.body.requestPointerLock()}
-                            className="pointer-events-auto px-8 py-4 bg-black/80 border border-[var(--primary)] text-[var(--primary)] text-[12px] font-black uppercase tracking-[0.4em] hover:bg-[var(--primary)] hover:text-black transition-all backdrop-blur-md shadow-[0_0_30px_rgba(217,70,239,0.3)]"
+                            className="pointer-events-auto px-12 py-5 bg-black/80 border border-[var(--primary)] text-[var(--primary)] text-[12px] font-black uppercase tracking-[0.4em] hover:bg-[var(--primary)] hover:text-black transition-all backdrop-blur-md shadow-[0_0_50px_rgba(217,70,239,0.2)]"
                         >
                             Resume Flight
                         </button>
+
+                        <div className="pointer-events-auto flex flex-col items-center gap-3 bg-black/40 p-4 border border-white/5 backdrop-blur-xl">
+                            <p className="text-[7px] tracking-[0.4em] text-white/30 uppercase font-bold">Neural Link Quality</p>
+                            <div className="flex gap-2">
+                                {['eco', 'balanced', 'ultra'].map(p => (
+                                    <button 
+                                        key={p}
+                                        onClick={() => updateProfile(p)}
+                                        className={`px-4 py-2 text-[8px] tracking-[0.2em] uppercase font-black border transition-all ${performanceProfile === p ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/20' : 'border-white/20 text-white hover:text-[var(--primary)] hover:border-[var(--primary)]/50'}`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -813,20 +881,24 @@ export default function GalaxyPage() {
                     onNodeClick={highlightMovie}
                     onNodeHover={handleNodeHover}
                     enablePointerInteraction={!isLocked}
+                    rendererConfig={{ 
+                        powerPreference: 'high-performance',
+                        antialias: performanceProfile === 'ultra' 
+                    }}
                     linkColor={l => {
                         if (l.type === 'favorite') return THEME.primary;
                         if (l.type === 'recent') return THEME.secondary;
                         return 'transparent';
                     }}
                     linkWidth={performanceProfile === 'eco' ? 1 : 2}
-                    nodeRelSize={performanceProfile === 'eco' ? 2 : (performanceProfile === 'balanced' ? 1.5 : 1)}
+                    nodeRelSize={1}
                     nodeVal={n => {
                         if (n.type === 'favorite') return 0.7;
                         if (n.type === 'recent') return 0.6;
                         if (n.type === 'watched') return 0.5;
-                        return performanceProfile === 'eco' ? 0.3 : 0.15;
+                        return 0.15;
                     }}
-                    nodeOpacity={performanceProfile === 'eco' ? 0.8 : 1}
+                    nodeOpacity={1}
                     nodeColor={n => {
                         if (selectedNode && n.id === selectedNode.id) return THEME.active;
                         if (neighborIds.has(n.id)) return THEME.accent;

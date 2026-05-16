@@ -33,9 +33,11 @@ async def lifespan(app: FastAPI):
                 cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS taste_vector_updated_at TIMESTAMPTZ;")
                 cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS taste_vector_movie_count INT DEFAULT 0;")
                 cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS taste_top_genres TEXT;")
+                cur.execute("ALTER TABLE user_ratings ADD COLUMN IF NOT EXISTS letterboxd_watch_id TEXT;")
                 
                 # Performance Index for Profile/Library
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_user_ratings_profile ON user_ratings (user_id, interaction_type, watched_date DESC NULLS LAST, id DESC);")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_user_ratings_watch_id ON user_ratings (letterboxd_watch_id);")
                 
                 conn.commit()
             print("Database schema verified.")

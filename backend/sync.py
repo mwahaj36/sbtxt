@@ -45,6 +45,22 @@ def get_tmdb_headers():
     token = os.getenv("TMDB_TOKEN") or os.getenv("TMDB_API_KEY")
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
+def normalize_lb_uri(uri: str) -> str:
+    """
+    Standardizes Letterboxd URIs to prevent duplicates.
+    Example: https://letterboxd.com/username/film/slug/ -> https://letterboxd.com/film/slug/
+    """
+    if not uri or not isinstance(uri, str): return uri
+    # Remove username component if present
+    match = re.search(r'letterboxd\.com/[^/]+/film/([^/]+)/?', uri)
+    if match:
+        slug = match.group(1)
+        return f"https://letterboxd.com/film/{slug}/"
+    # Ensure it starts with https and has trailing slash
+    uri = uri.strip()
+    if not uri.endswith('/'): uri += '/'
+    return uri
+
 async def get_poster_path_from_tmdb(tmdb_id: int, client: httpx.AsyncClient) -> Optional[tuple]:
     try:
         # Try movie first
@@ -172,13 +188,14 @@ def _save_movies_batch(results: List[tuple], user_id: str):
         with conn.cursor() as cur:
             for movie, tmdb_id, poster_path, media_type in results:
                 # 1. Update Mapping Cache
-                cur.execute("INSERT INTO letterboxd_mappings (letterboxd_url, tmdb_id, poster_path, media_type) VALUES (%s, %s, %s, %s) ON CONFLICT (letterboxd_url) DO UPDATE SET tmdb_id = EXCLUDED.tmdb_id, poster_path = EXCLUDED.poster_path, media_type = EXCLUDED.media_type", (movie['letterboxd_uri'], tmdb_id, poster_path, media_type))
+                normalized_uri = normalize_lb_uri(movie['letterboxd_uri'])
+                cur.execute("INSERT INTO letterboxd_mappings (letterboxd_url, tmdb_id, poster_path, media_type) VALUES (%s, %s, %s, %s) ON CONFLICT (letterboxd_url) DO UPDATE SET tmdb_id = EXCLUDED.tmdb_id, poster_path = EXCLUDED.poster_path, media_type = EXCLUDED.media_type", (normalized_uri, tmdb_id, poster_path, media_type))
                 
                 # 2. Save User Rating/Watchlist Item
                 interaction = movie.get('interaction_type', 'watched')
                 cur.execute("""
-                    INSERT INTO user_ratings (user_id, movie_title, release_year, rating, watched_date, is_liked, interaction_type, tmdb_id, poster_path, media_type, letterboxd_uri) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                    INSERT INTO user_ratings (user_id, movie_title, release_year, rating, watched_date, is_liked, interaction_type, tmdb_id, poster_path, media_type, letterboxd_uri, letterboxd_watch_id) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                     ON CONFLICT (user_id, letterboxd_uri) 
                     DO UPDATE SET 
                         rating = EXCLUDED.rating, 
@@ -187,8 +204,9 @@ def _save_movies_batch(results: List[tuple], user_id: str):
                         tmdb_id = COALESCE(EXCLUDED.tmdb_id, user_ratings.tmdb_id),
                         poster_path = COALESCE(EXCLUDED.poster_path, user_ratings.poster_path),
                         interaction_type = EXCLUDED.interaction_type,
-                        media_type = EXCLUDED.media_type
-                """, (user_id, movie['movie_title'], movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), interaction, tmdb_id, poster_path, media_type, movie['letterboxd_uri']))
+                        media_type = EXCLUDED.media_type,
+                        letterboxd_watch_id = COALESCE(EXCLUDED.letterboxd_watch_id, user_ratings.letterboxd_watch_id)
+                """, (user_id, movie['movie_title'], movie.get('release_year'), movie.get('rating'), movie.get('watched_date'), movie.get('is_liked', False), interaction, tmdb_id, poster_path, media_type, normalized_uri, movie.get('letterboxd_watch_id')))
 
                 # 3. CLEANUP: If this is a 'watched' entry, remove it from 'watchlist'
                 if interaction == 'watched' and tmdb_id:
@@ -348,7 +366,7 @@ async def sync_live_history(username: str, user_id: str):
                                     if title_tag is None: continue
                                     title = title_tag.text
                                     link_tag = item.find('link')
-                                    lb_uri = link_tag.text if link_tag is not None else None
+                                    lb_uri = normalize_lb_uri(link_tag.text) if link_tag is not None else None
                                     
                                     # Extract watched date
                                     date_tag = item.find('letterboxd:watchedDate', ns)
@@ -363,12 +381,19 @@ async def sync_live_history(username: str, user_id: str):
                                                 watched_date = dt.strftime("%Y-%m-%d")
                                             except: pass
 
-                                    cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = 'watched' AND (watched_date = %s OR (watched_date IS NULL AND %s IS NULL))", (user_id, lb_uri, watched_date, watched_date))
-                                    if cur.fetchone(): continue 
-                                    
                                     year_tag = item.find('letterboxd:filmYear', ns)
                                     rating_tag = item.find('letterboxd:memberRating', ns)
                                     tmdb_id_tag = item.find('tmdb:movieId', ns)
+                                    guid_tag = item.find('guid')
+                                    watch_id = guid_tag.text if guid_tag is not None else None
+
+                                    # Airtight check: Try Watch ID first, then Date fallback
+                                    if watch_id:
+                                        cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_watch_id = %s", (user_id, watch_id))
+                                        if cur.fetchone(): continue
+                                    else:
+                                        cur.execute("SELECT 1 FROM user_ratings WHERE user_id = %s AND letterboxd_uri = %s AND interaction_type = 'watched' AND (watched_date = %s OR (watched_date IS NULL AND %s IS NULL))", (user_id, lb_uri, watched_date, watched_date))
+                                        if cur.fetchone(): continue 
                                     
                                     all_new_movies.append({
                                         'movie_title': title,
@@ -377,7 +402,8 @@ async def sync_live_history(username: str, user_id: str):
                                         'interaction_type': 'watched',
                                         'letterboxd_uri': lb_uri,
                                         'tmdb_id': int(tmdb_id_tag.text) if tmdb_id_tag is not None else None,
-                                        'watched_date': watched_date
+                                        'watched_date': watched_date,
+                                        'letterboxd_watch_id': watch_id
                                     })
                         finally: conn.close()
             except Exception as e:
@@ -405,6 +431,7 @@ async def sync_live_history(username: str, user_id: str):
                                 if not cur.fetchone(): 
                                     if m['interaction_type'] == 'watchlist':
                                         m['watched_date'] = datetime.now().strftime("%Y-%m-%d")
+                                    m['letterboxd_uri'] = normalize_lb_uri(m['letterboxd_uri'])
                                     all_new_movies.append(m)
                     finally: conn.close()
 
@@ -523,7 +550,7 @@ async def sync_letterboxd_zip(
                         movie_data = {
                             "movie_title": title,
                             "release_year": int(year) if year and year.isdigit() else None,
-                            "letterboxd_uri": uri,
+                            "letterboxd_uri": normalize_lb_uri(uri),
                             "interaction_type": interaction if interaction != 'liked' else 'watched',
                             "is_liked": interaction == 'liked',
                             "rating": float(rating) if rating else None,
@@ -659,7 +686,7 @@ async def scrape_films_page_quick(username: str, client: httpx.AsyncClient, page
         
         for slug, rating in poster_matches:
             slug = slug.strip('/')
-            uri = f"https://letterboxd.com/film/{slug}/"
+            uri = normalize_lb_uri(f"https://letterboxd.com/film/{slug}/")
             if uri not in found_uris:
                 found_movies.append({
                     'movie_title': slug.replace('-', ' ').title(),

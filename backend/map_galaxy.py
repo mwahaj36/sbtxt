@@ -108,14 +108,8 @@ def fetch_all_vectors():
             concurrent.futures.wait(futures)
 
 
-    # Final Check: If we are still missing items, do a quick sequential scan
-    if len(all_db_ids) < (total_count * 0.98): # Allow 2% margin for estimate errors
-        print(f"🔍 Scan discrepancy detected ({len(all_db_ids)}/{total_count}). Running deep scan...")
-        try:
-            cursor = collection.find(projection={"_id": 1})
-            for doc in cursor:
-                all_db_ids.add(doc["_id"])
-        except: pass
+    # Final Check: Deep scan bypassed per user preference to save time.
+    print(f"ℹ️ Deep scan bypassed. Proceeding with parallel scan results.")
 
     print(f"✅ Discovery complete: Found {len(all_db_ids)} unique movies.")
     
@@ -195,6 +189,18 @@ def run_mapping():
     
     coords = reducer.fit_transform(embeddings)
     
+    # Save UMAP model for dynamic mapping updates
+    try:
+        import pickle
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(script_dir, "umap_reducer.pkl")
+        print(f"💾 Saving UMAP model to {model_path}...")
+        with open(model_path, "wb") as f:
+            pickle.dump(reducer, f)
+        print("✅ UMAP model saved.")
+    except Exception as e:
+        print(f"⚠️ Warning: Failed to save UMAP model: {e}")
+    
     print("✅ Mapping complete. Exporting to JSON (Saving AstraDB Costs)...")
     
     output_data = []
@@ -202,10 +208,10 @@ def run_mapping():
         x, y, z = coords[i]
         output_data.append({
             "i": item["id"],  # Short keys to save file size
-            "t": item["title"],
-            "x": float(round(x, 4)),
-            "y": float(round(y, 4)),
-            "z": float(round(z, 4))
+            "t": item["title"][:60],
+            "x": float(round(x, 3)),
+            "y": float(round(y, 3)),
+            "z": float(round(z, 3))
         })
 
     output_path = "galaxy_points.json"

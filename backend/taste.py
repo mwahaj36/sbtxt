@@ -21,6 +21,7 @@ import asyncio
 import numpy as np
 import httpx
 from datetime import datetime, timedelta
+from typing import Optional, List, Dict
 from database import get_db_connection
 from state import SYNC_PROGRESS
 
@@ -59,17 +60,17 @@ def _get_tmdb_headers():
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
 
-async def enrich_and_push_movie(tmdb_id: int, client: httpx.AsyncClient) -> bool:
+async def enrich_and_push_movie(tmdb_id: int, client: httpx.AsyncClient) -> Optional[dict]:
     """
     Fetches full movie details from TMDB, builds a vibe string,
     generates an embedding, and pushes the full document to AstraDB.
-    Returns True if successful, False otherwise.
+    Returns a dict with movie details if newly enriched, or None if it already exists/fails.
     """
     try:
         collection = _get_collection()
         if collection is None:
             print(f"⚠️ [ENRICH] AstraDB not available, skipping {tmdb_id}")
-            return False
+            return None
 
         # Check if already exists in AstraDB (Threaded to avoid blocking loop)
         existing = await asyncio.to_thread(
@@ -80,7 +81,7 @@ async def enrich_and_push_movie(tmdb_id: int, client: httpx.AsyncClient) -> bool
         if existing:
             vec = existing.get("$vector")
             if vec and not all(v == 0 for v in vec[:5]):
-                return True  # Already has a valid vector
+                return None  # Already has a valid vector
 
         # Fetch from TMDB with appended credits + keywords
         # Probe MOVIE first, then TV (covers 100% of Letterboxd content)
@@ -104,7 +105,7 @@ async def enrich_and_push_movie(tmdb_id: int, client: httpx.AsyncClient) -> bool
 
         if resp.status_code != 200:
             print(f"❌ [ENRICH] TMDB fetch failed for {tmdb_id} (Tried movie & tv): {resp.status_code}")
-            return False
+            return None
 
         movie = resp.json()
 
@@ -153,7 +154,7 @@ async def enrich_and_push_movie(tmdb_id: int, client: httpx.AsyncClient) -> bool
         vec = embed(vibe[:8000])
         if vec is None or np.all(vec == 0):
             print(f"⚠️ [ENRICH] Embedding failed for {title}")
-            return False
+            return None
 
         # Build AstraDB document
         doc = {
@@ -186,24 +187,167 @@ async def enrich_and_push_movie(tmdb_id: int, client: httpx.AsyncClient) -> bool
             await asyncio.to_thread(collection.insert_one, doc)
 
         print(f"🌟 [ENRICH] Pushed to AstraDB: {title} ({release_year})")
-        return True
+        return {"id": str(tmdb_id), "title": title, "vector": vec.tolist()}
 
     except Exception as e:
         print(f"⚠️ [ENRICH ERROR] tmdb_id={tmdb_id}: {e}")
-        return False
+        return None
+
+
+def update_galaxy_mapping(newly_enriched: list[dict]):
+    """
+    Projects newly enriched movie embeddings into 3D using the saved UMAP reducer
+    and appends them to all existing copies of galaxy_points.json in the project.
+    """
+    try:
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(backend_dir, "umap_reducer.pkl")
+        
+        if not os.path.exists(model_path):
+            model_url = os.getenv("UMAP_MODEL_URL")
+            if model_url:
+                try:
+                    print(f"📥 [GALAXY UPDATE] UMAP reducer not found. Downloading from {model_url}...")
+                    import urllib.request
+                    temp_model_path = model_path + ".tmp"
+                    urllib.request.urlretrieve(model_url, temp_model_path)
+                    os.replace(temp_model_path, model_path)
+                    print("✅ [GALAXY UPDATE] UMAP model downloaded successfully.")
+                except Exception as dl_err:
+                    print(f"⚠️ [GALAXY UPDATE] Failed to download UMAP model: {dl_err}")
+                    return
+            else:
+                print(f"⚠️ [GALAXY UPDATE] UMAP reducer model not found at {model_path} and UMAP_MODEL_URL is not set. Skipping galaxy points update.")
+                return
+
+        import pickle
+        import umap
+        
+        print(f"🧠 [GALAXY UPDATE] Loading UMAP model from {model_path}...")
+        with open(model_path, "rb") as f:
+            reducer = pickle.load(f)
+            
+        print(f"🌌 [GALAXY UPDATE] Projecting {len(newly_enriched)} new vectors...")
+        vectors = np.array([m["vector"] for m in newly_enriched])
+        coords = reducer.transform(vectors)
+        
+        new_points = []
+        for i, m in enumerate(newly_enriched):
+            x, y, z = coords[i]
+            new_points.append({
+                "i": str(m["id"]),
+                "t": m["title"][:60],
+                "x": float(round(x, 3)),
+                "y": float(round(y, 3)),
+                "z": float(round(z, 3))
+            })
+            
+        possible_paths = [
+            os.path.join(backend_dir, "galaxy_points.json"),
+            os.path.join(os.path.dirname(backend_dir), "galaxy_points.json"),
+            os.path.join(os.path.dirname(backend_dir), "frontend", "public", "galaxy_points.json"),
+        ]
+        
+        existing_paths = [p for p in possible_paths if os.path.exists(p)]
+        if not existing_paths:
+            print("⚠️ [GALAXY UPDATE] No galaxy_points.json files found to update.")
+            return
+            
+        for path in existing_paths:
+            try:
+                print(f"📝 [GALAXY UPDATE] Updating {path}...")
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                
+                existing_ids = {str(item["i"]) for item in data}
+                points_to_add = [p for p in new_points if str(p["i"]) not in existing_ids]
+                
+                if points_to_add:
+                    data.extend(points_to_add)
+                    temp_path = path + ".tmp"
+                    with open(temp_path, "w", encoding="utf-8") as f:
+                        json.dump(data, f, separators=(',', ':'))
+                    os.replace(temp_path, path)
+                    print(f"✅ [GALAXY UPDATE] Successfully added {len(points_to_add)} new points to {path}")
+                else:
+                    print(f"ℹ [GALAXY UPDATE] All {len(new_points)} points already exist in {path}")
+            except Exception as fe:
+                print(f"⚠️ [GALAXY UPDATE] Failed to update {path}: {fe}")
+                
+    except Exception as e:
+        print(f"⚠️ [GALAXY UPDATE ERROR] Failed to project/update galaxy mapping: {e}")
+
+
+def load_existing_galaxy_ids() -> set:
+    """
+    Attempts to read galaxy_points.json from the nearest location and return the set of all existing movie IDs.
+    """
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    possible_paths = [
+        os.path.join(backend_dir, "galaxy_points.json"),
+        os.path.join(os.path.dirname(backend_dir), "galaxy_points.json"),
+        os.path.join(os.path.dirname(backend_dir), "frontend", "public", "galaxy_points.json"),
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return {str(item["i"]) for item in data}
+            except Exception as e:
+                print(f"⚠️ [GALAXY CHECK] Failed to load {path}: {e}")
+    return set()
+
+
+async def fetch_vectors_and_titles_from_astra(tmdb_ids: list[int], batch_size: int = 50) -> list[dict]:
+    """
+    Fetches $vector and title values from AstraDB for a list of TMDB IDs.
+    Returns a list of dicts: {"id": str, "title": str, "vector": list}.
+    """
+    collection = _get_collection()
+    if collection is None:
+        return []
+
+    results = []
+    for i in range(0, len(tmdb_ids), batch_size):
+        batch = tmdb_ids[i:i + batch_size]
+        str_ids = [str(tid) for tid in batch]
+        try:
+            docs = list(await asyncio.to_thread(
+                collection.find,
+                filter={"_id": {"$in": str_ids}},
+                projection={"_id": 1, "$vector": 1, "title": 1},
+                limit=batch_size
+            ))
+            for doc in docs:
+                vec = doc.get("$vector")
+                if vec and not all(v == 0 for v in vec[:5]):
+                    results.append({
+                        "id": str(doc["_id"]),
+                        "title": doc.get("title", "Unknown Title"),
+                        "vector": list(vec)
+                    })
+        except Exception as e:
+            print(f"⚠️ [TASTE] Batch vector/title fetch failed: {e}")
+
+    return results
 
 
 async def enrich_missing_movies(tmdb_ids: list[int]):
     """
     Batch-checks which tmdb_ids are missing from AstraDB and enriches them.
-    Called during sync to ensure all user movies are in the vector DB.
+    Also projects coordinates and updates galaxy_points.json for any movies
+    lacking coordinates.
     """
     collection = _get_collection()
     if collection is None:
         return
 
-    # 1. Check which IDs are missing or have zero vectors
-    missing_ids = []
+    # 1. Load existing galaxy points IDs to avoid re-projecting existing ones
+    existing_galaxy_ids = load_existing_galaxy_ids()
+
+    # 2. Check which IDs are missing or have zero vectors in AstraDB
+    missing_from_astra = []
     batch_size = 100
     print(f"🔍 [ENRICH] Checking AstraDB for {len(tmdb_ids)} movies...")
     for i in range(0, len(tmdb_ids), batch_size):
@@ -219,30 +363,55 @@ async def enrich_missing_movies(tmdb_ids: list[int]):
             found_ids = {int(doc["_id"]) for doc in docs if doc.get("$vector")}
             for tid in batch:
                 if tid not in found_ids:
-                    missing_ids.append(tid)
+                    missing_from_astra.append(tid)
             
             if (i + batch_size) % 500 == 0 or (i + batch_size) >= len(tmdb_ids):
                 print(f"🔍 [ENRICH] Checked {min(i + batch_size, len(tmdb_ids))}/{len(tmdb_ids)} movies...")
         except Exception as e:
             print(f"⚠️ [ENRICH] Batch check failed: {e}")
-            missing_ids.extend(batch)
+            missing_from_astra.extend(batch)
 
-    if not missing_ids:
+    # 3. Enrich missing movies in AstraDB
+    newly_enriched = []
+    if missing_from_astra:
+        print(f"🔄 [ENRICH] {len(missing_from_astra)}/{len(tmdb_ids)} movies missing from AstraDB. Enriching...")
+        semaphore = asyncio.Semaphore(10)  # Faster concurrency for TMDB API
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            async def enrich_one(tid):
+                async with semaphore:
+                    return await enrich_and_push_movie(tid, client)
+
+            tasks = [enrich_one(tid) for tid in missing_from_astra]
+            results = await asyncio.gather(*tasks)
+            newly_enriched = [r for r in results if r]
+    else:
         print(f"✅ [ENRICH] All {len(tmdb_ids)} movies already in AstraDB")
-        return
 
-    print(f"🔄 [ENRICH] {len(missing_ids)}/{len(tmdb_ids)} movies missing from AstraDB. Enriching...")
+    # 4. Identify which of the user's movies are missing from galaxy_points.json
+    missing_galaxy_ids = [tid for tid in tmdb_ids if str(tid) not in existing_galaxy_ids]
+    
+    # 5. Fetch vectors and titles for any missing galaxy movies that are already in AstraDB
+    # (i.e. those missing from galaxy, but NOT missing from AstraDB since we didn't just enrich them)
+    missing_from_astra_set = set(missing_from_astra)
+    already_in_astra_but_missing_galaxy = [
+        tid for tid in missing_galaxy_ids if tid not in missing_from_astra_set
+    ]
 
-    semaphore = asyncio.Semaphore(10)  # Faster concurrency for TMDB API
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        async def enrich_one(tid):
-            async with semaphore:
-                await enrich_and_push_movie(tid, client)
+    fetched_from_astra = []
+    if already_in_astra_but_missing_galaxy:
+        print(f"🔍 [GALAXY UPDATE] Fetching vectors for {len(already_in_astra_but_missing_galaxy)} movies already in AstraDB but missing from galaxy...")
+        fetched_from_astra = await fetch_vectors_and_titles_from_astra(already_in_astra_but_missing_galaxy)
 
-        tasks = [enrich_one(tid) for tid in missing_ids]
-        await asyncio.gather(*tasks)
+    # 6. Combine newly enriched and existing movies to project
+    movies_to_project = newly_enriched + fetched_from_astra
+    
+    if movies_to_project:
+        print(f"🌟 [GALAXY UPDATE] Found {len(movies_to_project)} movies to add to galaxy points. Updating galaxy mapping...")
+        update_galaxy_mapping(movies_to_project)
+    else:
+        print("✅ [GALAXY UPDATE] No missing galaxy coordinates to project.")
 
-    print(f"🌟 [ENRICH] Enrichment complete. Processed {len(missing_ids)} movies.")
+    print(f"🌟 [ENRICH] Enrichment complete. Processed {len(tmdb_ids)} movies.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

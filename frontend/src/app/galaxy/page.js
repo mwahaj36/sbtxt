@@ -101,12 +101,13 @@ export default function GalaxyPage() {
             console.log("GALAXY: Establishing connection to Neural Matrix...");
             let points;
             try {
-                const res = await fetch('/galaxy_points.json');
-                if (!res.ok) throw new Error("Local file missing");
+                console.log("GALAXY: Fetching dynamic points from Backend API...");
+                const res = await fetch(`${API_BASE}/api/v1/constellation/points`);
+                if (!res.ok) throw new Error("Backend API fetch failed");
                 points = await res.json();
             } catch (e) {
-                console.log("FALLBACK: Syncing with Backend Galaxy API...");
-                const res = await fetch(`${API_BASE}/api/v1/constellation/points`);
+                console.warn("GALAXY FALLBACK: Backend API failed, falling back to static points...", e);
+                const res = await fetch('/galaxy_points.json');
                 points = await res.json();
             }
 

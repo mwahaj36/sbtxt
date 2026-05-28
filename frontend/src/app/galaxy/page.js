@@ -227,7 +227,10 @@ export default function GalaxyPage() {
             for (let i = 0; i < favNodes.length - 1; i++) {
                 links.push({ source: favNodes[i].id, target: favNodes[i+1].id, type: 'favorite' });
             }
-            const recentNodes = nodes.filter(n => n.type === 'recent');
+            // Link recently watched movies in chronological order of watch history
+            const recentNodes = watchedHistory.slice(0, 4)
+                .map(m => nodes.find(n => n.id === Number(m.tmdb_id || m.id)))
+                .filter(Boolean);
             for (let i = 0; i < recentNodes.length - 1; i++) {
                 links.push({ source: recentNodes[i].id, target: recentNodes[i+1].id, type: 'recent' });
             }

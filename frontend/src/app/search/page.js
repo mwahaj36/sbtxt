@@ -745,7 +745,7 @@ export default function SearchPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.8 }}
-                    className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-6 w-full max-w-7xl mx-auto pb-40 px-8"
+                    className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-6 w-full max-w-7xl mx-auto pb-40 px-8 items-start"
                 >
                     {sortedMovies.map((movie, index) => (
                         <MovieCard key={movie.id} movie={movie} index={index} onGenreClick={handleGenreClick} />

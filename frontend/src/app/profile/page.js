@@ -64,7 +64,7 @@ export default function ProfilePage() {
                 }
 
             } catch (e) {
-                console.error("Profile bundle fetch failed", e);
+                if (process.env.NODE_ENV === 'development') console.error("Profile bundle fetch failed", e);
             } finally {
                 setIsLoading(false);
             }
@@ -95,7 +95,7 @@ export default function ProfilePage() {
                 setWatched(dataWatched);
                 setWatchlist(dataWatchlist);
             } catch (e) {
-                console.error("Library fetch failed", e);
+                if (process.env.NODE_ENV === 'development') console.error("Library fetch failed", e);
             } finally {
                 setLibLoading(false);
                 setWatchLoading(false);
@@ -119,7 +119,7 @@ export default function ProfilePage() {
             });
             triggerSync(100);
         } catch (e) {
-            console.error("Live sync trigger failed", e);
+            if (process.env.NODE_ENV === 'development') console.error("Live sync trigger failed", e);
         } finally {
             setTimeout(() => setIsSyncing(false), 2000);
         }

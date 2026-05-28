@@ -63,7 +63,7 @@ export default function SettingsPage() {
                 }
                 setUser(data);
             } catch (e) {
-                console.error("Failed to fetch user", e);
+                if (process.env.NODE_ENV === 'development') console.error("Failed to fetch user", e);
                 // If it's a critical error, we might want to logout as well
                 // localStorage.removeItem("token");
                 // router.push("/auth");

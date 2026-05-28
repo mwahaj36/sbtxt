@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
 import json
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator, Field
+import re
+import uuid
 from passlib.context import CryptContext
 import psycopg2
 from database import get_db_connection
@@ -16,48 +18,78 @@ from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
 
 
 router=APIRouter()
 pwd_context=CryptContext(schemes=["bcrypt"],deprecated="auto")
 SECRET_KEY=os.getenv("JWT_SECRET_KEY")
 ALGORITHM="HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES=60*24*30
+ACCESS_TOKEN_EXPIRE_MINUTES=60*24*7  # 7 days
+
+def validate_password(password: str) -> str:
+    """Validate password meets strength requirements."""
+    if len(password) < 8:
+        raise ValueError("Password must be at least 8 characters")
+    if len(password) > 128:
+        raise ValueError("Password must be at most 128 characters")
+    if not re.search(r'[A-Z]', password):
+        raise ValueError("Password must contain at least one uppercase letter")
+    if not re.search(r'[a-z]', password):
+        raise ValueError("Password must contain at least one lowercase letter")
+    if not re.search(r'[0-9]', password):
+        raise ValueError("Password must contain at least one digit")
+    return password
 
 class userCreate(BaseModel):
-    email: str
-    password: str
-    username:str
-    letterboxd_username: str=None
-
-class userLogin(BaseModel):
-    identifier:str
-    password: str
-
-class ProfileUpdateRequest(BaseModel):
-    username: str = None
-    email: str = None
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    username: str = Field(..., min_length=1, max_length=30)
     letterboxd_username: str = None
 
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v):
+        return validate_password(v)
+
+class userLogin(BaseModel):
+    identifier: str = Field(..., min_length=1, max_length=255)
+    password: str = Field(..., min_length=1, max_length=128)
+
+class ProfileUpdateRequest(BaseModel):
+    username: str = Field(None, max_length=30)
+    email: EmailStr = None
+    letterboxd_username: str = Field(None, max_length=50)
+
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator('new_password')
+    @classmethod
+    def password_strength(cls, v):
+        return validate_password(v)
 
 def create_access_token(data:dict):
     to_encode=data.copy()
 
     expire=datetime.now(timezone.utc)+timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp":expire})
+    to_encode.update({"exp":expire, "jti": str(uuid.uuid4())})
 
     encodedd_jwt=jwt.encode(to_encode,SECRET_KEY,algorithm=ALGORITHM)
     return encodedd_jwt
 
 
 @router.post("/signup")
-def signup(user: userCreate):
+@limiter.limit("3/hour")
+def signup(request: Request, user: userCreate):
     hashed_pwd=pwd_context.hash(user.password)
     
     conn=get_db_connection()
@@ -93,7 +125,8 @@ def signup(user: userCreate):
         conn.close()
 
 @router.post("/login")
-def login(user_credentials:userLogin):
+@limiter.limit("5/minute")
+def login(request: Request, user_credentials:userLogin):
 
     conn=get_db_connection()
     if not conn:
@@ -205,7 +238,8 @@ The Subtext Team
         print(f"Failed to send email to {to_email} via Gmail API: {e}")
 
 @router.post("/forgot-password")
-def forgot_password(req: ForgotPasswordRequest, background_tasks: BackgroundTasks):
+@limiter.limit("3/hour")
+def forgot_password(request: Request, req: ForgotPasswordRequest, background_tasks: BackgroundTasks):
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -279,6 +313,15 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         return user_id
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+@router.post("/refresh")
+def refresh_token(user_id: str = Depends(get_current_user)):
+    new_token = create_access_token(data={"sub": str(user_id)})
+    return {
+        "access_token": new_token,
+        "token_type": "bearer",
+        "user_id": user_id
+    }
 
 class PreferenceRequest(BaseModel):
     vibes: list[str]
@@ -378,7 +421,7 @@ async def get_taste_status(user_id: str = Depends(get_current_user)):
             if isinstance(top_genres, str):
                 try:
                     top_genres = json.loads(top_genres)
-                except:
+                except Exception:
                     top_genres = []
             
             return {

@@ -15,6 +15,13 @@ import taste as taste_module
 from contextlib import asynccontextmanager
 from database import get_db_connection
 import database
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from middleware import SecurityHeadersMiddleware, RequestSizeLimitMiddleware
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,11 +63,6 @@ app=FastAPI(
     redirect_slashes=True # This will handle /auth/login and /auth/login/
 )
 
-# Debug endpoint to see all registered routes
-@app.get("/debug/routes")
-def get_all_routes():
-    return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.routes]
-
 # Move these UP before other logic
 app.include_router(auth.router,prefix="/api/v1/sbtxt-auth",tags=["Authentication"])
 app.include_router(sync.router,prefix="/api/v1/sbtxt-sync",tags=["Letterboxd Sync"])
@@ -68,11 +70,22 @@ app.include_router(sync.router,prefix="/api/v1/sbtxt-sync",tags=["Letterboxd Syn
 #implement middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://sbtxt.vercel.app",
+        "http://localhost:3000",
+    ],
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "x-user-token"],
 )
+
+# Security middleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestSizeLimitMiddleware, max_size=10 * 1024 * 1024)
+
+# Rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.middleware("http")
 async def fix_and_log_requests(request: Request, call_next):
@@ -111,12 +124,14 @@ def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] = Depe
             conn.close()
 
         return user_id
-    except:
+    except Exception:
         return None
 
 #search page api
 @app.get("/search")
+@limiter.limit("30/minute")
 async def get_movies(
+    request: Request,
     q: str = Query("", description="The actual Query"),
     min_year: Optional[int] = None,
     max_year: Optional[int] = None,

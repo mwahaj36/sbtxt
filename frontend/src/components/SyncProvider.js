@@ -27,7 +27,7 @@ export function SyncProvider({ children }) {
                     setSyncStatus(data);
                 }
             } catch (e) {
-                console.error("Failed to reconnect sync", e);
+                if (process.env.NODE_ENV === 'development') console.error("Failed to reconnect sync", e);
             }
         };
         reconnectSync();
@@ -50,7 +50,7 @@ export function SyncProvider({ children }) {
                 });
                 
                 if (res.status === 401) {
-                    console.warn("Session invalid or account deleted. Cleaning up.");
+                    if (process.env.NODE_ENV === 'development') console.warn("Session invalid or account deleted. Cleaning up.");
                     localStorage.removeItem("token");
                     
                     // Only redirect to auth if on a protected page
@@ -65,7 +65,7 @@ export function SyncProvider({ children }) {
                     const data = await res.json();
                     // ONBOARDING GUARD: Redirect partial accounts to onboarding
                     if (!data.letterboxd_username && window.location.pathname !== '/onboarding') {
-                        console.warn("Partial account detected. Redirecting to onboarding.");
+                        if (process.env.NODE_ENV === 'development') console.warn("Partial account detected. Redirecting to onboarding.");
                         router.push("/onboarding");
                     }
                 }
@@ -126,7 +126,7 @@ export function SyncProvider({ children }) {
                         setSyncStatus(prev => ({ ...prev, ...data, isSilent: data.is_silent !== undefined ? data.is_silent : prev.isSilent }));
                     }
                 } catch (e) {
-                    console.error("Sync polling failed", e);
+                    if (process.env.NODE_ENV === 'development') console.error("Sync polling failed", e);
                 }
             }, 1000);
         }

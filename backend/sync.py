@@ -11,11 +11,14 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import List, Dict, Optional
 from pydantic import BaseModel
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException, Depends, Form
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException, Depends, Form, Header
 from database import get_db_connection
 from state import SYNC_PROGRESS
 from auth import get_current_user
 from taste import refresh_taste_vector_bg
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -72,7 +75,7 @@ async def get_poster_path_from_tmdb(tmdb_id: int, client: httpx.AsyncClient) -> 
         resp = await client.get(f"https://api.themoviedb.org/3/tv/{tmdb_id}", headers=get_tmdb_headers())
         if resp.status_code == 200:
             return resp.json().get('poster_path'), 'tv'
-    except: pass
+    except Exception: pass
     return None, 'movie'
 
 async def search_tmdb_for_poster(title: str, client: httpx.AsyncClient) -> Optional[tuple]:
@@ -86,7 +89,7 @@ async def search_tmdb_for_poster(title: str, client: httpx.AsyncClient) -> Optio
                 m_type = res.get('media_type')
                 if m_type in ['movie', 'tv']:
                     return res['id'], res.get('poster_path'), m_type
-    except: pass
+    except Exception: pass
     return None
 
 async def scrape_letterboxd_profile_data(username: str, client: httpx.AsyncClient):
@@ -148,7 +151,7 @@ async def get_tmdb_id_from_letterboxd(lb_url: str, client: httpx.AsyncClient) ->
                 if path_match: poster_path = "/" + path_match.group(1)
             else: poster_path = img_url
         return tmdb_id, poster_path
-    except: return None
+    except Exception: return None
 
 def _process_movie_db_sync(movie: dict, user_id: str, tmdb_id: Optional[int], poster_path: Optional[str]):
     """Synchronous DB logic for processing a movie."""
@@ -379,7 +382,7 @@ async def sync_live_history(username: str, user_id: str):
                                             try:
                                                 dt = datetime.strptime(pub_date_tag.text, "%a, %d %b %Y %H:%M:%S %z")
                                                 watched_date = dt.strftime("%Y-%m-%d")
-                                            except: pass
+                                            except Exception: pass
 
                                     year_tag = item.find('letterboxd:filmYear', ns)
                                     rating_tag = item.find('letterboxd:memberRating', ns)
@@ -481,7 +484,7 @@ async def sync_live_history(username: str, user_id: str):
         print(f"[SYNC ERROR] {e}")
         import traceback
         traceback.print_exc()
-        SYNC_PROGRESS[user_id] = {"status": "error", "message": str(e)}
+        SYNC_PROGRESS[user_id] = {"status": "error", "message": "Sync failed. Please try again later."}
 
 class CheckLikedRequest(BaseModel):
     tmdb_ids: List[int]
@@ -513,8 +516,21 @@ async def sync_letterboxd_zip(
     user_id: str = Depends(get_current_user)
 ):
     try:
+        # File size check (10MB max)
         content = await file.read()
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 10MB.")
+        
+        # Validate it's actually a ZIP file (check magic bytes)
+        if content[:4] != b'PK\x03\x04' and content[:4] != b'PK\x05\x06':
+            raise HTTPException(status_code=400, detail="Invalid file format. Please upload a ZIP file.")
+        
         z = zipfile.ZipFile(io.BytesIO(content))
+        
+        # ZIP bomb protection: check total uncompressed size
+        total_uncompressed = sum(info.file_size for info in z.infolist())
+        if total_uncompressed > 100 * 1024 * 1024:  # 100MB uncompressed limit
+            raise HTTPException(status_code=400, detail="ZIP contents too large.")
         
         movies_to_sync = []
         # Process files: ratings.csv, watched.csv, watchlist.csv, likes.csv
@@ -592,9 +608,11 @@ async def sync_letterboxd_zip(
         
         return {"status": "started", "total_movies": len(movies_to_sync)}
         
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions (validation errors) as-is
     except Exception as e:
-        print(f"[ZIP SYNC ERROR] {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[ZIP SYNC ERROR] {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process the uploaded file. Please ensure it is a valid Letterboxd export.")
 
 @router.post("/live")
 async def trigger_live_sync(background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):
@@ -757,13 +775,13 @@ async def get_library(type: str = "watched", page: int = 1, limit: Optional[int]
     finally: conn.close()
 
 @router.post("/mass")
-async def trigger_mass_sync(background_tasks: BackgroundTasks, secret: str = None):
+async def trigger_mass_sync(background_tasks: BackgroundTasks, authorization: str = Header(None)):
     """
     Admin only: Triggers a sequential quick sync for all users in the database.
     Designed to be called by a daily cron job.
     """
-    admin_secret = os.getenv("ADMIN_SECRET", "default_secret_change_me")
-    if secret != admin_secret:
+    admin_secret = os.getenv("ADMIN_SECRET")
+    if not admin_secret or not authorization or authorization != f"Bearer {admin_secret}":
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     background_tasks.add_task(process_mass_sync)

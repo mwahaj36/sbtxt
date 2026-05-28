@@ -6,7 +6,7 @@ export async function GET(request) {
     // Get secrets from environment
     const rawUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
     const backendUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-    const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN;
+    const hfToken = process.env.HF_TOKEN;
 
     if (!backendUrl) {
         return NextResponse.json({ error: 'Backend configuration missing' }, { status: 500 });
@@ -15,7 +15,7 @@ export async function GET(request) {
     try {
         // Forward all query parameters to the backend
         const url = `${backendUrl}/search?${searchParams.toString()}`;
-        console.log("📡 Proxying request to:", url);
+        if (process.env.NODE_ENV === 'development') console.log("📡 Proxying request to:", url);
 
         // Build headers — include user's JWT if provided for personalization
         const headers = {
@@ -41,7 +41,7 @@ export async function GET(request) {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error("🚨 Proxy Error:", error);
+        if (process.env.NODE_ENV === 'development') console.error("🚨 Proxy Error:", error);
         return NextResponse.json({ error: 'Failed to connect to backend' }, { status: 500 });
     }
 }

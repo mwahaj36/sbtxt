@@ -30,8 +30,7 @@ const MovieCard = ({ movie, index, onGenreClick }) => {
         if (variants.length === 0 && !loadingVariants) {
             setLoadingVariants(true);
             try {
-                const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-                const response = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/images?api_key=${apiKey}&include_image_language=en,null`);
+                const response = await fetch(`/api/tmdb?movie_id=${movie.id}&language=en,null`);
                 const data = await response.json();
                 if (data.posters && data.posters.length > 1) {
                     // Take up to 4 high-quality variants
@@ -39,7 +38,7 @@ const MovieCard = ({ movie, index, onGenreClick }) => {
                     setVariants(paths);
                 }
             } catch (err) {
-                console.error("Failed to fetch variants", err);
+                if (process.env.NODE_ENV === 'development') console.error("Failed to fetch variants", err);
             } finally {
                 setLoadingVariants(false);
             }
@@ -179,7 +178,7 @@ export default function SearchPage() {
                     ]);
                 }
             } catch (e) {
-                console.error("Failed to fetch languages", e);
+                if (process.env.NODE_ENV === 'development') console.error("Failed to fetch languages", e);
                 setTmdbLanguages([
                     { name: "All Languages", value: "" },
                     { name: "English", value: "en" },
@@ -302,7 +301,7 @@ export default function SearchPage() {
                 }
             }
 
-            console.log("🚀 [Search] Fetching from proxy:", url);
+            if (process.env.NODE_ENV === 'development') console.log("🚀 [Search] Fetching from proxy:", url);
 
             const headers = {};
             if (token) {
@@ -322,13 +321,13 @@ export default function SearchPage() {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error("❌ [Search] Backend Error:", errorText);
+                if (process.env.NODE_ENV === 'development') console.error("❌ [Search] Backend Error:", errorText);
                 setMovies([]);
                 return;
             }
 
             const data = await response.json();
-            console.log("✅ [Search] Results received:", data?.length || 0);
+            if (process.env.NODE_ENV === 'development') console.log("✅ [Search] Results received:", data?.length || 0);
             
             if (token && data && data.length > 0) {
                 try {
@@ -351,17 +350,17 @@ export default function SearchPage() {
                         });
                     }
                 } catch (e) {
-                    console.error("Failed to check liked status", e);
+                    if (process.env.NODE_ENV === 'development') console.error("Failed to check liked status", e);
                 }
             }
             
             setMovies(data);
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.log("🛑 [Search] Request aborted by user.");
+                if (process.env.NODE_ENV === 'development') console.log("🛑 [Search] Request aborted by user.");
                 return;
             }
-            console.error("🚨 [Search] Critical Connection Failure:", error);
+            if (process.env.NODE_ENV === 'development') console.error("🚨 [Search] Critical Connection Failure:", error);
             setMovies([]);
         } finally {
             setLoading(false);

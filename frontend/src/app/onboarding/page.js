@@ -128,7 +128,7 @@ export default function Onboard() {
             });
             router.push('/profile');
         } catch (e) {
-            console.error("Failed to save preferences", e);
+            if (process.env.NODE_ENV === 'development') console.error("Failed to save preferences", e);
             router.push('/profile'); // Proceed anyway
         }
     };

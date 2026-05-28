@@ -72,7 +72,7 @@ export default function GalaxyPage() {
         setPerformanceProfile(p);
         setIsCullingEnabled(p !== 'ultra');
         hasManualOverride.current = true;
-        console.log(`GALAXY_MODE: Manually switched to ${p.toUpperCase()}`);
+        if (process.env.NODE_ENV === 'development') console.log(`GALAXY_MODE: Manually switched to ${p.toUpperCase()}`);
     }, []);
 
     const sectorAnchors = useMemo(() => [
@@ -98,15 +98,15 @@ export default function GalaxyPage() {
 
     const loadGalaxy = useCallback(async () => {
         try {
-            console.log("GALAXY: Establishing connection to Neural Matrix...");
+            if (process.env.NODE_ENV === 'development') console.log("GALAXY: Establishing connection to Neural Matrix...");
             let points;
             try {
-                console.log("GALAXY: Fetching dynamic points from Backend API...");
+                if (process.env.NODE_ENV === 'development') console.log("GALAXY: Fetching dynamic points from Backend API...");
                 const res = await fetch(`${API_BASE}/api/v1/constellation/points`);
                 if (!res.ok) throw new Error("Backend API fetch failed");
                 points = await res.json();
             } catch (e) {
-                console.warn("GALAXY FALLBACK: Backend API failed, falling back to static points...", e);
+                if (process.env.NODE_ENV === 'development') console.warn("GALAXY FALLBACK: Backend API failed, falling back to static points...", e);
                 const res = await fetch('/galaxy_points.json');
                 points = await res.json();
             }
@@ -124,7 +124,7 @@ export default function GalaxyPage() {
                 if (isIntegrated) {
                     profile = points.length > 50000 ? 'eco' : 'balanced';
                 }
-                console.log(`GALAXY_HARDWARE: Detected ${renderer}. Assigned Profile: ${profile.toUpperCase()}`);
+                if (process.env.NODE_ENV === 'development') console.log(`GALAXY_HARDWARE: Detected ${renderer}. Assigned Profile: ${profile.toUpperCase()}`);
             }
             
             // Only apply automatic profile if user hasn't manually overridden yet
@@ -134,7 +134,7 @@ export default function GalaxyPage() {
             }
 
             if (!points || !Array.isArray(points)) {
-                console.error("CRITICAL: Signal data invalid.");
+                if (process.env.NODE_ENV === 'development') console.error("CRITICAL: Signal data invalid.");
                 setLoading(false);
                 return;
             }
@@ -164,7 +164,7 @@ export default function GalaxyPage() {
                     }
 
                     favorites = authData.profile?.favorites || [];
-                } catch(e) { console.warn("AUTH_SYNC_FAILED: Proceeding as Guest."); }
+                } catch(e) { if (process.env.NODE_ENV === 'development') console.warn("AUTH_SYNC_FAILED: Proceeding as Guest."); }
 
                 try {
                     const watchRes = await fetch(`${API_BASE}/api/v1/sbtxt-sync/library?type=watched&limit=5000`, { headers });
@@ -188,13 +188,15 @@ export default function GalaxyPage() {
             const traceTarget = watchedHistory[0];
             const traceId = traceTarget ? Number(traceTarget.tmdb_id || traceTarget.id) : null;
 
-            console.log("SIGNAL_TRACE: Deep Audit Started", {
-                librarySize: watchedHistory.length,
-                targetMovie: traceTarget?.title,
-                targetId: traceId,
-                isTargetInSet: traceId ? watchedIdsSet.has(traceId) : false,
-                galaxySampleSize: points.slice(0, 5).map(p => ({ id: p.i, title: p.t }))
-            });
+            if (process.env.NODE_ENV === 'development') {
+                console.log("SIGNAL_TRACE: Deep Audit Started", {
+                    librarySize: watchedHistory.length,
+                    targetMovie: traceTarget?.title,
+                    targetId: traceId,
+                    isTargetInSet: traceId ? watchedIdsSet.has(traceId) : false,
+                    galaxySampleSize: points.slice(0, 5).map(p => ({ id: p.i, title: p.t }))
+                });
+            }
 
             let matchCount = 0;
             const nodes = points.map(p => {
@@ -208,14 +210,14 @@ export default function GalaxyPage() {
                 if (favIds.has(id)) type = 'favorite';
                 
                 if (id === traceId) {
-                    console.log(`SIGNAL_TRACE: Target Found! [${id}] -> ${p.t} as ${type}`);
+                    if (process.env.NODE_ENV === 'development') console.log(`SIGNAL_TRACE: Target Found! [${id}] -> ${p.t} as ${type}`);
                 }
 
                 const x = p.x * 500; const y = p.y * 500; const z = p.z * 500;
                 return { id, name: p.t, x, y, z, fx: x, fy: y, fz: z, type };
             });
 
-            console.log(`SIGNAL_TRACE: Density Audit: ${matchCount} signals successfully locked.`);
+            if (process.env.NODE_ENV === 'development') console.log(`SIGNAL_TRACE: Density Audit: ${matchCount} signals successfully locked.`);
 
             const explored = (watchedIdsSet.size / (points.length || 1)) * 100;
             setExploration(explored);
@@ -245,13 +247,13 @@ export default function GalaxyPage() {
             const finalNodes = currentMode === 'eco' ? nodes.filter((n, i) => n.type !== 'neutral' || i % 2 === 0) : nodes;
 
             setData({ nodes: finalNodes, links, centroid });
-            console.log(`GALAXY: Mapped ${finalNodes.length} signals. [Mode: ${currentMode.toUpperCase()}]`);
+            if (process.env.NODE_ENV === 'development') console.log(`GALAXY: Mapped ${finalNodes.length} signals. [Mode: ${currentMode.toUpperCase()}]`);
             
             // Artificial delay for loading experience (minimum 3 seconds for stability)
             setTimeout(() => {
                 // Initiating warp while still behind the loading screen
                 if (fgRef.current && centroid) {
-                    console.log(`GALAXY: Initiating 1s Full-Burn warp to Core at ${centroid.x}, ${centroid.y}, ${centroid.z}`);
+                    if (process.env.NODE_ENV === 'development') console.log(`GALAXY: Initiating 1s Full-Burn warp to Core at ${centroid.x}, ${centroid.y}, ${centroid.z}`);
                     
                     // Warp the camera with a 1s duration to ensure engine sync
                     fgRef.current.cameraPosition(
@@ -262,7 +264,7 @@ export default function GalaxyPage() {
 
                     // Wait for the warp (1s) + stabilization (1s) before revealing
                     setTimeout(() => {
-                        console.log("GALAXY: Insertion Complete. Awaiting Pilot Entry.");
+                        if (process.env.NODE_ENV === 'development') console.log("GALAXY: Insertion Complete. Awaiting Pilot Entry.");
                         setIsReady(true);
                     }, 2000);
                 } else {
@@ -270,7 +272,7 @@ export default function GalaxyPage() {
                 }
             }, 3000);
         } catch (error) {
-            console.error("GALAXY_LOAD_ERROR:", error);
+            if (process.env.NODE_ENV === 'development') console.error("GALAXY_LOAD_ERROR:", error);
             setLoading(false);
         }
     }, [sectorAnchors]);

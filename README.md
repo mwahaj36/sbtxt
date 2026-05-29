@@ -1,6 +1,5 @@
 ---
 title: Subtext
-emoji: 🌌
 colorFrom: purple
 colorTo: indigo
 sdk: docker
@@ -14,7 +13,7 @@ pinned: false
 
 Subtext maps 100,000+ films into a shared vector space and lets you search by feeling. Type "lonely astronaut drifting through silence" and get results that *understand* what you mean — not just movies with those words in the synopsis. Pair that with your Letterboxd history and it learns what kind of cinema resonates with you personally, re-ranking every result through your own taste.
 
-**Live Demo**: [subtext.hf.space](https://mwahaj36-subtext.hf.space)
+**Live Demo**: [subtext.vercel.app](https://sbtxt.vercel.app)
 
 ---
 
